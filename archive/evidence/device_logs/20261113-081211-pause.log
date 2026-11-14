@@ -1,0 +1,1160 @@
+15:51:26.930 L boot | app=0.4.3 unity=6000.2.9f1 device=Oculus Quest 3S os=Android OS 14 / API-34 (UP1A.231005.007.A1/4069240020600610) gfx=Adreno (TM) 740 mem=7757MB
+15:51:26.932 L boot | persistent=/storage/emulated/0/Android/data/in.arescope.beta02.questroom/files log=/storage/emulated/0/Android/data/in.arescope.beta02.questroom/files/arescope-debug.log
+15:51:27.040 L xr-boot | waiting for XR device, occlusion=no-subsystem
+15:51:27.041 L xr-boot | device active after 0.00s, occlusion=no-subsystem
+15:51:27.049 L xr | occlusion=no-subsystem depthMode=Disabled arSession=enabled scanner=ok xr=active
+15:51:27.660 W xr-boot | occlusion missing, restarting ARSession to recreate subsystems
+15:51:28.168 W depth | occlusion subsystem not running: sub=null mode=Disabled
+15:51:28.291 L xr-boot | after restart occlusion=no-subsystem
+15:51:33.173 W depth | occlusion subsystem not running: sub=null mode=Disabled
+15:51:38.241 W depth | occlusion subsystem not running: sub=null mode=Disabled
+15:51:39.644 L scan | StartScanAsync requested
+15:51:43.303 W depth | occlusion subsystem not running: sub=null mode=Disabled
+15:51:45.288 L scan | started
+15:51:45.288 L scan | t=0s phase=Discovering progress=0% uplink=none renderer=no
+15:51:45.491 L scan | StartScanAsync returned in 5.84s scanning=True
+15:51:46.299 L scan | t=1s phase=Discovering progress=0% uplink=none renderer=no
+15:51:47.301 L scan | t=2s phase=Discovering progress=0% uplink=none renderer=no
+15:51:48.302 L scan | t=3s phase=Discovering progress=0% uplink=none renderer=no
+15:51:48.442 W depth | occlusion subsystem not running: sub=null mode=Disabled
+15:51:49.302 L scan | t=4s phase=Discovering progress=0% uplink=none renderer=no
+15:51:50.316 L scan | t=5s phase=Discovering progress=0% uplink=none renderer=no
+15:51:51.316 L scan | t=6s phase=Discovering progress=0% uplink=none renderer=no
+15:51:52.329 L scan | t=7s phase=Discovering progress=0% uplink=none renderer=no
+15:51:53.343 L scan | t=8s phase=Discovering progress=0% uplink=none renderer=no
+15:51:53.343 W scan | no progress after 8s | occlusion=no-subsystem depthMode=Disabled arSession=disabled scanner=ok xr=active
+15:51:53.441 W depth | occlusion subsystem not running: sub=null mode=Disabled
+15:51:54.344 L scan | t=9s phase=Discovering progress=0% uplink=none renderer=no
+15:51:55.357 L scan | t=10s phase=Discovering progress=0% uplink=none renderer=no
+15:51:56.302 L scan | FinalizeScanAsync requested
+15:51:56.332 L scan | stopped after 11.0s
+15:51:58.441 W depth | occlusion subsystem not running: sub=null mode=Disabled
+15:52:03.441 W depth | occlusion subsystem not running: sub=null mode=Disabled
+15:52:08.441 W depth | occlusion subsystem not running: sub=null mode=Disabled
+15:52:13.440 W depth | occlusion subsystem not running: sub=null mode=Disabled
+15:52:18.441 W depth | occlusion subsystem not running: sub=null mode=Disabled
+15:52:23.441 W depth | occlusion subsystem not running: sub=null mode=Disabled
+15:52:28.441 W depth | occlusion subsystem not running: sub=null mode=Disabled
+15:52:33.441 W depth | occlusion subsystem not running: sub=null mode=Disabled
+15:52:38.441 W depth | occlusion subsystem not running: sub=null mode=Disabled
+15:52:43.440 W depth | occlusion subsystem not running: sub=null mode=Disabled
+16:15:45.224 L boot | app=0.4.4 unity=6000.2.9f1 device=Oculus Quest 3S os=Android OS 14 / API-34 (UP1A.231005.007.A1/4069240020600610) gfx=Adreno (TM) 740 mem=7757MB
+16:15:45.226 L boot | persistent=/storage/emulated/0/Android/data/in.arescope.beta02.questroom/files log=/storage/emulated/0/Android/data/in.arescope.beta02.questroom/files/arescope-debug.log
+16:15:45.335 L xr-boot | waiting for XR device, occlusion=no-subsystem
+16:15:45.335 L xr-boot | device active after 0.00s, occlusion=no-subsystem
+16:15:45.343 L xr | occlusion=no-subsystem depthMode=Disabled arSession=enabled scanner=ok xr=active
+16:15:45.945 W xr-boot | occlusion missing, restarting ARSession to recreate subsystems
+16:15:46.354 W depth | occlusion subsystem not running: sub=null mode=Disabled
+16:15:46.576 L xr-boot | after restart occlusion=no-subsystem
+16:15:51.355 W depth | occlusion subsystem not running: sub=null mode=Disabled
+16:15:56.354 W depth | occlusion subsystem not running: sub=null mode=Disabled
+16:15:58.382 L scan | StartScanAsync requested
+16:15:58.424 L scan | started
+16:15:58.424 L scan | t=0s phase=Discovering progress=0% uplink=none renderer=no
+16:15:58.728 L scan | StartScanAsync returned in 0.35s scanning=True
+16:15:59.426 L scan | t=1s phase=Discovering progress=0% uplink=none renderer=no
+16:16:00.451 L scan | t=2s phase=Discovering progress=0% uplink=none renderer=no
+16:16:01.453 L scan | t=3s phase=Discovering progress=4% uplink=none renderer=no
+16:16:02.453 L scan | t=4s phase=Discovering progress=6% uplink=200/0s ago/stored renderer=no
+16:16:03.453 L scan | t=5s phase=Discovering progress=6% uplink=200/1s ago/stored renderer=no
+16:16:04.466 L scan | t=6s phase=Discovering progress=7% uplink=200/2s ago/stored renderer=no
+16:16:05.467 L scan | t=7s phase=Discovering progress=9% uplink=200/0s ago/stored renderer=no
+16:16:06.495 L scan | t=8s phase=Discovering progress=9% uplink=200/1s ago/stored renderer=no
+16:16:07.507 L scan | t=9s phase=Discovering progress=12% uplink=200/3s ago/stored renderer=no
+16:16:08.509 L scan | t=10s phase=Discovering progress=12% uplink=200/1s ago/stored renderer=no
+16:16:09.509 L scan | t=11s phase=Discovering progress=13% uplink=200/2s ago/stored renderer=no
+16:16:10.509 L scan | t=12s phase=Discovering progress=13% uplink=200/3s ago/stored renderer=no
+16:16:11.523 L scan | t=13s phase=Discovering progress=15% uplink=200/1s ago/stored renderer=no
+16:16:12.538 L scan | t=14s phase=Discovering progress=15% uplink=200/2s ago/stored renderer=no
+16:16:13.542 L scan | t=15s phase=Discovering progress=16% uplink=200/3s ago/stored renderer=no
+16:16:14.550 L scan | t=16s phase=Discovering progress=16% uplink=200/1s ago/stored renderer=no
+16:16:15.550 L scan | t=17s phase=Discovering progress=16% uplink=200/2s ago/stored renderer=no
+16:16:16.584 L scan | t=18s phase=Discovering progress=17% uplink=200/3s ago/stored renderer=no
+16:16:30.558 L scan | t=32s phase=Discovering progress=17% uplink=200/0s ago/stored renderer=no
+16:16:31.554 L scan | t=33s phase=Discovering progress=21% uplink=200/1s ago/stored renderer=no
+16:16:32.556 L scan | t=34s phase=Discovering progress=21% uplink=200/2s ago/stored renderer=no
+16:16:33.557 L scan | t=35s phase=Discovering progress=22% uplink=200/3s ago/stored renderer=no
+16:16:34.570 L scan | t=36s phase=Discovering progress=23% uplink=200/1s ago/stored renderer=no
+16:16:35.571 L scan | t=37s phase=Discovering progress=23% uplink=200/2s ago/stored renderer=no
+16:16:36.584 L scan | t=38s phase=Discovering progress=21% uplink=200/3s ago/stored renderer=no
+16:16:37.595 L scan | t=39s phase=Discovering progress=22% uplink=200/0s ago/stored renderer=no
+16:16:38.596 L scan | t=40s phase=Discovering progress=23% uplink=200/1s ago/stored renderer=no
+16:16:39.599 L scan | t=41s phase=Discovering progress=23% uplink=200/2s ago/stored renderer=no
+16:16:40.612 L scan | t=42s phase=Discovering progress=23% uplink=200/1s ago/stored renderer=no
+16:16:41.624 L scan | t=43s phase=Discovering progress=24% uplink=200/2s ago/stored renderer=no
+16:16:42.626 L scan | t=44s phase=Discovering progress=24% uplink=200/3s ago/stored renderer=no
+16:16:43.646 L scan | t=45s phase=Discovering progress=24% uplink=200/1s ago/stored renderer=no
+16:16:44.655 L scan | t=46s phase=Discovering progress=24% uplink=200/2s ago/stored renderer=no
+16:16:45.670 L scan | t=47s phase=Discovering progress=24% uplink=200/3s ago/stored renderer=no
+16:16:46.682 L scan | t=48s phase=Discovering progress=23% uplink=200/1s ago/stored renderer=no
+16:16:47.697 L scan | t=49s phase=Discovering progress=23% uplink=200/2s ago/stored renderer=no
+16:16:48.755 L scan | t=50s phase=Discovering progress=24% uplink=200/3s ago/stored renderer=no
+16:16:49.764 L scan | t=51s phase=Discovering progress=24% uplink=200/1s ago/stored renderer=no
+16:16:50.777 L scan | t=52s phase=Discovering progress=25% uplink=200/2s ago/stored renderer=no
+16:16:51.821 L scan | t=53s phase=Discovering progress=25% uplink=200/3s ago/stored renderer=no
+16:16:52.832 L scan | t=54s phase=Discovering progress=25% uplink=200/1s ago/stored renderer=no
+16:16:53.863 L scan | t=55s phase=Discovering progress=25% uplink=200/2s ago/stored renderer=no
+16:16:54.875 L scan | t=56s phase=Discovering progress=26% uplink=200/3s ago/stored renderer=no
+16:16:55.875 L scan | t=57s phase=Discovering progress=28% uplink=200/1s ago/stored renderer=no
+16:16:56.875 L scan | t=58s phase=Discovering progress=28% uplink=200/2s ago/stored renderer=no
+16:16:57.903 L scan | t=59s phase=Refining progress=31% uplink=200/3s ago/stored renderer=no
+16:16:58.915 L scan | t=60s phase=Refining progress=31% uplink=200/1s ago/stored renderer=no
+16:16:59.916 L scan | t=61s phase=Refining progress=31% uplink=200/2s ago/stored renderer=no
+16:17:00.918 L scan | t=62s phase=Refining progress=31% uplink=200/3s ago/stored renderer=no
+16:17:01.931 L scan | t=64s phase=Refining progress=32% uplink=200/1s ago/stored renderer=no
+16:17:02.931 L scan | t=65s phase=Refining progress=32% uplink=200/2s ago/stored renderer=no
+16:17:03.965 L scan | t=66s phase=Refining progress=32% uplink=200/3s ago/stored renderer=no
+16:17:05.001 L scan | t=67s phase=Refining progress=33% uplink=200/1s ago/stored renderer=no
+16:17:06.001 L scan | t=68s phase=Refining progress=33% uplink=200/2s ago/stored renderer=no
+16:17:07.007 L scan | t=69s phase=Refining progress=33% uplink=200/3s ago/stored renderer=no
+16:17:08.014 L scan | t=70s phase=Refining progress=34% uplink=200/4s ago/stored renderer=no
+16:17:09.015 L scan | t=71s phase=Refining progress=34% uplink=200/0s ago/stored renderer=no
+16:17:10.044 L scan | t=72s phase=Refining progress=34% uplink=200/2s ago/stored renderer=no
+16:17:11.058 L scan | t=73s phase=Refining progress=35% uplink=200/1s ago/stored renderer=no
+16:17:12.058 L scan | t=74s phase=Refining progress=38% uplink=200/2s ago/stored renderer=no
+16:17:13.076 L scan | t=75s phase=Refining progress=38% uplink=200/3s ago/stored renderer=no
+16:17:14.084 L scan | t=76s phase=Refining progress=39% uplink=200/1s ago/stored renderer=no
+16:17:15.084 L scan | t=77s phase=Refining progress=37% uplink=200/2s ago/stored renderer=no
+16:17:16.086 L scan | t=78s phase=Refining progress=37% uplink=200/3s ago/stored renderer=no
+16:17:17.107 L scan | t=79s phase=Refining progress=37% uplink=200/1s ago/stored renderer=no
+16:17:18.112 L scan | t=80s phase=Refining progress=37% uplink=200/2s ago/stored renderer=no
+16:17:19.126 L scan | t=81s phase=Refining progress=38% uplink=200/3s ago/stored renderer=no
+16:17:20.143 L scan | t=82s phase=Refining progress=38% uplink=200/1s ago/stored renderer=no
+16:17:25.026 L scan | t=87s phase=Refining progress=38% uplink=200/6s ago/stored renderer=no
+16:17:26.035 L scan | t=88s phase=Refining progress=39% uplink=200/7s ago/stored renderer=no
+16:17:27.050 L scan | t=89s phase=Refining progress=39% uplink=200/8s ago/stored renderer=no
+16:17:28.056 L scan | t=90s phase=Refining progress=39% uplink=200/9s ago/stored renderer=no
+16:17:29.101 L scan | t=91s phase=Refining progress=39% uplink=200/1s ago/stored renderer=no
+16:17:30.108 L scan | t=92s phase=Refining progress=39% uplink=200/2s ago/stored renderer=no
+16:17:31.111 L scan | t=93s phase=Refining progress=39% uplink=200/3s ago/stored renderer=no
+16:17:32.124 L scan | t=94s phase=Refining progress=39% uplink=200/1s ago/stored renderer=no
+16:17:33.137 L scan | t=95s phase=Refining progress=39% uplink=200/2s ago/stored renderer=no
+16:17:34.138 L scan | t=96s phase=Refining progress=39% uplink=200/3s ago/stored renderer=no
+16:17:35.150 L scan | t=97s phase=Refining progress=39% uplink=200/1s ago/stored renderer=no
+16:17:36.153 L scan | t=98s phase=Refining progress=39% uplink=200/2s ago/stored renderer=no
+16:17:37.159 L scan | t=99s phase=Refining progress=39% uplink=200/3s ago/stored renderer=no
+16:17:38.165 L scan | t=100s phase=Refining progress=39% uplink=200/4s ago/stored renderer=no
+16:17:39.174 L scan | t=101s phase=Refining progress=39% uplink=200/5s ago/stored renderer=no
+16:17:40.208 L scan | t=102s phase=Refining progress=39% uplink=200/6s ago/stored renderer=no
+16:17:41.219 L scan | t=103s phase=Refining progress=39% uplink=200/1s ago/stored renderer=no
+16:17:42.253 L scan | t=104s phase=Refining progress=39% uplink=200/2s ago/stored renderer=no
+16:17:43.255 L scan | t=105s phase=Refining progress=39% uplink=200/3s ago/stored renderer=no
+16:17:44.281 L scan | t=106s phase=Refining progress=39% uplink=200/1s ago/stored renderer=no
+16:17:45.294 L scan | t=107s phase=Refining progress=39% uplink=200/2s ago/stored renderer=no
+16:17:46.340 L scan | t=108s phase=Refining progress=39% uplink=200/3s ago/stored renderer=no
+16:17:47.359 L scan | t=109s phase=Refining progress=39% uplink=200/1s ago/stored renderer=no
+16:17:48.364 L scan | t=110s phase=Refining progress=39% uplink=200/2s ago/stored renderer=no
+16:17:49.366 L scan | t=111s phase=Refining progress=38% uplink=200/3s ago/stored renderer=no
+16:17:50.406 L scan | t=112s phase=Refining progress=38% uplink=200/1s ago/stored renderer=no
+16:17:51.434 L scan | t=113s phase=Refining progress=36% uplink=200/2s ago/stored renderer=no
+16:17:52.434 L scan | t=114s phase=Refining progress=36% uplink=200/3s ago/stored renderer=no
+16:17:53.480 L scan | t=115s phase=Refining progress=39% uplink=200/1s ago/stored renderer=no
+16:17:54.490 L scan | t=116s phase=Refining progress=39% uplink=200/2s ago/stored renderer=no
+16:17:55.494 L scan | t=117s phase=Refining progress=40% uplink=200/0s ago/stored renderer=no
+16:17:56.522 L scan | t=118s phase=Refining progress=41% uplink=200/1s ago/stored renderer=no
+16:17:57.543 L scan | t=119s phase=Refining progress=41% uplink=200/2s ago/stored renderer=no
+16:17:58.559 L scan | t=120s phase=Refining progress=41% uplink=200/0s ago/stored renderer=no
+16:17:59.560 L scan | t=121s phase=Refining progress=41% uplink=200/1s ago/stored renderer=no
+16:18:00.577 L scan | t=122s phase=Refining progress=41% uplink=200/2s ago/stored renderer=no
+16:18:01.632 L scan | t=123s phase=Refining progress=42% uplink=200/0s ago/stored renderer=no
+16:18:02.642 L scan | t=124s phase=Refining progress=42% uplink=200/1s ago/stored renderer=no
+16:18:03.658 L scan | t=125s phase=Refining progress=37% uplink=200/2s ago/stored renderer=no
+16:18:04.691 L scan | t=126s phase=Refining progress=37% uplink=200/0s ago/stored renderer=no
+16:18:05.699 L scan | t=127s phase=Refining progress=35% uplink=200/1s ago/stored renderer=no
+16:18:06.739 L scan | t=128s phase=Refining progress=36% uplink=200/2s ago/stored renderer=no
+16:18:07.748 L scan | t=129s phase=Refining progress=36% uplink=200/0s ago/stored renderer=no
+16:18:08.783 L scan | t=130s phase=Refining progress=36% uplink=200/1s ago/stored renderer=no
+16:18:09.792 L scan | t=131s phase=Refining progress=36% uplink=200/2s ago/stored renderer=no
+16:18:10.798 L scan | t=132s phase=Refining progress=37% uplink=200/0s ago/stored renderer=no
+16:18:11.837 L scan | t=133s phase=Refining progress=38% uplink=200/1s ago/stored renderer=no
+16:18:12.856 L scan | t=134s phase=Refining progress=38% uplink=200/2s ago/stored renderer=no
+16:18:13.865 L scan | t=135s phase=Refining progress=38% uplink=200/0s ago/stored renderer=no
+16:18:14.878 L scan | t=136s phase=Refining progress=37% uplink=200/1s ago/stored renderer=no
+16:18:15.906 L scan | t=137s phase=Refining progress=37% uplink=200/2s ago/stored renderer=no
+16:18:16.926 L scan | t=139s phase=Refining progress=38% uplink=200/0s ago/stored renderer=no
+16:18:17.935 L scan | t=140s phase=Refining progress=37% uplink=200/1s ago/stored renderer=no
+16:18:18.952 L scan | t=141s phase=Refining progress=37% uplink=200/2s ago/stored renderer=no
+16:18:20.002 L scan | t=142s phase=Refining progress=37% uplink=200/0s ago/stored renderer=no
+16:18:21.042 L scan | t=143s phase=Refining progress=37% uplink=200/1s ago/stored renderer=no
+16:18:22.044 L scan | t=144s phase=Refining progress=37% uplink=200/2s ago/stored renderer=no
+16:18:23.054 L scan | t=145s phase=Refining progress=37% uplink=200/0s ago/stored renderer=no
+16:18:24.072 L scan | t=146s phase=Refining progress=37% uplink=200/1s ago/stored renderer=no
+16:18:25.072 L scan | t=147s phase=Refining progress=37% uplink=200/2s ago/stored renderer=no
+16:18:26.074 L scan | t=148s phase=Refining progress=37% uplink=200/0s ago/stored renderer=no
+16:18:27.086 L scan | t=149s phase=Refining progress=37% uplink=200/1s ago/stored renderer=no
+16:18:28.095 L scan | t=150s phase=Refining progress=37% uplink=200/2s ago/stored renderer=no
+16:18:29.102 L scan | t=151s phase=Refining progress=37% uplink=200/0s ago/stored renderer=no
+16:18:30.124 L scan | t=152s phase=Refining progress=37% uplink=200/1s ago/stored renderer=no
+16:18:31.156 L scan | t=153s phase=Refining progress=37% uplink=200/2s ago/stored renderer=no
+16:18:32.161 L scan | t=154s phase=Refining progress=37% uplink=200/0s ago/stored renderer=no
+16:18:33.171 L scan | t=155s phase=Refining progress=37% uplink=200/1s ago/stored renderer=no
+16:18:34.184 L scan | t=156s phase=Refining progress=37% uplink=200/2s ago/stored renderer=no
+16:18:35.185 L scan | t=157s phase=Refining progress=37% uplink=200/0s ago/stored renderer=no
+16:18:36.198 L scan | t=158s phase=Refining progress=37% uplink=200/1s ago/stored renderer=no
+16:18:37.239 L scan | t=159s phase=Refining progress=37% uplink=200/2s ago/stored renderer=no
+16:18:38.249 L scan | t=160s phase=Refining progress=37% uplink=200/0s ago/stored renderer=no
+16:18:39.264 L scan | t=161s phase=Refining progress=37% uplink=200/1s ago/stored renderer=no
+16:18:40.268 L scan | t=162s phase=Refining progress=37% uplink=200/2s ago/stored renderer=no
+16:18:41.270 L scan | t=163s phase=Refining progress=37% uplink=200/0s ago/stored renderer=no
+16:18:42.296 L scan | t=164s phase=Refining progress=37% uplink=200/1s ago/stored renderer=no
+16:18:43.323 L scan | t=165s phase=Refining progress=37% uplink=200/3s ago/stored renderer=no
+16:18:44.336 L scan | t=166s phase=Refining progress=37% uplink=200/0s ago/stored renderer=no
+16:18:45.372 L scan | t=167s phase=Refining progress=37% uplink=200/1s ago/stored renderer=no
+16:18:46.380 L scan | t=168s phase=Refining progress=37% uplink=200/2s ago/stored renderer=no
+16:18:47.382 L scan | t=169s phase=Refining progress=37% uplink=200/0s ago/stored renderer=no
+16:18:48.382 L scan | t=170s phase=Refining progress=37% uplink=200/1s ago/stored renderer=no
+16:18:49.392 L scan | t=171s phase=Refining progress=37% uplink=200/2s ago/stored renderer=no
+16:18:50.398 L scan | t=172s phase=Refining progress=37% uplink=200/0s ago/stored renderer=no
+16:18:51.428 L scan | t=173s phase=Refining progress=38% uplink=200/1s ago/stored renderer=no
+16:18:52.448 L scan | t=174s phase=Refining progress=38% uplink=200/2s ago/stored renderer=no
+16:18:53.458 L scan | t=175s phase=Refining progress=38% uplink=200/1s ago/stored renderer=no
+16:18:54.484 L scan | t=176s phase=Refining progress=38% uplink=200/2s ago/stored renderer=no
+16:18:55.489 L scan | t=177s phase=Refining progress=37% uplink=200/3s ago/stored renderer=no
+16:18:56.510 L scan | t=178s phase=Refining progress=37% uplink=200/1s ago/stored renderer=no
+16:18:57.546 L scan | t=179s phase=Refining progress=38% uplink=200/2s ago/stored renderer=no
+16:18:58.559 L scan | t=180s phase=Refining progress=38% uplink=200/3s ago/stored renderer=no
+16:18:59.563 L scan | t=181s phase=Refining progress=38% uplink=200/1s ago/stored renderer=no
+16:19:00.560 L scan | t=182s phase=Refining progress=39% uplink=200/2s ago/stored renderer=no
+16:19:01.573 L scan | t=183s phase=Refining progress=39% uplink=200/3s ago/stored renderer=no
+16:19:02.583 L scan | t=184s phase=Refining progress=39% uplink=200/1s ago/stored renderer=no
+16:19:03.601 L scan | t=185s phase=Refining progress=39% uplink=200/2s ago/stored renderer=no
+16:19:04.602 L scan | t=186s phase=Refining progress=39% uplink=200/3s ago/stored renderer=no
+16:19:05.602 L scan | t=187s phase=Refining progress=39% uplink=200/1s ago/stored renderer=no
+16:19:06.629 L scan | t=188s phase=Refining progress=39% uplink=200/2s ago/stored renderer=no
+16:19:07.656 L scan | t=189s phase=Refining progress=39% uplink=200/3s ago/stored renderer=no
+16:19:08.673 L scan | t=190s phase=Refining progress=39% uplink=200/1s ago/stored renderer=no
+16:19:09.674 L scan | t=191s phase=Refining progress=39% uplink=200/2s ago/stored renderer=no
+16:19:10.681 L scan | t=192s phase=Refining progress=39% uplink=200/3s ago/stored renderer=no
+16:19:13.466 L scan | t=195s phase=Refining progress=39% uplink=200/2s ago/stored renderer=no
+16:19:14.483 L scan | t=196s phase=Refining progress=39% uplink=200/3s ago/stored renderer=no
+16:19:15.511 L scan | t=197s phase=Refining progress=39% uplink=200/4s ago/stored renderer=no
+16:19:16.511 L scan | t=198s phase=Refining progress=39% uplink=200/5s ago/stored renderer=no
+16:19:17.511 L scan | t=199s phase=Refining progress=39% uplink=200/6s ago/stored renderer=no
+16:19:18.528 L scan | t=200s phase=Refining progress=39% uplink=200/7s ago/stored renderer=no
+16:19:19.545 L scan | t=201s phase=Refining progress=39% uplink=200/8s ago/stored renderer=no
+16:19:20.562 L scan | t=202s phase=Refining progress=39% uplink=200/10s ago/stored renderer=no
+16:19:21.568 L scan | t=203s phase=Refining progress=39% uplink=200/11s ago/stored renderer=no
+16:19:22.583 L scan | t=204s phase=Refining progress=39% uplink=200/12s ago/stored renderer=no
+16:19:23.610 L scan | t=205s phase=Refining progress=39% uplink=200/13s ago/stored renderer=no
+16:19:24.625 L scan | t=206s phase=Refining progress=39% uplink=200/14s ago/stored renderer=no
+16:19:25.636 L scan | t=207s phase=Refining progress=39% uplink=200/15s ago/stored renderer=no
+16:19:26.673 L scan | t=208s phase=Refining progress=39% uplink=200/16s ago/stored renderer=no
+16:19:27.673 L scan | t=209s phase=Refining progress=39% uplink=200/17s ago/stored renderer=no
+16:19:28.715 L scan | t=210s phase=Refining progress=39% uplink=200/18s ago/stored renderer=no
+16:19:29.717 L scan | t=211s phase=Refining progress=39% uplink=200/19s ago/stored renderer=no
+16:19:30.720 L scan | t=212s phase=Refining progress=40% uplink=200/20s ago/stored renderer=no
+16:19:31.736 L scan | t=213s phase=Refining progress=40% uplink=200/21s ago/stored renderer=no
+16:19:32.748 L scan | t=214s phase=Refining progress=40% uplink=200/22s ago/stored renderer=no
+16:19:33.761 L scan | t=215s phase=Refining progress=40% uplink=200/23s ago/stored renderer=no
+16:19:34.801 L scan | t=216s phase=Refining progress=40% uplink=200/24s ago/stored renderer=no
+16:19:35.826 L scan | t=217s phase=Refining progress=40% uplink=200/25s ago/stored renderer=no
+16:19:36.832 L scan | t=218s phase=Refining progress=40% uplink=200/26s ago/stored renderer=no
+16:19:37.880 L scan | t=219s phase=Refining progress=40% uplink=200/27s ago/stored renderer=no
+16:19:38.887 L scan | t=220s phase=Refining progress=40% uplink=200/1s ago/stored renderer=no
+16:19:39.901 L scan | t=221s phase=Refining progress=40% uplink=200/2s ago/stored renderer=no
+16:19:40.907 L scan | t=222s phase=Refining progress=40% uplink=200/3s ago/stored renderer=no
+16:19:41.917 L scan | t=223s phase=Refining progress=40% uplink=200/1s ago/stored renderer=no
+16:19:42.954 L scan | t=225s phase=Refining progress=40% uplink=200/2s ago/stored renderer=no
+16:19:43.978 L scan | t=226s phase=Refining progress=40% uplink=200/3s ago/stored renderer=no
+16:19:45.027 L scan | t=227s phase=Refining progress=40% uplink=200/1s ago/stored renderer=no
+16:19:46.039 L scan | t=228s phase=Refining progress=39% uplink=200/2s ago/stored renderer=no
+16:19:47.073 L scan | t=229s phase=Refining progress=39% uplink=200/3s ago/stored renderer=no
+16:19:48.095 L scan | t=230s phase=Refining progress=39% uplink=200/1s ago/stored renderer=no
+16:19:49.096 L scan | t=231s phase=Refining progress=39% uplink=200/2s ago/stored renderer=no
+16:19:50.110 L scan | t=232s phase=Refining progress=39% uplink=200/3s ago/stored renderer=no
+16:19:50.817 L scan | FinalizeScanAsync requested
+16:19:50.890 L scan | stopped after 232.4s
+16:19:52.116 W depth | occlusion subsystem not running: sub=stopped mode=Disabled
+16:19:57.102 W depth | occlusion subsystem not running: sub=stopped mode=Disabled
+16:20:02.170 W depth | occlusion subsystem not running: sub=stopped mode=Disabled
+16:20:07.115 W depth | occlusion subsystem not running: sub=stopped mode=Disabled
+16:20:12.102 W depth | occlusion subsystem not running: sub=stopped mode=Disabled
+16:20:17.103 W depth | occlusion subsystem not running: sub=stopped mode=Disabled
+16:20:22.102 W depth | occlusion subsystem not running: sub=stopped mode=Disabled
+16:20:27.101 W depth | occlusion subsystem not running: sub=stopped mode=Disabled
+16:20:32.113 W depth | occlusion subsystem not running: sub=stopped mode=Disabled
+16:20:37.112 W depth | occlusion subsystem not running: sub=stopped mode=Disabled
+17:16:22.398 L boot | app=0.4.6 unity=6000.2.9f1 device=Oculus Quest 3S os=Android OS 14 / API-34 (UP1A.231005.007.A1/4069240020600610) gfx=Adreno (TM) 740 mem=7757MB
+17:16:22.400 L boot | persistent=/storage/emulated/0/Android/data/in.arescope.beta02.questroom/files log=/storage/emulated/0/Android/data/in.arescope.beta02.questroom/files/arescope-debug.log
+17:16:22.552 L xr-boot | waiting for XR device, occlusion=no-subsystem
+17:16:22.553 L xr-boot | device active after 0.00s, occlusion=no-subsystem
+17:16:22.558 L xr | occlusion=no-subsystem depthMode=Disabled arSession=enabled scanner=ok xr=active
+17:16:22.558 L tex | refinement module present
+17:16:22.559 L hud | overlay camera active on layer 5, stack=1
+17:16:23.164 W xr-boot | occlusion missing, restarting ARSession to recreate subsystems
+17:16:23.681 W depth | occlusion subsystem not running: sub=null mode=Disabled
+17:16:23.792 L xr-boot | after restart occlusion=no-subsystem
+17:16:28.687 W depth | occlusion subsystem not running: sub=null mode=Disabled
+17:16:33.687 W depth | occlusion subsystem not running: sub=null mode=Disabled
+17:16:38.687 W depth | occlusion subsystem not running: sub=null mode=Disabled
+17:16:43.687 W depth | occlusion subsystem not running: sub=null mode=Disabled
+17:16:48.687 W depth | occlusion subsystem not running: sub=null mode=Disabled
+17:16:53.687 W depth | occlusion subsystem not running: sub=null mode=Disabled
+17:17:15.384 L boot | app=0.4.6 unity=6000.2.9f1 device=Oculus Quest 3S os=Android OS 14 / API-34 (UP1A.231005.007.A1/4069240020600610) gfx=Adreno (TM) 740 mem=7757MB
+17:17:15.385 L boot | persistent=/storage/emulated/0/Android/data/in.arescope.beta02.questroom/files log=/storage/emulated/0/Android/data/in.arescope.beta02.questroom/files/arescope-debug.log
+17:17:15.503 L xr-boot | waiting for XR device, occlusion=no-subsystem
+17:17:15.503 L xr-boot | device active after 0.00s, occlusion=no-subsystem
+17:17:15.511 L xr | occlusion=no-subsystem depthMode=Disabled arSession=enabled scanner=ok xr=active
+17:17:15.511 L tex | refinement module present
+17:17:15.513 L hud | overlay camera active on layer 5, stack=1
+17:17:16.116 W xr-boot | occlusion missing, restarting ARSession to recreate subsystems
+17:17:16.559 W depth | occlusion subsystem not running: sub=null mode=Disabled
+17:17:16.754 L xr-boot | after restart occlusion=no-subsystem
+17:17:21.563 W depth | occlusion subsystem not running: sub=null mode=Disabled
+17:17:23.230 L scan | StartScanAsync requested
+17:17:23.284 L scan | started
+17:17:23.284 L scan | t=0s phase=Discovering progress=0% uplink=none renderer=no
+17:17:23.841 L scan | StartScanAsync returned in 0.61s scanning=True
+17:17:24.318 L scan | t=1s phase=Discovering progress=0% uplink=none renderer=no
+17:17:25.321 L scan | t=2s phase=Discovering progress=1% uplink=none renderer=no
+17:17:26.333 L scan | t=3s phase=Discovering progress=7% uplink=none renderer=no
+17:17:27.343 L scan | t=4s phase=Discovering progress=7% uplink=200/0s ago/stored renderer=no
+17:17:28.395 L scan | t=5s phase=Discovering progress=10% uplink=200/1s ago/stored renderer=no
+17:17:29.390 L scan | t=6s phase=Discovering progress=13% uplink=200/2s ago/stored renderer=no
+17:17:30.418 L scan | t=7s phase=Discovering progress=13% uplink=200/0s ago/stored renderer=no
+17:17:31.457 L scan | t=8s phase=Discovering progress=14% uplink=200/1s ago/stored renderer=no
+17:17:32.458 L scan | t=9s phase=Discovering progress=16% uplink=200/2s ago/stored renderer=no
+17:17:33.484 L scan | t=10s phase=Discovering progress=16% uplink=200/0s ago/stored renderer=no
+17:17:34.508 L scan | t=11s phase=Discovering progress=17% uplink=200/1s ago/stored renderer=no
+17:17:35.508 L scan | t=12s phase=Discovering progress=17% uplink=200/2s ago/stored renderer=no
+17:17:36.524 L scan | t=13s phase=Discovering progress=17% uplink=200/0s ago/stored renderer=no
+17:17:37.529 L scan | t=14s phase=Discovering progress=17% uplink=200/1s ago/stored renderer=no
+17:17:38.571 L scan | t=15s phase=Discovering progress=18% uplink=200/2s ago/stored renderer=no
+17:17:39.600 L scan | t=16s phase=Discovering progress=18% uplink=200/1s ago/stored renderer=no
+17:17:40.613 L scan | t=17s phase=Discovering progress=18% uplink=200/2s ago/stored renderer=no
+17:17:41.626 L scan | t=18s phase=Discovering progress=19% uplink=200/3s ago/stored renderer=no
+17:17:42.628 L scan | t=19s phase=Discovering progress=19% uplink=200/1s ago/stored renderer=no
+17:17:43.639 L scan | t=20s phase=Discovering progress=19% uplink=200/2s ago/stored renderer=no
+17:17:44.652 L scan | t=21s phase=Discovering progress=21% uplink=200/3s ago/stored renderer=no
+17:17:45.654 L scan | t=22s phase=Discovering progress=21% uplink=200/0s ago/stored renderer=no
+17:17:46.674 L scan | t=23s phase=Discovering progress=22% uplink=200/2s ago/stored renderer=no
+17:17:47.684 L scan | t=24s phase=Discovering progress=22% uplink=200/3s ago/stored renderer=no
+17:17:48.701 L scan | t=25s phase=Discovering progress=22% uplink=200/1s ago/stored renderer=no
+17:17:49.127 L scan | FinalizeScanAsync requested
+17:17:49.163 L scan | stopped after 25.8s
+17:17:51.614 W depth | occlusion subsystem not running: sub=stopped mode=Disabled
+17:17:56.615 W depth | occlusion subsystem not running: sub=stopped mode=Disabled
+17:17:56.842 L view | passthrough=False while scanning
+17:17:59.723 L view | passthrough=True while scanning
+17:18:01.171 L view | passthrough=False while scanning
+17:18:01.610 W depth | occlusion subsystem not running: sub=stopped mode=Disabled
+17:18:01.868 L view | passthrough=True while scanning
+17:18:05.804 L scan | finalized mesh=24894 uv=yes renderer=yes
+17:18:06.795 W depth | occlusion subsystem not running: sub=stopped mode=Disabled
+17:18:11.796 W depth | occlusion subsystem not running: sub=stopped mode=Disabled
+17:18:12.769 L scan | StartScanAsync requested
+17:18:12.798 L scan | started
+17:18:12.798 L scan | t=0s phase=Discovering progress=23% uplink=200/10s ago/stored renderer=yes
+17:18:13.021 L scan | StartScanAsync returned in 0.25s scanning=True
+17:18:13.800 L scan | t=1s phase=Discovering progress=0% uplink=200/11s ago/stored renderer=yes
+17:18:14.834 L scan | t=2s phase=Discovering progress=0% uplink=200/12s ago/stored renderer=yes
+17:18:15.850 L scan | t=3s phase=Discovering progress=1% uplink=200/13s ago/stored renderer=yes
+17:18:16.869 L scan | t=4s phase=Discovering progress=3% uplink=200/14s ago/stored renderer=yes
+17:18:17.891 L scan | t=5s phase=Discovering progress=3% uplink=200/15s ago/stored renderer=yes
+17:18:18.904 L scan | t=6s phase=Discovering progress=6% uplink=200/16s ago/stored renderer=yes
+17:18:19.918 L scan | t=7s phase=Discovering progress=7% uplink=200/17s ago/stored renderer=yes
+17:18:20.926 L scan | t=8s phase=Discovering progress=7% uplink=200/18s ago/stored renderer=yes
+17:18:21.935 L scan | t=9s phase=Discovering progress=8% uplink=200/19s ago/stored renderer=yes
+17:18:22.953 L scan | t=10s phase=Discovering progress=9% uplink=200/20s ago/stored renderer=yes
+17:18:23.964 L scan | t=11s phase=Discovering progress=9% uplink=200/21s ago/stored renderer=yes
+17:18:25.008 L scan | t=12s phase=Discovering progress=10% uplink=200/22s ago/stored renderer=yes
+17:18:26.015 L scan | t=13s phase=Discovering progress=10% uplink=200/1s ago/stored renderer=yes
+17:18:27.015 L scan | t=14s phase=Discovering progress=10% uplink=200/2s ago/stored renderer=yes
+17:18:28.021 L scan | t=15s phase=Discovering progress=10% uplink=200/3s ago/stored renderer=yes
+17:18:29.028 L scan | t=16s phase=Discovering progress=11% uplink=200/1s ago/stored renderer=yes
+17:18:30.036 L scan | t=17s phase=Discovering progress=11% uplink=200/2s ago/stored renderer=yes
+17:18:31.055 L scan | t=18s phase=Discovering progress=12% uplink=200/3s ago/stored renderer=yes
+17:18:32.070 L scan | t=19s phase=Discovering progress=12% uplink=200/1s ago/stored renderer=yes
+17:18:33.080 L scan | t=20s phase=Discovering progress=12% uplink=200/2s ago/stored renderer=yes
+17:18:34.087 L scan | t=21s phase=Discovering progress=14% uplink=200/3s ago/stored renderer=yes
+17:18:34.821 L scan | FinalizeScanAsync requested
+17:18:34.851 L scan | stopped after 22.0s
+17:18:36.797 W depth | occlusion subsystem not running: sub=stopped mode=Disabled
+17:18:41.802 W depth | occlusion subsystem not running: sub=stopped mode=Disabled
+17:18:46.576 L scan | finalized mesh=17563 uv=yes renderer=yes
+17:18:46.787 W depth | occlusion subsystem not running: sub=stopped mode=Disabled
+17:18:47.251 L scan | reset requested (Y hold)
+17:18:47.267 L scan | reset done
+17:18:48.701 L scan | StartScanAsync requested
+17:18:48.729 L scan | started
+17:18:48.730 L scan | t=0s phase=Discovering progress=14% uplink=200/2s ago/stored renderer=yes
+17:18:48.917 L scan | StartScanAsync returned in 0.22s scanning=True
+17:18:49.761 L scan | t=1s phase=Discovering progress=1% uplink=200/0s ago/stored renderer=yes
+17:18:50.765 L scan | t=2s phase=Discovering progress=1% uplink=200/1s ago/stored renderer=yes
+17:18:51.765 L scan | t=3s phase=Discovering progress=3% uplink=200/2s ago/stored renderer=yes
+17:18:52.773 L scan | t=4s phase=Discovering progress=5% uplink=200/0s ago/stored renderer=yes
+17:18:53.780 L scan | t=5s phase=Discovering progress=5% uplink=200/1s ago/stored renderer=yes
+17:18:54.793 L scan | t=6s phase=Discovering progress=7% uplink=200/2s ago/stored renderer=yes
+17:18:55.799 L scan | t=7s phase=Discovering progress=8% uplink=200/0s ago/stored renderer=yes
+17:18:56.806 L scan | t=8s phase=Discovering progress=8% uplink=200/1s ago/stored renderer=yes
+17:18:57.807 L scan | t=9s phase=Discovering progress=9% uplink=200/2s ago/stored renderer=yes
+17:18:58.808 L scan | t=10s phase=Discovering progress=9% uplink=200/0s ago/stored renderer=yes
+17:18:59.834 L scan | t=11s phase=Discovering progress=9% uplink=200/1s ago/stored renderer=yes
+17:19:00.835 L scan | t=12s phase=Discovering progress=9% uplink=200/2s ago/stored renderer=yes
+17:19:01.850 L scan | t=13s phase=Discovering progress=9% uplink=200/0s ago/stored renderer=yes
+17:19:02.876 L scan | t=14s phase=Discovering progress=12% uplink=200/1s ago/stored renderer=yes
+17:19:03.911 L scan | t=15s phase=Discovering progress=12% uplink=200/2s ago/stored renderer=yes
+17:19:04.934 L scan | t=16s phase=Discovering progress=12% uplink=200/0s ago/stored renderer=yes
+17:19:05.943 L scan | t=17s phase=Discovering progress=14% uplink=200/1s ago/stored renderer=yes
+17:19:06.943 L scan | t=18s phase=Discovering progress=14% uplink=200/2s ago/stored renderer=yes
+17:19:07.951 L scan | t=19s phase=Discovering progress=14% uplink=200/0s ago/stored renderer=yes
+17:19:08.962 L scan | t=20s phase=Discovering progress=15% uplink=200/1s ago/stored renderer=yes
+17:19:09.976 L scan | t=21s phase=Discovering progress=17% uplink=200/2s ago/stored renderer=yes
+17:19:10.997 L scan | t=22s phase=Discovering progress=17% uplink=200/3s ago/stored renderer=yes
+17:19:11.634 L scan | FinalizeScanAsync requested
+17:19:11.678 L scan | stopped after 22.9s
+17:19:11.789 W depth | occlusion subsystem not running: sub=stopped mode=Disabled
+17:19:16.795 W depth | occlusion subsystem not running: sub=stopped mode=Disabled
+17:19:21.799 W depth | occlusion subsystem not running: sub=stopped mode=Disabled
+17:19:23.111 L scan | finalized mesh=22873 uv=yes renderer=yes
+17:19:26.797 W depth | occlusion subsystem not running: sub=stopped mode=Disabled
+17:19:31.797 W depth | occlusion subsystem not running: sub=stopped mode=Disabled
+17:19:36.796 W depth | occlusion subsystem not running: sub=stopped mode=Disabled
+17:19:41.797 W depth | occlusion subsystem not running: sub=stopped mode=Disabled
+17:19:46.799 W depth | occlusion subsystem not running: sub=stopped mode=Disabled
+17:19:51.798 W depth | occlusion subsystem not running: sub=stopped mode=Disabled
+17:19:56.797 W depth | occlusion subsystem not running: sub=stopped mode=Disabled
+17:20:01.797 W depth | occlusion subsystem not running: sub=stopped mode=Disabled
+17:20:06.797 W depth | occlusion subsystem not running: sub=stopped mode=Disabled
+17:20:11.795 W depth | occlusion subsystem not running: sub=stopped mode=Disabled
+17:20:16.798 W depth | occlusion subsystem not running: sub=stopped mode=Disabled
+17:20:19.463 L scan | reset requested (Y hold)
+17:20:19.477 L scan | reset done
+17:20:21.798 W depth | occlusion subsystem not running: sub=stopped mode=Disabled
+17:20:23.035 L scan | StartScanAsync requested
+17:20:23.062 L scan | started
+17:20:23.063 L scan | t=0s phase=Discovering progress=18% uplink=200/60s ago/stored renderer=yes
+17:20:23.194 L scan | StartScanAsync returned in 0.16s scanning=True
+17:20:24.111 L scan | t=1s phase=Discovering progress=0% uplink=200/61s ago/stored renderer=yes
+17:20:25.111 L scan | t=2s phase=Discovering progress=0% uplink=200/62s ago/stored renderer=yes
+17:20:26.113 L scan | t=3s phase=Discovering progress=8% uplink=200/63s ago/stored renderer=yes
+17:20:27.113 L scan | t=4s phase=Discovering progress=9% uplink=200/0s ago/stored renderer=yes
+17:20:28.127 L scan | t=5s phase=Discovering progress=9% uplink=200/1s ago/stored renderer=yes
+17:20:29.140 L scan | t=6s phase=Discovering progress=9% uplink=200/2s ago/stored renderer=yes
+17:20:30.141 L scan | t=7s phase=Discovering progress=9% uplink=200/1s ago/stored renderer=yes
+17:20:30.199 L scan | FinalizeScanAsync requested
+17:20:30.248 L scan | stopped after 7.1s
+17:20:31.800 W depth | occlusion subsystem not running: sub=stopped mode=Disabled
+17:20:35.411 L scan | finalized mesh=2003 uv=yes renderer=yes
+17:20:36.796 W depth | occlusion subsystem not running: sub=stopped mode=Disabled
+17:20:41.797 W depth | occlusion subsystem not running: sub=stopped mode=Disabled
+17:20:42.158 L scan | reset requested (Y hold)
+17:20:42.173 L scan | reset done
+17:20:44.076 L scan | StartScanAsync requested
+17:20:44.106 L scan | started
+17:20:44.106 L scan | t=0s phase=Discovering progress=9% uplink=200/8s ago/stored renderer=yes
+17:20:44.241 L scan | StartScanAsync returned in 0.16s scanning=True
+17:20:45.150 L scan | t=1s phase=Discovering progress=1% uplink=200/9s ago/stored renderer=yes
+17:20:46.151 L scan | t=2s phase=Discovering progress=1% uplink=200/10s ago/stored renderer=yes
+17:20:47.187 L scan | t=3s phase=Discovering progress=6% uplink=200/11s ago/stored renderer=yes
+17:20:48.194 L scan | t=4s phase=Discovering progress=8% uplink=200/12s ago/stored renderer=yes
+17:20:49.213 L scan | t=5s phase=Discovering progress=8% uplink=200/13s ago/stored renderer=yes
+17:20:50.236 L scan | t=6s phase=Discovering progress=8% uplink=200/14s ago/stored renderer=yes
+17:20:51.236 L scan | t=7s phase=Discovering progress=9% uplink=200/15s ago/stored renderer=yes
+17:20:52.268 L scan | t=8s phase=Discovering progress=9% uplink=200/16s ago/stored renderer=yes
+17:20:53.279 L scan | t=9s phase=Discovering progress=9% uplink=200/17s ago/stored renderer=yes
+17:20:54.292 L scan | t=10s phase=Discovering progress=9% uplink=200/18s ago/stored renderer=yes
+17:20:55.294 L scan | t=11s phase=Discovering progress=9% uplink=200/19s ago/stored renderer=yes
+17:20:56.325 L scan | t=12s phase=Discovering progress=10% uplink=200/20s ago/stored renderer=yes
+17:20:57.320 L scan | t=13s phase=Discovering progress=14% uplink=200/21s ago/stored renderer=yes
+17:20:58.352 L scan | t=14s phase=Discovering progress=14% uplink=200/23s ago/stored renderer=yes
+17:20:59.362 L scan | t=15s phase=Discovering progress=15% uplink=200/24s ago/stored renderer=yes
+17:21:00.362 L scan | t=16s phase=Discovering progress=16% uplink=200/1s ago/stored renderer=yes
+17:21:01.371 L scan | t=17s phase=Discovering progress=16% uplink=200/2s ago/stored renderer=yes
+17:21:02.404 L scan | t=18s phase=Discovering progress=16% uplink=200/3s ago/stored renderer=yes
+17:21:03.404 L scan | t=19s phase=Discovering progress=17% uplink=200/4s ago/stored renderer=yes
+17:21:04.447 L scan | t=20s phase=Discovering progress=17% uplink=200/5s ago/stored renderer=yes
+17:21:05.470 L scan | t=21s phase=Discovering progress=17% uplink=200/6s ago/stored renderer=yes
+17:21:06.473 L scan | t=22s phase=Discovering progress=18% uplink=200/1s ago/stored renderer=yes
+17:21:06.529 L scan | FinalizeScanAsync requested
+17:21:06.558 L scan | stopped after 22.4s
+17:21:06.793 W depth | occlusion subsystem not running: sub=stopped mode=Disabled
+17:21:11.806 W depth | occlusion subsystem not running: sub=stopped mode=Disabled
+17:21:14.654 L scan | finalized mesh=7023 uv=yes renderer=yes
+17:21:16.794 W depth | occlusion subsystem not running: sub=stopped mode=Disabled
+17:21:21.797 W depth | occlusion subsystem not running: sub=stopped mode=Disabled
+17:21:26.798 W depth | occlusion subsystem not running: sub=stopped mode=Disabled
+17:21:31.797 W depth | occlusion subsystem not running: sub=stopped mode=Disabled
+17:21:36.798 W depth | occlusion subsystem not running: sub=stopped mode=Disabled
+17:21:41.797 W depth | occlusion subsystem not running: sub=stopped mode=Disabled
+17:21:46.797 W depth | occlusion subsystem not running: sub=stopped mode=Disabled
+17:21:51.797 W depth | occlusion subsystem not running: sub=stopped mode=Disabled
+17:21:56.796 W depth | occlusion subsystem not running: sub=stopped mode=Disabled
+17:22:01.796 W depth | occlusion subsystem not running: sub=stopped mode=Disabled
+17:22:06.833 W depth | occlusion subsystem not running: sub=stopped mode=Disabled
+17:59:12.602 L boot | app=0.4.7 unity=6000.2.9f1 device=Oculus Quest 3S os=Android OS 14 / API-34 (UP1A.231005.007.A1/4069240020600610) gfx=Adreno (TM) 740 mem=7757MB
+17:59:12.603 L boot | persistent=/storage/emulated/0/Android/data/in.arescope.beta02.questroom/files log=/storage/emulated/0/Android/data/in.arescope.beta02.questroom/files/arescope-debug.log
+17:59:12.697 L xr-boot | waiting for XR device, occlusion=no-subsystem
+17:59:12.697 L xr-boot | device active after 0.00s, occlusion=no-subsystem
+17:59:12.703 L xr | occlusion=no-subsystem depthMode=Disabled arSession=enabled scanner=ok xr=active
+17:59:12.703 L tex | refinement module present
+17:59:12.705 L hud | overlay camera active on layer 5, stack=1
+17:59:13.305 W xr-boot | occlusion missing, restarting ARSession to recreate subsystems
+17:59:13.750 W depth | occlusion subsystem not running: sub=null mode=Disabled
+17:59:13.945 L xr-boot | after restart occlusion=no-subsystem
+17:59:16.656 L scan | StartScanAsync requested
+17:59:16.699 L scan | started
+17:59:16.699 L scan | t=0s phase=Discovering progress=0% uplink=none renderer=no
+17:59:17.318 L scan | StartScanAsync returned in 0.66s scanning=True
+17:59:17.734 L scan | t=1s phase=Discovering progress=0% uplink=none renderer=no
+17:59:18.740 L scan | t=2s phase=Discovering progress=1% uplink=none renderer=no
+17:59:19.748 L scan | t=3s phase=Discovering progress=4% uplink=none renderer=no
+17:59:20.748 L scan | t=4s phase=Discovering progress=4% uplink=none renderer=no
+17:59:21.749 L scan | t=5s phase=Discovering progress=5% uplink=none renderer=no
+17:59:22.755 L scan | t=6s phase=Discovering progress=7% uplink=none renderer=no
+17:59:23.769 L scan | t=7s phase=Discovering progress=7% uplink=200/0s ago/stored renderer=no
+17:59:24.776 L scan | t=8s phase=Discovering progress=9% uplink=200/1s ago/stored renderer=no
+17:59:25.795 L scan | t=9s phase=Discovering progress=9% uplink=200/2s ago/stored renderer=no
+17:59:26.819 L scan | t=10s phase=Discovering progress=9% uplink=200/0s ago/stored renderer=no
+17:59:27.831 L scan | t=11s phase=Discovering progress=9% uplink=200/1s ago/stored renderer=no
+17:59:28.851 L scan | t=12s phase=Discovering progress=10% uplink=200/2s ago/stored renderer=no
+17:59:29.866 L scan | t=13s phase=Discovering progress=10% uplink=200/0s ago/stored renderer=no
+17:59:30.874 L scan | t=14s phase=Discovering progress=11% uplink=200/1s ago/stored renderer=no
+17:59:31.875 L scan | t=15s phase=Discovering progress=13% uplink=200/2s ago/stored renderer=no
+17:59:32.888 L scan | t=16s phase=Discovering progress=13% uplink=200/0s ago/stored renderer=no
+17:59:33.901 L scan | t=17s phase=Discovering progress=14% uplink=200/1s ago/stored renderer=no
+17:59:34.903 L scan | t=18s phase=Discovering progress=15% uplink=200/2s ago/stored renderer=no
+17:59:35.915 L scan | t=19s phase=Discovering progress=15% uplink=200/0s ago/stored renderer=no
+17:59:36.926 L scan | t=20s phase=Discovering progress=15% uplink=200/1s ago/stored renderer=no
+17:59:38.798 L scan | t=22s phase=Discovering progress=15% uplink=200/3s ago/stored renderer=no
+17:59:39.793 L scan | t=23s phase=Discovering progress=16% uplink=200/4s ago/stored renderer=no
+17:59:40.810 L scan | t=24s phase=Discovering progress=16% uplink=200/5s ago/stored renderer=no
+17:59:41.818 L scan | t=25s phase=Discovering progress=18% uplink=200/6s ago/stored renderer=no
+17:59:42.822 L scan | t=26s phase=Discovering progress=19% uplink=200/7s ago/stored renderer=no
+17:59:43.831 L scan | t=27s phase=Discovering progress=19% uplink=200/8s ago/stored renderer=no
+17:59:44.839 L scan | t=28s phase=Discovering progress=20% uplink=200/9s ago/stored renderer=no
+17:59:45.866 L scan | t=29s phase=Discovering progress=20% uplink=200/10s ago/stored renderer=no
+17:59:46.879 L scan | t=30s phase=Discovering progress=20% uplink=200/11s ago/stored renderer=no
+17:59:47.898 L scan | t=31s phase=Discovering progress=16% uplink=200/12s ago/stored renderer=no
+17:59:48.912 L scan | t=32s phase=Discovering progress=16% uplink=200/1s ago/stored renderer=no
+17:59:49.915 L scan | t=33s phase=Discovering progress=17% uplink=200/2s ago/stored renderer=no
+17:59:50.951 L scan | t=34s phase=Discovering progress=18% uplink=200/3s ago/stored renderer=no
+17:59:51.956 L scan | t=35s phase=Discovering progress=18% uplink=200/1s ago/stored renderer=no
+17:59:52.968 L scan | t=36s phase=Discovering progress=20% uplink=200/2s ago/stored renderer=no
+17:59:54.003 L scan | t=37s phase=Discovering progress=20% uplink=200/3s ago/stored renderer=no
+17:59:55.005 L scan | t=38s phase=Discovering progress=20% uplink=200/1s ago/stored renderer=no
+17:59:56.043 L scan | t=39s phase=Discovering progress=20% uplink=200/2s ago/stored renderer=no
+17:59:57.095 L scan | t=40s phase=Discovering progress=20% uplink=200/3s ago/stored renderer=no
+17:59:58.123 L scan | t=41s phase=Discovering progress=20% uplink=200/1s ago/stored renderer=no
+17:59:59.132 L scan | t=42s phase=Discovering progress=21% uplink=200/2s ago/stored renderer=no
+18:00:00.147 L scan | t=43s phase=Discovering progress=21% uplink=200/3s ago/stored renderer=no
+18:00:01.169 L scan | t=44s phase=Discovering progress=21% uplink=200/1s ago/stored renderer=no
+18:00:02.178 L scan | t=45s phase=Discovering progress=22% uplink=200/2s ago/stored renderer=no
+18:00:03.179 L scan | t=46s phase=Discovering progress=22% uplink=200/3s ago/stored renderer=no
+18:00:04.207 L scan | t=48s phase=Discovering progress=22% uplink=200/1s ago/stored renderer=no
+18:00:05.236 L scan | t=49s phase=Discovering progress=22% uplink=200/2s ago/stored renderer=no
+18:00:06.250 L scan | t=50s phase=Discovering progress=22% uplink=200/3s ago/stored renderer=no
+18:00:07.279 L scan | t=51s phase=Discovering progress=22% uplink=200/1s ago/stored renderer=no
+18:00:08.313 L scan | t=52s phase=Discovering progress=22% uplink=200/2s ago/stored renderer=no
+18:00:08.414 L scan | FinalizeScanAsync requested
+18:00:08.448 L scan | stopped after 51.7s
+18:00:10.476 W depth | occlusion subsystem not running: sub=stopped mode=Disabled
+18:00:15.467 W depth | occlusion subsystem not running: sub=stopped mode=Disabled
+18:00:20.474 W depth | occlusion subsystem not running: sub=stopped mode=Disabled
+18:00:25.473 W depth | occlusion subsystem not running: sub=stopped mode=Disabled
+18:00:30.466 W depth | occlusion subsystem not running: sub=stopped mode=Disabled
+18:00:35.470 W depth | occlusion subsystem not running: sub=stopped mode=Disabled
+18:00:40.463 W depth | occlusion subsystem not running: sub=stopped mode=Disabled
+18:00:44.058 L view | passthrough=False while scanning
+18:00:45.162 L view | passthrough=True while scanning
+18:00:45.471 W depth | occlusion subsystem not running: sub=stopped mode=Disabled
+18:00:50.471 W depth | occlusion subsystem not running: sub=stopped mode=Disabled
+18:00:51.748 L view | passthrough=False while scanning
+18:00:52.336 L view | passthrough=True while scanning
+18:00:55.471 W depth | occlusion subsystem not running: sub=stopped mode=Disabled
+18:00:55.637 L view | passthrough=False while scanning
+18:01:00.480 W depth | occlusion subsystem not running: sub=stopped mode=Disabled
+18:01:05.464 W depth | occlusion subsystem not running: sub=stopped mode=Disabled
+18:01:10.465 W depth | occlusion subsystem not running: sub=stopped mode=Disabled
+18:01:11.463 L view | passthrough=True while scanning
+18:01:15.499 W depth | occlusion subsystem not running: sub=stopped mode=Disabled
+18:01:20.476 W depth | occlusion subsystem not running: sub=stopped mode=Disabled
+18:01:25.472 W depth | occlusion subsystem not running: sub=stopped mode=Disabled
+18:01:30.472 W depth | occlusion subsystem not running: sub=stopped mode=Disabled
+18:01:35.027 L view | passthrough=False while scanning
+18:01:35.306 L view | passthrough=True while scanning
+18:01:35.476 W depth | occlusion subsystem not running: sub=stopped mode=Disabled
+18:01:36.221 L view | passthrough=False while scanning
+18:01:36.764 L view | passthrough=True while scanning
+18:01:39.327 L scan | finalized mesh=48808 uv=yes renderer=yes
+18:01:40.680 W depth | occlusion subsystem not running: sub=stopped mode=Disabled
+18:01:45.683 W depth | occlusion subsystem not running: sub=stopped mode=Disabled
+18:01:50.682 W depth | occlusion subsystem not running: sub=stopped mode=Disabled
+18:01:55.683 W depth | occlusion subsystem not running: sub=stopped mode=Disabled
+18:02:00.682 W depth | occlusion subsystem not running: sub=stopped mode=Disabled
+18:02:01.627 L scan | reset requested (Y hold)
+18:02:01.642 L scan | reset done
+18:02:05.676 W depth | occlusion subsystem not running: sub=stopped mode=Disabled
+18:02:10.680 W depth | occlusion subsystem not running: sub=stopped mode=Disabled
+18:02:15.680 W depth | occlusion subsystem not running: sub=stopped mode=Disabled
+14:24:34.248 L boot | app=0.5.0 unity=6000.2.9f1 device=Oculus Quest 3S os=Android OS 14 / API-34 (UP1A.231005.007.A1/4069240020600610) gfx=Adreno (TM) 740 mem=7757MB
+14:24:34.249 L boot | persistent=/storage/emulated/0/Android/data/in.arescope.beta02.questroom/files log=/storage/emulated/0/Android/data/in.arescope.beta02.questroom/files/arescope-debug.log
+14:24:34.335 L xr-boot | waiting for XR device, occlusion=no-subsystem
+14:24:34.335 L xr-boot | device active after 0.00s, occlusion=no-subsystem
+14:24:34.341 L xr | occlusion=no-subsystem depthMode=Disabled arSession=enabled scanner=ok xr=active
+14:24:34.341 L tex | refinement module present
+14:24:34.343 L hud | overlay camera active on layer 5, stack=1
+14:24:34.343 L hud | contrast probe ready, camera=yes
+14:24:34.938 W xr-boot | occlusion missing, restarting ARSession to recreate subsystems
+14:24:35.396 W depth | occlusion subsystem not running: sub=null mode=Disabled
+14:24:35.578 L xr-boot | after restart occlusion=no-subsystem
+14:24:40.390 W depth | occlusion subsystem not running: sub=null mode=Disabled
+14:24:45.390 W depth | occlusion subsystem not running: sub=null mode=Disabled
+14:24:50.390 W depth | occlusion subsystem not running: sub=null mode=Disabled
+14:24:55.390 W depth | occlusion subsystem not running: sub=null mode=Disabled
+14:25:00.389 W depth | occlusion subsystem not running: sub=null mode=Disabled
+14:25:05.389 W depth | occlusion subsystem not running: sub=null mode=Disabled
+14:25:10.389 W depth | occlusion subsystem not running: sub=null mode=Disabled
+14:25:15.386 W depth | occlusion subsystem not running: sub=null mode=Disabled
+14:25:20.390 W depth | occlusion subsystem not running: sub=null mode=Disabled
+14:25:43.037 W depth | occlusion subsystem not running: sub=null mode=Disabled
+14:25:46.132 L scan | StartScanAsync requested
+14:25:46.173 L scan | started
+14:25:46.173 L scan | t=0s phase=Discovering progress=0% uplink=none renderer=no
+14:25:46.801 L scan | StartScanAsync returned in 0.67s scanning=True
+14:25:47.185 L scan | t=1s phase=Discovering progress=0% uplink=none renderer=no
+14:25:48.218 L scan | t=2s phase=Discovering progress=0% uplink=none renderer=no
+14:25:49.224 L scan | t=3s phase=Discovering progress=11% uplink=none renderer=no
+14:25:50.238 L scan | t=4s phase=Discovering progress=11% uplink=none renderer=no
+14:25:51.274 L scan | t=5s phase=Discovering progress=13% uplink=200/1s ago/stored renderer=no
+14:25:52.294 L scan | t=6s phase=Discovering progress=17% uplink=200/2s ago/stored renderer=no
+14:25:53.351 L scan | t=7s phase=Discovering progress=17% uplink=200/0s ago/stored renderer=no
+14:25:54.366 L scan | t=8s phase=Discovering progress=21% uplink=200/1s ago/stored renderer=no
+14:25:55.380 L scan | t=9s phase=Discovering progress=24% uplink=200/2s ago/stored renderer=no
+14:25:56.407 L scan | t=10s phase=Discovering progress=24% uplink=200/0s ago/stored renderer=no
+14:25:57.409 L scan | t=11s phase=Discovering progress=25% uplink=200/1s ago/stored renderer=no
+14:25:58.417 L scan | t=12s phase=Discovering progress=26% uplink=200/2s ago/stored renderer=no
+14:25:59.454 L scan | t=13s phase=Discovering progress=26% uplink=200/0s ago/stored renderer=no
+14:26:00.509 L scan | t=14s phase=Discovering progress=24% uplink=200/2s ago/stored renderer=no
+14:26:01.567 L scan | t=15s phase=Discovering progress=26% uplink=200/3s ago/stored renderer=no
+14:26:02.568 L scan | t=16s phase=Discovering progress=26% uplink=200/0s ago/stored renderer=no
+14:26:03.587 L scan | t=17s phase=Discovering progress=28% uplink=200/2s ago/stored renderer=no
+14:26:04.626 L scan | t=18s phase=Refining progress=31% uplink=200/3s ago/stored renderer=no
+14:26:05.627 L scan | t=19s phase=Refining progress=31% uplink=200/1s ago/stored renderer=no
+14:26:06.646 L scan | t=20s phase=Refining progress=32% uplink=200/2s ago/stored renderer=no
+14:26:07.663 L scan | t=21s phase=Refining progress=32% uplink=200/3s ago/stored renderer=no
+14:26:08.673 L scan | t=22s phase=Refining progress=32% uplink=200/1s ago/stored renderer=no
+14:26:09.726 L scan | t=24s phase=Refining progress=35% uplink=200/2s ago/stored renderer=no
+14:26:10.733 L scan | t=25s phase=Refining progress=35% uplink=200/3s ago/stored renderer=no
+14:26:11.741 L scan | t=26s phase=Refining progress=35% uplink=200/1s ago/stored renderer=no
+14:26:12.773 L scan | t=27s phase=Refining progress=39% uplink=200/2s ago/stored renderer=no
+14:26:13.794 L scan | t=28s phase=Refining progress=39% uplink=200/3s ago/stored renderer=no
+14:26:14.802 L scan | t=29s phase=Refining progress=41% uplink=200/1s ago/stored renderer=no
+14:26:15.838 L scan | t=30s phase=Refining progress=45% uplink=200/2s ago/stored renderer=no
+14:26:16.872 L scan | t=31s phase=Refining progress=45% uplink=200/3s ago/stored renderer=no
+14:26:17.880 L scan | t=32s phase=Refining progress=45% uplink=200/1s ago/stored renderer=no
+14:26:18.889 L scan | t=33s phase=Refining progress=44% uplink=200/2s ago/stored renderer=no
+14:26:19.911 L scan | t=34s phase=Refining progress=44% uplink=200/3s ago/stored renderer=no
+14:26:20.920 L scan | t=35s phase=Refining progress=45% uplink=200/1s ago/stored renderer=no
+14:26:21.920 L scan | t=36s phase=Refining progress=45% uplink=200/2s ago/stored renderer=no
+14:26:22.932 L scan | t=37s phase=Refining progress=45% uplink=200/3s ago/stored renderer=no
+14:26:23.961 L scan | t=38s phase=Refining progress=47% uplink=200/1s ago/stored renderer=no
+14:26:24.979 L scan | t=39s phase=Refining progress=47% uplink=200/2s ago/stored renderer=no
+14:26:26.025 L scan | t=40s phase=Refining progress=47% uplink=200/3s ago/stored renderer=no
+14:26:27.045 L scan | t=41s phase=Refining progress=47% uplink=200/1s ago/stored renderer=no
+14:26:28.088 L scan | t=42s phase=Refining progress=47% uplink=200/2s ago/stored renderer=no
+14:26:29.097 L scan | t=43s phase=Refining progress=47% uplink=200/3s ago/stored renderer=no
+14:26:30.103 L scan | t=44s phase=Refining progress=47% uplink=200/1s ago/stored renderer=no
+14:26:31.114 L scan | t=45s phase=Refining progress=48% uplink=200/2s ago/stored renderer=no
+14:26:32.125 L scan | t=46s phase=Refining progress=46% uplink=200/3s ago/stored renderer=no
+14:26:33.128 L scan | t=47s phase=Refining progress=46% uplink=200/1s ago/stored renderer=no
+14:26:33.829 L scan | FinalizeScanAsync requested
+14:26:33.869 L scan | stopped after 47.7s
+14:26:38.142 W depth | occlusion subsystem not running: sub=stopped mode=Disabled
+14:26:43.152 W depth | occlusion subsystem not running: sub=stopped mode=Disabled
+14:26:48.143 W depth | occlusion subsystem not running: sub=stopped mode=Disabled
+14:26:53.140 W depth | occlusion subsystem not running: sub=stopped mode=Disabled
+14:26:58.153 W depth | occlusion subsystem not running: sub=stopped mode=Disabled
+14:27:03.153 W depth | occlusion subsystem not running: sub=stopped mode=Disabled
+14:27:06.728 L view | passthrough=False while scanning
+14:27:08.144 W depth | occlusion subsystem not running: sub=stopped mode=Disabled
+14:27:13.144 W depth | occlusion subsystem not running: sub=stopped mode=Disabled
+14:27:14.825 L view | passthrough=True while scanning
+14:27:16.428 L view | passthrough=False while scanning
+14:27:18.147 W depth | occlusion subsystem not running: sub=stopped mode=Disabled
+14:27:23.147 W depth | occlusion subsystem not running: sub=stopped mode=Disabled
+14:27:28.147 W depth | occlusion subsystem not running: sub=stopped mode=Disabled
+14:27:33.148 W depth | occlusion subsystem not running: sub=stopped mode=Disabled
+14:27:37.646 L view | passthrough=True while scanning
+14:27:38.154 W depth | occlusion subsystem not running: sub=stopped mode=Disabled
+14:27:41.219 L view | passthrough=False while scanning
+14:27:41.712 L view | passthrough=True while scanning
+14:27:42.375 L view | passthrough=False while scanning
+14:27:42.939 L view | passthrough=True while scanning
+14:27:43.140 W depth | occlusion subsystem not running: sub=stopped mode=Disabled
+14:27:43.921 L view | passthrough=False while scanning
+14:27:44.519 L view | passthrough=True while scanning
+14:27:48.143 W depth | occlusion subsystem not running: sub=stopped mode=Disabled
+14:27:53.161 W depth | occlusion subsystem not running: sub=stopped mode=Disabled
+14:27:53.587 L view | passthrough=False while scanning
+14:27:54.313 L view | passthrough=True while scanning
+14:27:54.822 L view | passthrough=False while scanning
+14:27:55.424 L view | passthrough=True while scanning
+14:27:58.073 L view | passthrough=False while scanning
+14:27:58.168 W depth | occlusion subsystem not running: sub=stopped mode=Disabled
+14:27:58.645 L view | passthrough=True while scanning
+14:27:59.320 L view | passthrough=False while scanning
+14:27:59.923 L view | passthrough=True while scanning
+14:28:00.612 L view | passthrough=False while scanning
+14:28:01.158 L view | passthrough=True while scanning
+14:28:03.143 W depth | occlusion subsystem not running: sub=stopped mode=Disabled
+14:28:09.272 W depth | occlusion subsystem not running: sub=stopped mode=Disabled
+14:28:14.267 W depth | occlusion subsystem not running: sub=stopped mode=Disabled
+14:28:19.269 W depth | occlusion subsystem not running: sub=stopped mode=Disabled
+14:32:21.996 L boot | app=0.5.0 unity=6000.2.9f1 device=Oculus Quest 3S os=Android OS 14 / API-34 (UP1A.231005.007.A1/4069240020600610) gfx=Adreno (TM) 740 mem=7757MB
+14:32:21.998 L boot | persistent=/storage/emulated/0/Android/data/in.arescope.beta02.questroom/files log=/storage/emulated/0/Android/data/in.arescope.beta02.questroom/files/arescope-debug.log
+14:32:22.104 L xr-boot | waiting for XR device, occlusion=no-subsystem
+14:32:22.104 L xr-boot | device active after 0.00s, occlusion=no-subsystem
+14:32:22.110 L xr | occlusion=no-subsystem depthMode=Disabled arSession=enabled scanner=ok xr=active
+14:32:22.110 L tex | refinement module present
+14:32:22.111 L hud | overlay camera active on layer 5, stack=1
+14:32:22.112 L hud | contrast probe ready, camera=yes
+14:32:22.712 W xr-boot | occlusion missing, restarting ARSession to recreate subsystems
+14:32:23.156 W depth | occlusion subsystem not running: sub=null mode=Disabled
+14:32:23.353 L xr-boot | after restart occlusion=no-subsystem
+14:32:28.149 W depth | occlusion subsystem not running: sub=null mode=Disabled
+14:32:30.259 L scan | StartScanAsync requested
+14:32:30.300 L scan | started
+14:32:30.300 L scan | t=0s phase=Discovering progress=0% uplink=none renderer=no
+14:32:30.510 L scan | StartScanAsync returned in 0.25s scanning=True
+14:32:31.313 L scan | t=1s phase=Discovering progress=0% uplink=none renderer=no
+14:32:32.320 L scan | t=2s phase=Discovering progress=1% uplink=none renderer=no
+14:32:33.323 L scan | t=3s phase=Discovering progress=2% uplink=none renderer=no
+14:32:34.350 L scan | t=4s phase=Discovering progress=2% uplink=none renderer=no
+14:32:35.364 L scan | t=5s phase=Discovering progress=4% uplink=none renderer=no
+14:32:36.378 L scan | t=6s phase=Discovering progress=8% uplink=none renderer=no
+14:32:37.396 L scan | t=7s phase=Discovering progress=8% uplink=none renderer=no
+14:32:38.405 L scan | t=8s phase=Discovering progress=11% uplink=none renderer=no
+14:32:39.405 L scan | t=9s phase=Discovering progress=12% uplink=none renderer=no
+14:32:40.432 L scan | t=10s phase=Discovering progress=12% uplink=200/1s ago/stored renderer=no
+14:32:41.453 L scan | t=11s phase=Discovering progress=13% uplink=200/2s ago/stored renderer=no
+14:32:42.461 L scan | t=12s phase=Discovering progress=14% uplink=200/3s ago/stored renderer=no
+14:32:43.494 L scan | t=13s phase=Discovering progress=14% uplink=200/1s ago/stored renderer=no
+14:32:44.501 L scan | t=14s phase=Discovering progress=15% uplink=200/2s ago/stored renderer=no
+14:32:45.545 L scan | t=15s phase=Discovering progress=16% uplink=200/3s ago/stored renderer=no
+14:32:46.572 L scan | t=16s phase=Discovering progress=16% uplink=200/1s ago/stored renderer=no
+14:32:47.585 L scan | t=17s phase=Discovering progress=18% uplink=200/2s ago/stored renderer=no
+14:32:48.618 L scan | t=18s phase=Discovering progress=18% uplink=200/3s ago/stored renderer=no
+14:32:49.622 L scan | t=19s phase=Discovering progress=18% uplink=200/1s ago/stored renderer=no
+14:32:50.090 L scan | FinalizeScanAsync requested
+14:32:50.131 L scan | stopped after 19.8s
+14:32:53.157 W depth | occlusion subsystem not running: sub=stopped mode=Disabled
+14:32:58.155 W depth | occlusion subsystem not running: sub=stopped mode=Disabled
+14:33:03.155 W depth | occlusion subsystem not running: sub=stopped mode=Disabled
+14:33:08.155 W depth | occlusion subsystem not running: sub=stopped mode=Disabled
+14:33:13.150 W depth | occlusion subsystem not running: sub=stopped mode=Disabled
+14:33:20.383 W depth | occlusion subsystem not running: sub=stopped mode=Disabled
+14:33:25.377 W depth | occlusion subsystem not running: sub=stopped mode=Disabled
+14:33:26.834 L scan | finalized mesh=23936 uv=yes renderer=yes
+14:33:27.309 L wire | built: 11968 edges, 23936 points
+14:33:27.331 L scan | reset requested (Y hold)
+14:33:27.352 L scan | reset done
+14:33:30.833 W depth | occlusion subsystem not running: sub=stopped mode=Disabled
+14:33:31.054 L scan | reset requested (Y hold)
+14:33:31.069 L scan | reset done
+14:33:35.835 W depth | occlusion subsystem not running: sub=stopped mode=Disabled
+14:33:40.836 W depth | occlusion subsystem not running: sub=stopped mode=Disabled
+14:33:45.834 W depth | occlusion subsystem not running: sub=stopped mode=Disabled
+14:33:50.834 W depth | occlusion subsystem not running: sub=stopped mode=Disabled
+14:33:55.843 W depth | occlusion subsystem not running: sub=stopped mode=Disabled
+14:34:00.843 W depth | occlusion subsystem not running: sub=stopped mode=Disabled
+14:34:05.831 W depth | occlusion subsystem not running: sub=stopped mode=Disabled
+14:34:10.831 W depth | occlusion subsystem not running: sub=stopped mode=Disabled
+15:11:27.579 W depth | occlusion subsystem not running: sub=stopped mode=Disabled
+15:11:32.581 W depth | occlusion subsystem not running: sub=stopped mode=Disabled
+15:11:37.577 W depth | occlusion subsystem not running: sub=stopped mode=Disabled
+15:12:59.887 L boot | app=0.5.3 unity=6000.2.9f1 device=Oculus Quest 3S os=Android OS 14 / API-34 (UP1A.231005.007.A1/4069240020600610) gfx=Adreno (TM) 740 mem=7757MB
+15:12:59.888 L boot | persistent=/storage/emulated/0/Android/data/in.arescope.beta02.questroom/files log=/storage/emulated/0/Android/data/in.arescope.beta02.questroom/files/arescope-debug.log
+15:12:59.985 L xr-boot | waiting for XR device, occlusion=no-subsystem
+15:12:59.985 L xr-boot | device active after 0.00s, occlusion=no-subsystem
+15:12:59.992 L xr | occlusion=no-subsystem depthMode=Disabled arSession=enabled scanner=ok xr=active
+15:12:59.993 L tex | refinement module present
+15:12:59.994 L hud | overlay camera active on layer 5, stack=1
+15:12:59.995 L hud | per-panel contrast, camera=yes head=yes
+15:13:00.012 W hud | contrast: no passthrough frame yet
+15:13:00.592 W xr-boot | occlusion missing, restarting ARSession to recreate subsystems
+15:13:01.035 W depth | occlusion subsystem not running: sub=null mode=Disabled
+15:13:01.231 L xr-boot | after restart occlusion=no-subsystem
+15:13:01.705 L scan | StartScanAsync requested
+15:13:01.773 L scan | started
+15:13:01.773 L scan | t=0s phase=Discovering progress=0% uplink=none renderer=no
+15:13:02.299 L scan | StartScanAsync returned in 0.59s scanning=True
+15:13:02.778 L scan | t=1s phase=Discovering progress=0% uplink=none renderer=no
+15:13:03.202 L hud | per-panel probe first read (32x32)
+15:13:03.203 L hud | status: backdrop=0.25 bright=0%
+15:13:03.203 L hud | event: backdrop=0.25 bright=0%
+15:13:03.203 L hud | map: backdrop=0.25 bright=0%
+15:13:03.203 L hud | assistant: backdrop=0.25 bright=0%
+15:13:03.203 L hud | compass: backdrop=0.25 bright=0%
+15:13:03.203 L hud | voice: backdrop=0.25 bright=0%
+15:13:03.780 L scan | t=2s phase=Discovering progress=0% uplink=none renderer=no
+15:13:04.781 L scan | t=3s phase=Discovering progress=5% uplink=none renderer=no
+15:13:05.810 L scan | t=4s phase=Discovering progress=5% uplink=200/0s ago/stored renderer=no
+15:13:06.852 L scan | t=5s phase=Discovering progress=7% uplink=200/1s ago/stored renderer=no
+15:13:07.852 L scan | t=6s phase=Discovering progress=8% uplink=200/2s ago/stored renderer=no
+15:13:08.859 L scan | t=7s phase=Discovering progress=8% uplink=200/0s ago/stored renderer=no
+15:13:09.889 L scan | t=8s phase=Discovering progress=9% uplink=200/1s ago/stored renderer=no
+15:13:10.894 L scan | t=9s phase=Discovering progress=9% uplink=200/2s ago/stored renderer=no
+15:13:11.350 L hud | map: backdrop=0.48 bright=100%
+15:13:11.901 L scan | t=10s phase=Discovering progress=11% uplink=200/0s ago/stored renderer=no
+15:13:12.395 L hud | map: backdrop=0.25 bright=0%
+15:13:12.927 L scan | t=11s phase=Discovering progress=12% uplink=200/1s ago/stored renderer=no
+15:13:13.463 L scan | stopped after 11.7s
+15:13:13.780 W scan | mesh readback empty
+15:13:16.035 W depth | occlusion subsystem not running: sub=stopped mode=Disabled
+15:13:21.035 L scan | StartScanAsync requested
+15:13:21.036 L scan | started
+15:13:21.036 L scan | t=0s phase=Discovering progress=12% uplink=200/1s ago/stored renderer=no
+15:13:21.037 W depth | occlusion subsystem not running: sub=stopped mode=Disabled
+15:13:21.121 L scan | StartScanAsync returned in 0.09s scanning=True
+15:13:22.045 L scan | t=1s phase=Discovering progress=13% uplink=200/2s ago/stored renderer=no
+15:13:22.473 L scan | stopped after 1.4s
+15:13:22.864 W scan | mesh readback empty
+15:13:25.923 L scan | StartScanAsync requested
+15:13:25.924 L scan | started
+15:13:25.924 L scan | t=0s phase=Discovering progress=13% uplink=200/2s ago/stored renderer=no
+15:13:26.024 L scan | StartScanAsync returned in 0.10s scanning=True
+15:13:26.961 L scan | t=1s phase=Discovering progress=13% uplink=200/0s ago/stored renderer=no
+15:13:27.575 L scan | stopped after 1.6s
+15:13:27.874 W scan | mesh readback empty
+15:13:31.045 W depth | occlusion subsystem not running: sub=stopped mode=Disabled
+15:13:32.270 L scan | reset requested (Y hold)
+15:13:32.337 L scan | reset done
+15:13:36.037 W depth | occlusion subsystem not running: sub=stopped mode=Disabled
+15:13:41.036 W depth | occlusion subsystem not running: sub=stopped mode=Disabled
+15:13:46.035 W depth | occlusion subsystem not running: sub=stopped mode=Disabled
+15:13:51.035 W depth | occlusion subsystem not running: sub=stopped mode=Disabled
+15:13:56.048 W depth | occlusion subsystem not running: sub=stopped mode=Disabled
+15:14:01.048 W depth | occlusion subsystem not running: sub=stopped mode=Disabled
+15:14:06.047 W depth | occlusion subsystem not running: sub=stopped mode=Disabled
+15:14:11.046 W depth | occlusion subsystem not running: sub=stopped mode=Disabled
+15:14:16.046 W depth | occlusion subsystem not running: sub=stopped mode=Disabled
+15:14:21.045 W depth | occlusion subsystem not running: sub=stopped mode=Disabled
+15:14:26.045 W depth | occlusion subsystem not running: sub=stopped mode=Disabled
+15:14:28.155 L scan | StartScanAsync requested
+15:14:28.183 L scan | started
+15:14:28.183 L scan | t=0s phase=Discovering progress=13% uplink=200/55s ago/stored renderer=no
+15:14:28.333 L scan | StartScanAsync returned in 0.18s scanning=True
+15:14:29.223 L scan | t=1s phase=Discovering progress=0% uplink=200/57s ago/stored renderer=no
+15:14:30.037 L scan | stopped after 1.8s
+15:14:30.403 W scan | mesh readback empty
+15:14:31.038 W depth | occlusion subsystem not running: sub=stopped mode=Disabled
+15:14:31.079 L scan | StartScanAsync requested
+15:14:31.080 L scan | started
+15:14:31.080 L scan | t=0s phase=Discovering progress=0% uplink=200/58s ago/stored renderer=no
+15:14:31.174 L scan | StartScanAsync returned in 0.09s scanning=True
+15:14:31.450 L scan | stopped after 0.3s
+15:14:31.833 W scan | mesh readback empty
+15:14:31.953 L scan | StartScanAsync requested
+15:14:31.953 L scan | started
+15:14:32.044 L scan | StartScanAsync returned in 0.09s scanning=True
+15:14:32.088 L scan | t=0s phase=Discovering progress=0% uplink=200/59s ago/stored renderer=no
+15:14:32.617 L view | passthrough=False while scanning
+15:14:33.115 L scan | t=1s phase=Discovering progress=2% uplink=200/1s ago/stored renderer=no
+15:14:33.466 L view | passthrough=True while scanning
+15:14:33.912 L view | passthrough=False while scanning
+15:14:34.116 L scan | t=2s phase=Discovering progress=3% uplink=200/2s ago/stored renderer=no
+15:14:34.368 L scan | stopped after 2.4s
+15:14:34.690 W scan | mesh readback empty
+15:14:36.043 W depth | occlusion subsystem not running: sub=stopped mode=Disabled
+15:14:36.751 L scan | StartScanAsync requested
+15:14:36.752 L scan | started
+15:14:36.752 L scan | t=0s phase=Discovering progress=3% uplink=200/2s ago/stored renderer=no
+15:14:36.965 L scan | StartScanAsync returned in 0.21s scanning=True
+15:14:37.765 L scan | t=1s phase=Discovering progress=3% uplink=200/3s ago/stored renderer=no
+15:14:38.033 L scan | stopped after 1.2s
+15:14:38.325 W scan | mesh readback empty
+15:14:39.596 L scan | reset requested (Y hold)
+15:14:39.610 L scan | reset done
+15:14:41.043 W depth | occlusion subsystem not running: sub=stopped mode=Disabled
+15:14:41.515 L scan | StartScanAsync requested
+15:14:41.544 L scan | started
+15:14:41.544 L scan | t=0s phase=Discovering progress=3% uplink=200/4s ago/stored renderer=no
+15:14:41.800 L scan | StartScanAsync returned in 0.28s scanning=True
+15:14:42.549 L scan | t=1s phase=Discovering progress=1% uplink=200/5s ago/stored renderer=no
+15:14:43.550 L scan | t=2s phase=Discovering progress=1% uplink=200/6s ago/stored renderer=no
+15:14:44.117 L view | passthrough=True while scanning
+15:14:44.326 L scan | stopped after 2.8s
+15:14:44.643 W scan | mesh readback empty
+15:14:46.038 W depth | occlusion subsystem not running: sub=stopped mode=Disabled
+15:14:46.981 L scan | reset requested (Y hold)
+15:14:46.995 L scan | reset done
+15:34:48.862 L boot | app=0.5.4 unity=6000.2.9f1 device=Oculus Quest 3S os=Android OS 14 / API-34 (UP1A.231005.007.A1/4069240020600610) gfx=Adreno (TM) 740 mem=7757MB
+15:34:48.863 L boot | persistent=/storage/emulated/0/Android/data/in.arescope.beta02.questroom/files log=/storage/emulated/0/Android/data/in.arescope.beta02.questroom/files/arescope-debug.log
+15:34:48.963 L xr-boot | waiting for XR device, occlusion=no-subsystem
+15:34:48.964 L xr-boot | device active after 0.00s, occlusion=no-subsystem
+15:34:48.971 L xr | occlusion=no-subsystem depthMode=Disabled arSession=enabled scanner=ok xr=active
+15:34:48.972 L tex | refinement module present
+15:34:48.973 L hud | overlay camera active on layer 5, stack=1
+15:34:48.974 L hud | per-panel contrast, camera=yes head=yes
+15:34:48.993 W hud | contrast: no passthrough frame yet
+15:34:49.565 W xr-boot | occlusion missing, restarting ARSession to recreate subsystems
+15:34:50.038 W depth | occlusion subsystem not running: sub=null mode=Disabled
+15:34:50.205 L xr-boot | after restart occlusion=no-subsystem
+15:34:52.596 L scan | StartScanAsync requested
+15:34:52.639 L scan | started
+15:34:52.639 L scan | t=0s phase=Discovering progress=0% uplink=none renderer=no
+15:34:52.898 L scan | StartScanAsync returned in 0.30s scanning=True
+15:34:53.210 L hud | per-panel probe first read (32x32)
+15:34:53.216 L hud | status: backdrop=0.25 bright=0%
+15:34:53.216 L hud | event: backdrop=0.25 bright=0%
+15:34:53.216 L hud | map: backdrop=0.25 bright=0%
+15:34:53.216 L hud | assistant: backdrop=0.25 bright=0%
+15:34:53.217 L hud | compass: backdrop=0.25 bright=0%
+15:34:53.217 L hud | voice: backdrop=0.25 bright=0%
+15:34:53.656 L scan | t=1s phase=Discovering progress=0% uplink=none renderer=no
+15:34:54.660 L scan | t=2s phase=Discovering progress=0% uplink=none renderer=no
+15:34:55.661 L scan | t=3s phase=Discovering progress=4% uplink=none renderer=no
+15:34:56.693 L scan | t=4s phase=Discovering progress=4% uplink=none renderer=no
+15:34:57.705 L scan | t=5s phase=Discovering progress=6% uplink=none renderer=no
+15:34:58.702 L scan | t=6s phase=Discovering progress=7% uplink=none renderer=no
+15:34:59.706 L scan | t=7s phase=Discovering progress=7% uplink=200/1s ago/stored renderer=no
+15:35:00.714 L scan | t=8s phase=Discovering progress=9% uplink=200/2s ago/stored renderer=no
+15:35:01.716 L scan | t=9s phase=Discovering progress=11% uplink=200/3s ago/stored renderer=no
+15:35:02.722 L scan | t=10s phase=Discovering progress=11% uplink=200/0s ago/stored renderer=no
+15:35:03.766 L scan | t=11s phase=Discovering progress=12% uplink=200/2s ago/stored renderer=no
+15:35:04.784 L scan | t=12s phase=Discovering progress=14% uplink=200/3s ago/stored renderer=no
+15:35:05.812 L scan | t=13s phase=Discovering progress=14% uplink=200/1s ago/stored renderer=no
+15:35:06.839 L scan | t=14s phase=Discovering progress=15% uplink=200/2s ago/stored renderer=no
+15:35:07.854 L scan | t=15s phase=Discovering progress=16% uplink=200/3s ago/stored renderer=no
+15:35:08.869 L scan | t=16s phase=Discovering progress=16% uplink=200/1s ago/stored renderer=no
+15:35:09.889 L scan | t=17s phase=Discovering progress=17% uplink=200/2s ago/stored renderer=no
+15:35:10.895 L scan | t=18s phase=Discovering progress=17% uplink=200/3s ago/stored renderer=no
+15:35:11.923 L scan | t=19s phase=Discovering progress=17% uplink=200/1s ago/stored renderer=no
+15:35:12.944 L scan | t=20s phase=Discovering progress=18% uplink=200/2s ago/stored renderer=no
+15:35:13.958 L scan | t=21s phase=Discovering progress=18% uplink=200/3s ago/stored renderer=no
+15:35:14.992 L scan | t=22s phase=Discovering progress=19% uplink=200/0s ago/stored renderer=no
+15:35:16.019 L scan | t=23s phase=Discovering progress=19% uplink=200/1s ago/stored renderer=no
+15:35:17.035 L scan | t=24s phase=Discovering progress=19% uplink=200/2s ago/stored renderer=no
+15:35:18.048 L scan | t=25s phase=Discovering progress=19% uplink=200/1s ago/stored renderer=no
+15:35:19.049 L scan | t=26s phase=Discovering progress=19% uplink=200/2s ago/stored renderer=no
+15:35:20.065 L scan | t=27s phase=Discovering progress=19% uplink=200/3s ago/stored renderer=no
+15:35:21.076 L scan | t=28s phase=Discovering progress=19% uplink=200/0s ago/stored renderer=no
+15:35:22.080 L scan | t=29s phase=Discovering progress=20% uplink=200/1s ago/stored renderer=no
+15:35:23.114 L scan | t=30s phase=Discovering progress=20% uplink=200/2s ago/stored renderer=no
+15:35:23.391 L scan | stopped after 30.7s
+15:35:23.392 W scan | mesh readback empty
+15:35:25.033 W depth | occlusion subsystem not running: sub=stopped mode=Disabled
+15:35:27.396 L scan | StartScanAsync requested
+15:35:27.397 L scan | started
+15:35:27.397 L scan | t=0s phase=Discovering progress=20% uplink=200/1s ago/stored renderer=no
+15:35:27.500 L scan | StartScanAsync returned in 0.10s scanning=True
+15:35:28.419 L scan | t=1s phase=Discovering progress=21% uplink=200/2s ago/stored renderer=no
+15:35:29.040 L scan | stopped after 1.6s
+15:35:29.041 W scan | mesh readback empty
+15:35:30.033 W depth | occlusion subsystem not running: sub=stopped mode=Disabled
+15:35:32.602 L scan | StartScanAsync requested
+15:35:32.603 L scan | started
+15:35:32.603 L scan | t=0s phase=Discovering progress=21% uplink=200/0s ago/stored renderer=no
+15:35:32.694 L scan | StartScanAsync returned in 0.09s scanning=True
+15:35:33.255 L view | passthrough=False while scanning
+15:35:33.614 L scan | t=1s phase=Discovering progress=21% uplink=200/1s ago/stored renderer=no
+15:35:34.626 L scan | t=2s phase=Discovering progress=21% uplink=200/2s ago/stored renderer=no
+15:35:35.072 L view | passthrough=True while scanning
+15:35:35.476 L view | passthrough=False while scanning
+15:35:35.643 L scan | t=3s phase=Discovering progress=21% uplink=200/0s ago/stored renderer=no
+15:35:36.656 L scan | t=4s phase=Discovering progress=21% uplink=200/1s ago/stored renderer=no
+15:35:37.657 L scan | t=5s phase=Discovering progress=21% uplink=200/2s ago/stored renderer=no
+15:35:38.674 L scan | t=6s phase=Discovering progress=21% uplink=200/0s ago/stored renderer=no
+15:35:39.683 L scan | t=7s phase=Discovering progress=22% uplink=200/1s ago/stored renderer=no
+15:35:40.697 L scan | t=8s phase=Discovering progress=22% uplink=200/2s ago/stored renderer=no
+15:35:40.974 L view | passthrough=True while scanning
+15:35:41.611 L view | passthrough=False while scanning
+15:35:41.698 L scan | t=9s phase=Discovering progress=22% uplink=200/0s ago/stored renderer=no
+15:35:42.058 L view | passthrough=True while scanning
+15:35:42.711 L scan | t=10s phase=Discovering progress=22% uplink=200/1s ago/stored renderer=no
+15:35:43.725 L scan | t=11s phase=Discovering progress=22% uplink=200/2s ago/stored renderer=no
+15:35:44.377 L view | passthrough=False while scanning
+15:35:44.778 L scan | t=12s phase=Discovering progress=22% uplink=200/0s ago/stored renderer=no
+15:35:45.017 L view | passthrough=True while scanning
+15:35:45.781 L scan | t=13s phase=Discovering progress=22% uplink=200/1s ago/stored renderer=no
+15:35:46.066 L view | passthrough=False while scanning
+15:35:46.793 L scan | t=14s phase=Discovering progress=22% uplink=200/2s ago/stored renderer=no
+15:35:47.085 L view | passthrough=True while scanning
+15:35:47.795 L scan | t=15s phase=Discovering progress=22% uplink=200/0s ago/stored renderer=no
+15:35:48.099 L view | passthrough=False while scanning
+15:35:48.807 L scan | t=16s phase=Discovering progress=22% uplink=200/1s ago/stored renderer=no
+15:35:49.849 L scan | t=17s phase=Discovering progress=22% uplink=200/2s ago/stored renderer=no
+15:35:50.876 L scan | t=18s phase=Discovering progress=22% uplink=200/0s ago/stored renderer=no
+15:35:51.890 L scan | t=19s phase=Discovering progress=22% uplink=200/1s ago/stored renderer=no
+15:35:52.894 L scan | t=20s phase=Discovering progress=22% uplink=200/2s ago/stored renderer=no
+15:35:53.473 L view | passthrough=True while scanning
+15:35:53.904 L scan | t=21s phase=Discovering progress=22% uplink=200/0s ago/stored renderer=no
+15:35:54.989 L scan | stopped after 22.4s
+15:35:54.990 W scan | mesh readback empty
+15:35:55.041 L scan | StartScanAsync requested
+15:35:55.043 L scan | started
+15:35:55.043 L scan | t=0s phase=Discovering progress=22% uplink=200/2s ago/stored renderer=no
+15:35:55.044 W depth | occlusion subsystem not running: sub=stopped mode=Disabled
+15:35:55.183 L scan | StartScanAsync returned in 0.14s scanning=True
+15:35:55.874 L scan | stopped after 0.8s
+15:35:55.875 W scan | mesh readback empty
+15:35:56.000 L scan | StartScanAsync requested
+15:35:56.001 L scan | started
+15:35:56.042 L scan | t=0s phase=Discovering progress=22% uplink=200/3s ago/stored renderer=no
+15:35:56.089 L scan | StartScanAsync returned in 0.09s scanning=True
+15:35:56.843 L scan | stopped after 0.8s
+15:35:56.843 W scan | mesh readback empty
+15:35:57.012 L scan | StartScanAsync requested
+15:35:57.013 L scan | started
+15:35:57.054 L scan | t=0s phase=Discovering progress=22% uplink=200/0s ago/stored renderer=no
+15:35:57.101 L scan | StartScanAsync returned in 0.09s scanning=True
+15:35:58.056 L scan | t=1s phase=Discovering progress=22% uplink=200/1s ago/stored renderer=no
+15:35:58.989 L scan | reset requested (Y hold)
+15:35:59.039 L scan | stopped after 2.0s
+15:35:59.045 L scan | reset done
+15:36:00.028 W depth | occlusion subsystem not running: sub=stopped mode=Disabled
+15:36:02.061 L scan | StartScanAsync requested
+15:36:02.090 L scan | started
+15:36:02.091 L scan | t=0s phase=Discovering progress=22% uplink=200/5s ago/stored renderer=no
+15:36:02.229 L scan | StartScanAsync returned in 0.17s scanning=True
+15:36:03.096 L scan | t=1s phase=Discovering progress=0% uplink=200/6s ago/stored renderer=no
+15:36:04.102 L scan | t=2s phase=Discovering progress=1% uplink=200/7s ago/stored renderer=no
+15:36:05.111 L scan | t=3s phase=Discovering progress=5% uplink=200/8s ago/stored renderer=no
+15:36:06.053 L hud | map: backdrop=0.48 bright=100%
+15:36:06.123 L scan | t=4s phase=Discovering progress=5% uplink=200/1s ago/stored renderer=no
+15:36:07.113 L hud | map: backdrop=0.25 bright=0%
+15:36:07.153 L scan | t=5s phase=Discovering progress=7% uplink=200/2s ago/stored renderer=no
+15:36:08.167 L scan | t=6s phase=Discovering progress=8% uplink=200/3s ago/stored renderer=no
+15:36:09.202 L scan | t=7s phase=Discovering progress=8% uplink=200/1s ago/stored renderer=no
+15:36:10.220 L scan | t=8s phase=Discovering progress=9% uplink=200/2s ago/stored renderer=no
+15:36:11.252 L scan | t=9s phase=Discovering progress=10% uplink=200/3s ago/stored renderer=no
+15:36:11.763 L scan | stopped after 9.7s
+15:36:11.763 W scan | mesh readback empty
+15:36:15.028 W depth | occlusion subsystem not running: sub=stopped mode=Disabled
+15:36:17.139 L scan | StartScanAsync requested
+15:36:17.140 L scan | started
+15:36:17.140 L scan | t=0s phase=Discovering progress=10% uplink=200/3s ago/stored renderer=no
+15:36:17.241 L scan | StartScanAsync returned in 0.10s scanning=True
+15:36:18.141 L scan | t=1s phase=Discovering progress=10% uplink=200/1s ago/stored renderer=no
+15:36:18.482 L scan | stopped after 1.3s
+15:36:18.483 W scan | mesh readback empty
+15:36:19.556 L scan | StartScanAsync requested
+15:36:19.557 L scan | started
+15:36:19.557 L scan | t=0s phase=Discovering progress=10% uplink=200/2s ago/stored renderer=no
+15:36:19.646 L scan | StartScanAsync returned in 0.09s scanning=True
+15:36:20.482 L scan | stopped after 0.9s
+15:36:20.483 W scan | mesh readback empty
+15:36:23.859 L scan | reset requested (Y hold)
+15:36:23.876 L scan | reset done
+15:36:25.030 W depth | occlusion subsystem not running: sub=stopped mode=Disabled
+08:10:35.126 L boot | app=0.5.8 unity=6000.2.9f1 device=Oculus Quest 3S os=Android OS 14 / API-34 (UP1A.231005.007.A1/4069240023000610) gfx=Adreno (TM) 740 mem=7757MB
+08:10:35.132 L boot | persistent=/storage/emulated/0/Android/data/in.arescope.beta02.questroom/files log=/storage/emulated/0/Android/data/in.arescope.beta02.questroom/files/arescope-debug.log
+08:10:35.302 L log | uploader ready, token=yes
+08:10:35.325 L xr-boot | waiting for XR device, occlusion=no-subsystem
+08:10:35.325 L xr-boot | device active after 0.00s, occlusion=no-subsystem
+08:10:35.336 L xr | occlusion=no-subsystem depthMode=Disabled arSession=enabled scanner=ok xr=active
+08:10:35.337 L tex | refinement module present
+08:10:35.340 L hud | overlay camera active on layer 5, stack=1
+08:10:35.341 L hud | per-panel contrast, camera=yes head=yes
+08:10:35.372 W hud | contrast: no passthrough frame yet
+08:10:35.940 W xr-boot | occlusion missing, restarting ARSession to recreate subsystems
+08:10:36.441 W depth | occlusion subsystem not running: sub=null mode=Disabled
+08:10:36.582 L xr-boot | after restart occlusion=no-subsystem
+08:10:40.726 L scan | StartScanAsync requested
+08:10:40.767 L scan | started
+08:10:40.768 L scan | t=0s phase=Discovering progress=0% uplink=none renderer=no
+08:10:41.412 L scan | StartScanAsync returned in 0.69s scanning=True
+08:10:41.413 L scan | SDK live mesh hidden, LAB points on
+08:10:41.779 L scan | t=1s phase=Discovering progress=0% uplink=none renderer=no
+08:10:42.320 L hud | per-panel probe first read (32x32)
+08:10:42.321 L hud | status: backdrop=0.25 bright=0%
+08:10:42.321 L hud | event: backdrop=0.25 bright=0%
+08:10:42.321 L hud | map: backdrop=0.25 bright=0%
+08:10:42.322 L hud | assistant: backdrop=0.25 bright=0%
+08:10:42.322 L hud | compass: backdrop=0.25 bright=0%
+08:10:42.322 L hud | voice: backdrop=0.25 bright=0%
+08:10:42.775 L scan | t=2s phase=Discovering progress=0% uplink=none renderer=no
+08:10:43.785 L scan | t=3s phase=Discovering progress=4% uplink=none renderer=no
+08:10:44.352 L hud | event: backdrop=0.48 bright=100%
+08:10:44.352 L hud | voice: backdrop=0.48 bright=75%
+08:10:44.793 L scan | t=4s phase=Discovering progress=4% uplink=none renderer=no
+08:10:45.368 L hud | event: backdrop=0.25 bright=0%
+08:10:45.369 L hud | voice: backdrop=0.25 bright=0%
+08:10:45.802 L scan | t=5s phase=Discovering progress=6% uplink=none renderer=no
+08:10:46.838 L scan | t=6s phase=Discovering progress=6% uplink=none renderer=no
+08:10:47.859 L scan | t=7s phase=Discovering progress=7% uplink=none renderer=no
+08:10:48.874 L scan | t=8s phase=Discovering progress=7% uplink=none renderer=no
+08:10:49.935 L scan | t=9s phase=Discovering progress=7% uplink=none renderer=no
+08:10:50.937 L scan | t=10s phase=Discovering progress=8% uplink=none renderer=no
+08:10:51.950 L scan | t=11s phase=Discovering progress=8% uplink=none renderer=no
+08:10:52.963 L scan | t=12s phase=Discovering progress=8% uplink=none renderer=no
+08:10:53.968 L scan | t=13s phase=Discovering progress=10% uplink=200/0s ago/stored renderer=no
+08:10:54.983 L scan | t=14s phase=Discovering progress=13% uplink=200/1s ago/stored renderer=no
+08:10:55.937 L log | upload start: pause
+08:10:59.587 L log | uploaded: pause 88035 bytes
+08:10:59.589 L scan | t=19s phase=Discovering progress=13% uplink=200/6s ago/stored renderer=no
+08:11:00.589 L scan | t=20s phase=Discovering progress=16% uplink=200/7s ago/stored renderer=no
+08:11:01.620 L scan | t=21s phase=Discovering progress=16% uplink=200/8s ago/stored renderer=no
+08:11:02.620 L scan | t=22s phase=Discovering progress=17% uplink=200/9s ago/stored renderer=no
+08:11:03.621 L scan | t=23s phase=Discovering progress=21% uplink=200/1s ago/stored renderer=no
+08:11:04.664 L scan | t=24s phase=Discovering progress=21% uplink=200/2s ago/stored renderer=no
+08:11:05.665 L scan | t=25s phase=Discovering progress=22% uplink=200/3s ago/stored renderer=no
+08:11:06.677 L scan | t=26s phase=Discovering progress=23% uplink=200/1s ago/stored renderer=no
+08:11:07.717 L scan | t=27s phase=Discovering progress=23% uplink=200/2s ago/stored renderer=no
+08:11:08.720 L scan | t=28s phase=Discovering progress=25% uplink=200/3s ago/stored renderer=no
+08:11:09.734 L scan | t=29s phase=Discovering progress=26% uplink=200/1s ago/stored renderer=no
+08:11:10.776 L scan | t=30s phase=Discovering progress=26% uplink=200/2s ago/stored renderer=no
+08:11:11.827 L scan | t=31s phase=Discovering progress=26% uplink=200/3s ago/stored renderer=no
+08:11:12.830 L scan | t=32s phase=Discovering progress=26% uplink=200/1s ago/stored renderer=no
+08:11:13.835 L scan | t=33s phase=Discovering progress=26% uplink=200/2s ago/stored renderer=no
+08:11:14.845 L scan | t=34s phase=Discovering progress=28% uplink=200/3s ago/stored renderer=no
+08:11:15.857 L scan | t=35s phase=Discovering progress=28% uplink=200/4s ago/stored renderer=no
+08:11:15.922 L hud | map: backdrop=0.48 bright=91%
+08:11:16.858 L scan | t=36s phase=Discovering progress=28% uplink=200/5s ago/stored renderer=no
+08:11:16.972 L hud | map: backdrop=0.25 bright=0%
+08:11:17.868 L scan | t=37s phase=Discovering progress=29% uplink=200/6s ago/stored renderer=no
+08:11:18.178 L scan | stopped after 37.4s
+08:11:20.351 L wire | built from 62374 verts: 61801 verts, 59149 tris, 30900 edges, 20601 points
+08:11:20.357 L scan | wireframe ready in 2.42s: verts=62374 tris=118298
+08:11:22.104 W depth | occlusion subsystem not running: sub=stopped mode=Disabled
+08:11:27.120 W depth | occlusion subsystem not running: sub=stopped mode=Disabled
+08:11:31.603 L scan | StartScanAsync requested
+08:11:31.604 L scan | started
+08:11:31.604 L scan | t=0s phase=Discovering progress=29% uplink=200/4s ago/stored renderer=no
+08:11:31.938 L scan | StartScanAsync returned in 0.33s scanning=True
+08:11:31.939 L scan | SDK live mesh hidden, LAB points on
+08:11:32.609 L scan | t=1s phase=Discovering progress=28% uplink=200/5s ago/stored renderer=no
+08:11:33.631 L scan | t=2s phase=Discovering progress=28% uplink=200/1s ago/stored renderer=no
+08:11:34.049 L view | passthrough=True while scanning
+08:11:34.633 L scan | t=3s phase=Refining progress=30% uplink=200/2s ago/stored renderer=no
+08:11:35.004 L view | passthrough=False while scanning
+08:11:35.634 L scan | t=4s phase=Discovering progress=30% uplink=200/3s ago/stored renderer=no
+08:11:36.669 L scan | t=5s phase=Discovering progress=30% uplink=200/1s ago/stored renderer=no
+08:11:37.670 L scan | t=6s phase=Discovering progress=29% uplink=200/2s ago/stored renderer=no
+08:11:38.067 L view | passthrough=True while scanning
+08:11:38.677 L scan | t=7s phase=Discovering progress=29% uplink=200/3s ago/stored renderer=no
+08:11:39.706 L scan | t=8s phase=Discovering progress=29% uplink=200/0s ago/stored renderer=no
+08:11:39.938 L view | passthrough=False while scanning
+08:11:40.745 L scan | t=9s phase=Discovering progress=29% uplink=200/1s ago/stored renderer=no
+08:11:41.754 L scan | t=10s phase=Discovering progress=28% uplink=200/2s ago/stored renderer=no
+08:11:42.760 L scan | t=11s phase=Discovering progress=28% uplink=200/1s ago/stored renderer=no
+08:11:43.761 L scan | t=12s phase=Discovering progress=28% uplink=200/2s ago/stored renderer=no
+08:11:44.799 L scan | t=13s phase=Discovering progress=28% uplink=200/3s ago/stored renderer=no
+08:11:45.802 L scan | t=14s phase=Discovering progress=28% uplink=200/4s ago/stored renderer=no
+08:11:46.816 L scan | t=15s phase=Discovering progress=28% uplink=200/5s ago/stored renderer=no
+08:11:47.830 L scan | t=16s phase=Discovering progress=28% uplink=200/6s ago/stored renderer=no
+08:11:48.414 L view | passthrough=True while scanning
+08:11:48.832 L scan | t=17s phase=Discovering progress=28% uplink=200/1s ago/stored renderer=no
+08:11:49.612 L scan | stopped after 18.0s
+08:11:51.831 L wire | built from 65247 verts: 59636 verts, 41166 tris, 29818 edges, 29818 points
+08:11:51.831 L scan | wireframe ready in 2.50s: verts=65247 tris=123498
+08:11:54.035 W depth | occlusion subsystem not running: sub=stopped mode=Disabled
+08:11:54.565 L view | wireframe=False
+08:11:57.939 L wire | built from 65247 verts: 59636 verts, 41166 tris, 29818 edges, 29818 points
+08:11:57.940 L view | wireframe=True
+08:11:59.949 L view | wireframe=False
+08:12:01.181 W depth | occlusion subsystem not running: sub=stopped mode=Disabled
+08:12:01.570 L scan | StartScanAsync requested
+08:12:01.571 L scan | started
+08:12:01.571 L scan | t=0s phase=Discovering progress=28% uplink=200/6s ago/stored renderer=no
+08:12:01.657 L scan | StartScanAsync returned in 0.09s scanning=True
+08:12:01.658 L scan | SDK live mesh hidden, LAB points on
+08:12:02.582 L scan | t=1s phase=Discovering progress=28% uplink=200/7s ago/stored renderer=no
+08:12:02.761 L scan | reset requested (Y hold)
+08:12:02.799 L scan | stopped after 1.2s
+08:12:02.805 L scan | reset done
+08:12:03.569 L log | upload start: combo
+08:12:03.973 L log | uploaded: combo 93716 bytes
+08:12:06.184 W depth | occlusion subsystem not running: sub=stopped mode=Disabled
+08:12:10.801 L log | upload start: pause
