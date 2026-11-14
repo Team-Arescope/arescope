@@ -1,0 +1,7 @@
+{
+  "name": "Arescope.Core",
+  "rootNamespace": "Arescope",
+  "references": [],
+  "autoReferenced": true,
+  "noEngineReferences": true
+}

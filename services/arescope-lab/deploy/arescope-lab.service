@@ -1,0 +1,27 @@
+[Unit]
+Description=Arescope LAB live ingest and mission control
+After=network.target
+
+[Service]
+Type=simple
+User=arescope-lab
+Group=arescope-lab
+WorkingDirectory=/opt/arescope-lab
+EnvironmentFile=/etc/arescope-lab.env
+Environment=PYTHONDONTWRITEBYTECODE=1
+ExecStartPre=/opt/arescope-lab/.venv/bin/python app.py --check-config
+ExecStart=/opt/arescope-lab/.venv/bin/python -m uvicorn app:app --host 127.0.0.1 --port 18965 --workers 1 --no-access-log
+Restart=on-failure
+RestartSec=3
+StateDirectory=arescope-lab
+StateDirectoryMode=0700
+UMask=0077
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/var/lib/arescope-lab
+RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX
+
+[Install]
+WantedBy=multi-user.target

@@ -1,0 +1,12 @@
+/Library/
+/Temp/
+/Obj/
+/Logs/
+/UserSettings/
+/Build/
+/Scripts/.verification/
+__pycache__/
+/Assets/Resources/arescope-endpoint.txt
+/Assets/Resources/arescope-endpoint.txt.meta
+/Assets/Resources/arescope-live-token.txt
+/Assets/Resources/arescope-live-token.txt.meta

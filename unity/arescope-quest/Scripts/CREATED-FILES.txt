@@ -1,0 +1,153 @@
+Arescope core client source/asset inventory (relative to unity/arescope-quest/)
+Includes Unity metadata; generated Scripts/.verification/ outputs are excluded.
+
+.gitignore
+Assets/Arescope.meta
+Assets/Arescope/ARSessionBootstrap.cs
+Assets/Arescope/ARSessionBootstrap.cs.meta
+Assets/Arescope/ArescopeFrame.cs
+Assets/Arescope/ArescopeFrame.cs.meta
+Assets/Arescope/ArescopeLog.cs
+Assets/Arescope/ArescopeLog.cs.meta
+Assets/Arescope/HudContrast.cs
+Assets/Arescope/HudContrast.cs.meta
+Assets/Arescope/HudOverlay.cs
+Assets/Arescope/HudOverlay.cs.meta
+Assets/Arescope/LiveFrameSender.cs
+Assets/Arescope/LiveFrameSender.cs.meta
+Assets/Arescope/LiveScanMinimap.cs
+Assets/Arescope/LiveScanMinimap.cs.meta
+Assets/Arescope/LiveScanPoints.cs
+Assets/Arescope/LiveScanPoints.cs.meta
+Assets/Arescope/LiveTransport.cs
+Assets/Arescope/LiveTransport.cs.meta
+Assets/Arescope/LogUploader.cs
+Assets/Arescope/LogUploader.cs.meta
+Assets/Arescope/Math.meta
+Assets/Arescope/Math/Arescope.Core.asmdef
+Assets/Arescope/Math/Arescope.Core.asmdef.meta
+Assets/Arescope/Math/CoreMath.cs
+Assets/Arescope/Math/CoreMath.cs.meta
+Assets/Arescope/MeshUploader.cs
+Assets/Arescope/MeshUploader.cs.meta
+Assets/Arescope/ModePolicy.cs
+Assets/Arescope/ModePolicy.cs.meta
+Assets/Arescope/ScanDiagnostics.cs
+Assets/Arescope/ScanDiagnostics.cs.meta
+Assets/Arescope/ScanModeBridge.cs
+Assets/Arescope/ScanModeBridge.cs.meta
+Assets/Arescope/ScanProgressHud.cs
+Assets/Arescope/ScanProgressHud.cs.meta
+Assets/Arescope/ScanWireframe.cs
+Assets/Arescope/ScanWireframe.cs.meta
+Assets/Arescope/Shaders.meta
+Assets/Arescope/Shaders/ArescopeBillboard.hlsl
+Assets/Arescope/Shaders/ArescopeBillboard.hlsl.meta
+Assets/Arescope/ViewModeController.cs
+Assets/Arescope/ViewModeController.cs.meta
+Assets/Plugins.meta
+Assets/Plugins/Android.meta
+Assets/Plugins/Android/AndroidManifest.xml
+Assets/Plugins/Android/AndroidManifest.xml.meta
+Assets/Plugins/Android/arm64-v8a.meta
+Assets/Plugins/Android/arm64-v8a/README.md
+Assets/Plugins/Android/arm64-v8a/README.md.meta
+Assets/Resources.meta
+Assets/Resources/ArescopeFonts.meta
+Assets/Resources/ArescopeFonts/DMMono-OFL.txt
+Assets/Resources/ArescopeFonts/DMMono-OFL.txt.meta
+Assets/Resources/ArescopeFonts/Manrope-OFL.txt
+Assets/Resources/ArescopeFonts/Manrope-OFL.txt.meta
+Assets/Resources/ArescopeFonts/README.md
+Assets/Resources/ArescopeFonts/README.md.meta
+Assets/Resources/ArescopeIcons.meta
+Assets/Resources/ArescopeIcons/LICENSE-Tabler-MIT.txt
+Assets/Resources/ArescopeIcons/LICENSE-Tabler-MIT.txt.meta
+Assets/Resources/ArescopeIcons/depth.png
+Assets/Resources/ArescopeIcons/depth.png.meta
+Assets/Resources/ArescopeIcons/dot.png
+Assets/Resources/ArescopeIcons/dot.png.meta
+Assets/Resources/ArescopeIcons/link.png
+Assets/Resources/ArescopeIcons/link.png.meta
+Assets/Resources/ArescopeIcons/power.png
+Assets/Resources/ArescopeIcons/power.png.meta
+Assets/Resources/ArescopeIcons/scan.png
+Assets/Resources/ArescopeIcons/scan.png.meta
+Assets/Resources/ArescopeIcons/voice.png
+Assets/Resources/ArescopeIcons/voice.png.meta
+Assets/Resources/ArescopeWire.shader
+Assets/Resources/ArescopeWire.shader.meta
+Assets/Resources/arescope-endpoint.example.txt
+Assets/Resources/arescope-endpoint.example.txt.meta
+Assets/Resources/arescope-live-token.example.txt
+Assets/Resources/arescope-live-token.example.txt.meta
+Assets/Settings.meta
+Assets/Settings/ArescopeQuestRenderer.asset
+Assets/Settings/ArescopeQuestRenderer.asset.meta
+Assets/Settings/ArescopeQuestURP.asset
+Assets/Settings/ArescopeQuestURP.asset.meta
+Assets/Tests.meta
+Assets/Tests/Arescope.Tests.asmdef
+Assets/Tests/Arescope.Tests.asmdef.meta
+Assets/Tests/ArescopeFrameTest.cs
+Assets/Tests/ArescopeFrameTest.cs.meta
+Assets/Tests/ArsmPackingTest.cs
+Assets/Tests/ArsmPackingTest.cs.meta
+Assets/Tests/MinimapProjectionTest.cs
+Assets/Tests/MinimapProjectionTest.cs.meta
+Assets/Tests/ModePolicyTest.cs
+Assets/Tests/ModePolicyTest.cs.meta
+Assets/Tests/StandaloneRunner.cs
+Assets/Tests/StandaloneRunner.cs.meta
+Assets/Tests/TestCheck.cs
+Assets/Tests/TestCheck.cs.meta
+Assets/Tests/TriangleFilterTest.cs
+Assets/Tests/TriangleFilterTest.cs.meta
+Assets/XR.meta
+Assets/XR/Settings.meta
+Assets/XR/Settings/OpenXR Package Settings.asset
+Assets/XR/Settings/OpenXR Package Settings.asset.meta
+Assets/XR/Settings/XRSimulationSettings.asset
+Assets/XR/Settings/XRSimulationSettings.asset.meta
+Assets/XR/XRGeneralSettingsPerBuildTarget.asset
+Assets/XR/XRGeneralSettingsPerBuildTarget.asset.meta
+PackagePatches/ArescopeLiveCloud.cs
+PackagePatches/ArescopeLiveCloud.cs.meta
+PackagePatches/ArescopeMeshExport.cs
+PackagePatches/ArescopeMeshExport.cs.meta
+PackagePatches/ArescopeTexturedMesh.cs
+PackagePatches/ArescopeTexturedMesh.cs.meta
+Packages/manifest.json
+Packages/packages-lock.json
+ProjectSettings/EditorBuildSettings.asset
+ProjectSettings/GraphicsSettings.asset
+ProjectSettings/ProjectSettings.asset
+ProjectSettings/ProjectVersion.txt
+ProjectSettings/QualitySettings.asset
+Scripts/CREATED-FILES.txt
+Scripts/README.md
+Scripts/VERIFICATION.md
+Scripts/Verification/finalize_inventory.py
+Scripts/Verification/generate_settings.py
+Scripts/Verification/inspect_package_metadata.py
+Scripts/Verification/verify_project.py
+Scripts/patch_meta_sdk_linux.py
+Scripts/patch_roomscan_editor.py
+Scripts/run-core-tests.ps1
+Scripts/triage-logcat.sh
+Scripts/triage_logcat.py
+
+Byte-preserved reference payloads (SHA-256):
+d1d3011b4ab495f32dc8198fbf75125dc57158be57bb42dc7bb931216de7b47d  Assets/Plugins/Android/AndroidManifest.xml
+2bada5ea45c3c63b7f1ea1f88ce9672c9e4f0c42b2c3b7378949084fe55a3066  Assets/Resources/ArescopeFonts/DMMono-OFL.txt
+58172e0c0fac2cda8a37b348164bb55e44b0e69051e557e92b1d3f6910141f7b  Assets/Resources/ArescopeFonts/Manrope-OFL.txt
+90841f0e32cddfdf2d387dfab1123b4501226d98336065cce4e1a12cf24a86fa  Assets/Resources/ArescopeIcons/LICENSE-Tabler-MIT.txt
+a4280678c141d7e06ec1627dec7c567dd5b857b9b05050766acecba504259997  Assets/Resources/ArescopeIcons/depth.png
+730377889f57f9625c73eb673b98eb3629ba32bf84ced998df89c1d229005362  Assets/Resources/ArescopeIcons/dot.png
+ab79d6879813b3d961432edc0f5f2818027d1527ec40333561b0d5f70954c32a  Assets/Resources/ArescopeIcons/link.png
+dd09e647d0eacb24c4bb5e4c3470dc426e3a27b5822402e79b5e63d63600e6dd  Assets/Resources/ArescopeIcons/power.png
+33f64c988616759e0447727089978ca204a0950fef316e50114660b88f289687  Assets/Resources/ArescopeIcons/scan.png
+8b550214d0f5061f8b0d3f338f3f254df140ba7552619ae3aa3990abbd256df9  Assets/Resources/ArescopeIcons/voice.png
+adc6997f2bd067feba636c74cf7f558bef72ec5c2636ae6990d8a290698ef019  Packages/manifest.json
+83b3d6caf109bb1851585e16dfb406d6225bd33dde003b0c306236094ed89260  Packages/packages-lock.json
+089b091232ac44723afc1b7da840ce0fcf276da75af957f5c89fda8fab51a3cc  ProjectSettings/EditorBuildSettings.asset

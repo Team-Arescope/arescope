@@ -1,0 +1,37 @@
+[Unit]
+Description=Arescope Copilot ASR, chat, speech and settings API
+Wants=network-online.target
+After=network-online.target
+StartLimitIntervalSec=60
+StartLimitBurst=5
+
+[Service]
+Type=simple
+User=arescope-copilot
+Group=arescope-copilot
+WorkingDirectory=/opt/arescope-copilot
+EnvironmentFile=/etc/arescope-copilot.env
+Environment=PYTHONDONTWRITEBYTECODE=1
+Environment=PYTHONUNBUFFERED=1
+Environment=ARESCOPE_SETTINGS_DB=/var/lib/arescope-copilot/settings.sqlite3
+ExecStart=/opt/arescope-copilot/.venv/bin/python -m uvicorn app:app --host 127.0.0.1 --port 18975 --workers 1 --no-access-log --no-proxy-headers
+Restart=on-failure
+RestartSec=3
+TimeoutStopSec=20
+UMask=0077
+StateDirectory=arescope-copilot
+StateDirectoryMode=0700
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectControlGroups=true
+RestrictSUIDSGID=true
+RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6
+CapabilityBoundingSet=
+LockPersonality=true
+
+[Install]
+WantedBy=multi-user.target

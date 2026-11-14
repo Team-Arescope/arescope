@@ -1,0 +1,59 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!129 &1
+PlayerSettings:
+  m_ObjectHideFlags: 0
+  serializedVersion: 28
+  productGUID: 4ba9e9413e5749d9b1ae9ae5aa5913f0
+  companyName: Arescope
+  productName: Arescope Quest
+  bundleVersion: 0.5.13
+  applicationIdentifier:
+    Android: in.arescope.beta02.questroom
+    Standalone: in.arescope.beta02.questroom
+  overrideDefaultApplicationIdentifier: 1
+  AndroidBundleVersionCode: 34
+  AndroidMinSdkVersion: 29
+  AndroidTargetSdkVersion: 0
+  AndroidTargetArchitectures: 2
+  AndroidPreferredInstallLocation: 1
+  androidInternetPermission: 1
+  androidCameraUsageDescription: Room scanning and HUD contrast
+  AndroidStartInFullscreen: 1
+  AndroidUseSwappy: 1
+  AndroidApplicationEntry: 2
+  AndroidEnableArmv9SecurityFeatures: 0
+  scriptingBackend:
+    Android: 1
+  il2cppCompilerConfiguration:
+    Android: 1
+  managedStrippingLevel:
+    Android: 1
+  stripEngineCode: 1
+  allowUnsafeCode: 0
+  activeInputHandler: 2
+  m_ActiveColorSpace: 1
+  colorSpace: 1
+  runInBackground: 1
+  use32BitDisplayBuffer: 1
+  defaultIsNativeResolution: 1
+  defaultScreenWidth: 1920
+  defaultScreenHeight: 1080
+  stereoRenderingPath: 2
+  m_StereoRenderingPath: 2
+  virtualRealitySupported: 0
+  useHDRDisplay: 0
+  graphicsJobs: 0
+  multithreadedRendering: 1
+  mobileMTRendering: 1
+  m_BuildTargetGraphicsAPIs:
+  - m_BuildTarget: AndroidPlayer
+    m_APIs: 15000000
+    m_Automatic: 0
+  m_BuildTargetBatching:
+  - m_BuildTarget: Android
+    m_StaticBatching: 1
+    m_DynamicBatching: 0
+  apiCompatibilityLevelPerPlatform:
+    Android: 6
+  muteOtherAudioSources: 0

@@ -1,0 +1,10 @@
+{
+  "name": "arescope-lab",
+  "private": true,
+  "version": "1.0.0",
+  "scripts": {
+    "test": "node --test tests/mission_control.test.cjs",
+    "test:browser": "node tests/mission_control.browser.cjs"
+  },
+  "devDependencies": {"playwright": "1.56.1"}
+}

@@ -1,0 +1,12 @@
+.env
+.venv/
+.runtime/
+.tmp/
+.npm-cache/
+node_modules/
+__pycache__/
+.pytest_cache/
+*.sqlite3*
+*.arsm
+*.log
+tests/artifacts/

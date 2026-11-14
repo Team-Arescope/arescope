@@ -1,0 +1,10 @@
+{
+  "name": "Arescope.Tests",
+  "rootNamespace": "Arescope.Tests",
+  "references": ["Arescope.Core"],
+  "includePlatforms": ["Editor"],
+  "optionalUnityReferences": ["TestAssemblies"],
+  "autoReferenced": false,
+  "defineConstraints": ["UNITY_INCLUDE_TESTS"],
+  "noEngineReferences": true
+}

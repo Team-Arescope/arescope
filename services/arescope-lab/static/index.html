@@ -1,0 +1,80 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#0d0907">
+  <title>Arescope LAB · Mission control</title>
+  <link rel="icon" href="/static/favicon.svg" type="image/svg+xml">
+  <link rel="preload" href="/static/fonts/manrope.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="preload" href="/static/fonts/dm-mono.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="stylesheet" href="/static/style.css">
+  <link rel="stylesheet" href="/static/mission.css">
+  <script src="/static/shell.js" defer></script>
+  <script src="/static/app.js" defer></script>
+</head>
+<body>
+  <header class="topbar">
+    <a class="brand" href="/" aria-label="Arescope LAB home"><i data-icon="aperture"></i><strong>ARESCOPE LAB</strong><span>Mission control</span></a>
+    <div class="top-status"><span class="status-dot" id="connection-dot"></span><span id="connection-status">Ready to connect</span></div>
+    <time id="utc-clock" class="mono" aria-label="UTC time"></time>
+  </header>
+  <nav class="icon-rail" aria-label="Mission panels">
+    <button data-panel="equipment" aria-controls="equipment" aria-expanded="false" title="Equipment and live"><i data-icon="radio"></i><span class="sr-only">Equipment and live</span></button>
+    <button data-panel="sessions" aria-controls="sessions" aria-expanded="false" title="Sessions"><i data-icon="layers"></i><span class="sr-only">Sessions</span></button>
+    <button data-panel="logs" aria-controls="logs" aria-expanded="false" title="Device logs"><i data-icon="file-text"></i><span class="sr-only">Device logs</span></button>
+    <button data-panel="settings" aria-controls="settings" aria-expanded="false" title="View settings"><i data-icon="sliders-horizontal"></i><span class="sr-only">View settings</span></button>
+    <a href="/static/docs/terrain-sources.md" target="_blank" rel="noopener" title="Terrain sources"><i data-icon="book-open"></i><span class="sr-only">Terrain sources</span></a>
+  </nav>
+  <main class="stage" id="stage">
+    <canvas id="terrain" tabindex="0" aria-label="Interactive 3D terrain of Gale crater. Drag to orbit, scroll to zoom, press R to reset."></canvas>
+    <div class="stage-heading"><p class="eyebrow">Mars / Gale crater</p><h1>Read the terrain.</h1><p id="terrain-caption">Loading archived elevation data</p></div>
+    <div class="stage-toolbar" aria-label="Terrain controls"><button id="reset-view" class="icon-button" title="Reset view"><i data-icon="rotate-ccw"></i><span class="sr-only">Reset view</span></button><span class="mono" id="grid-count">Terrain loading</span></div>
+    <div class="terrain-error" id="terrain-error" hidden><p>Terrain could not be loaded.</p><button id="retry-terrain">Reload terrain</button></div>
+    <section id="live-overlay" class="live-overlay" aria-label="Quest scan overlay" hidden>
+      <header><span class="status-dot active"></span><h2 id="overlay-title">Quest live</h2><button id="close-overlay" class="icon-button" aria-label="Close scan overlay"><i data-icon="x"></i></button></header>
+      <canvas id="scan" aria-label="Quest point cloud in local metres"></canvas>
+      <p class="mono" id="scan-caption"></p>
+    </section>
+    <footer class="stage-footer"><span><i data-icon="mouse-pointer-2"></i>Drag to orbit · Scroll to zoom</span><span class="mono" id="terrain-source">Archived terrain</span></footer>
+  </main>
+  <aside id="drawer" class="drawer" aria-label="Mission tools" hidden>
+    <header class="drawer-header"><h2 id="drawer-title">Equipment and live</h2><button id="close-drawer" class="icon-button" aria-label="Close panel"><i data-icon="x"></i></button></header>
+    <section id="equipment" class="drawer-pane" hidden>
+      <div class="section-heading"><i data-icon="radio"></i><h3>Quest uplink</h3><span class="tag">Viewer</span></div>
+      <p>Connect to your Quest feed to inspect room scans as they arrive.</p>
+      <form id="connect-form">
+        <label for="viewer-token">Viewer token</label>
+        <div class="token-field"><input id="viewer-token" type="password" autocomplete="off" spellcheck="false" placeholder="Paste viewer token" required><button id="paste-token" type="button" class="icon-button" aria-label="Paste viewer token"><i data-icon="clipboard"></i></button></div>
+        <p class="field-help">Kept in memory for this page.</p>
+        <button class="primary" type="submit"><i data-icon="plug"></i>Connect viewer</button>
+        <button id="disconnect" type="button" hidden>Disconnect</button>
+      </form>
+      <p id="live-message" role="status">Awaiting viewer connection.</p>
+      <h3 class="ruled-heading">Active rooms</h3><div id="rooms" class="card-list"><p class="muted">Rooms appear when a scan arrives.</p></div>
+      <h3 class="ruled-heading">Storage</h3><dl id="storage-stats"><div><dt>Retention</dt><dd>7 days by default</dd></div><div><dt>History</dt><dd>Connect to inspect</dd></div></dl>
+    </section>
+    <section id="sessions" class="drawer-pane" hidden>
+      <div class="section-heading"><i data-icon="layers"></i><h3>Scan history</h3><button id="refresh-sessions" class="icon-button" aria-label="Refresh sessions"><i data-icon="refresh-cw"></i></button></div>
+      <p>Inspect the last stored frame or download a point cloud and captured mesh.</p>
+      <div id="session-list" class="card-list"><p class="muted">Connect a viewer to load sessions.</p></div>
+      <p id="session-message" role="status"></p>
+      <div class="delete-control"><h3>Remove a session</h3><label for="producer-token">Producer token</label><input id="producer-token" type="password" autocomplete="off" placeholder="Enter only to delete"><p class="field-help">Used only for the selected deletion, then cleared.</p></div>
+    </section>
+    <section id="logs" class="drawer-pane" hidden>
+      <div class="section-heading"><i data-icon="file-text"></i><h3>Device logs</h3><button id="refresh-logs" class="icon-button" aria-label="Refresh device logs"><i data-icon="refresh-cw"></i></button></div>
+      <p>Diagnostics uploaded by the headset, ordered by capture time.</p><div id="log-list" class="card-list"><p class="muted">Connect a viewer to load logs.</p></div><p id="log-message" role="status"></p><pre id="log-preview" tabindex="0" hidden></pre>
+    </section>
+    <section id="settings" class="drawer-pane" hidden>
+      <div class="section-heading"><i data-icon="sliders-horizontal"></i><h3>Terrain view</h3></div>
+      <label for="terrain-select">Elevation source</label><select id="terrain-select"><option value="hirise">HiRISE · Local detail</option><option value="mola">MOLA · Crater region</option></select>
+      <label for="grid-mode">Grid mode</label><select id="grid-mode"><option value="polygonal">Polygonal Grid</option><option value="minimal">Minimal Grid</option></select>
+      <label for="exaggeration">Elevation scale <output id="exaggeration-value">1.5×</output></label><input id="exaggeration" type="range" min="0.5" max="4" value="1.5" step="0.1">
+      <p class="field-help">Elevation is visually scaled; source coordinates stay in metres.</p>
+      <label class="checkbox-label"><input type="checkbox" id="show-live" checked>Show Quest overlay</label>
+      <h3 class="ruled-heading">Source notes</h3><p id="source-notes">HiRISE display grid: 129 × 129. About 1.04 km across, with an 8.09 m display step.</p><a class="text-link" href="/static/docs/terrain-sources.md" target="_blank" rel="noopener">Read terrain provenance<i data-icon="arrow-up-right"></i></a>
+    </section>
+  </aside>
+  <div id="announcement" class="sr-only" aria-live="polite"></div>
+</body>
+</html>
