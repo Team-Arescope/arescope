@@ -1,11 +1,10 @@
 import assert from 'node:assert/strict';
 import { spawn } from 'node:child_process';
 import fs from 'node:fs';
-import os from 'node:os';
 import path from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 
-// Default QA checks both files offline. Screenshots and browser profiles stay in OS temp.
+// Default QA checks both files offline. Generated files stay inside presentation/.
 const baseDir = path.dirname(fileURLToPath(import.meta.url));
 const deckPaths = [
   'Arescope — NASA Space Apps Challenge 2026.html',
@@ -33,8 +32,8 @@ async function main() {
     '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome'
   ].find(candidate => candidate && fs.existsSync(candidate));
   assert.ok(chromePath, 'Chrome/Chromium not found. Set CHROME_PATH.');
-  const outDir = fs.mkdtempSync(path.join(os.tmpdir(), 'arescope-slides-'));
-  userDataDir = fs.mkdtempSync(path.join(os.tmpdir(), 'arescope-chrome-'));
+  const outDir = fs.mkdtempSync(path.join(baseDir, '.verify-slides-'));
+  userDataDir = fs.mkdtempSync(path.join(baseDir, '.verify-chrome-'));
   console.log('SCREENSHOTS:', outDir);
   let browserStderr = '', launchError;
   proc = spawn(chromePath, [
@@ -279,8 +278,8 @@ async function cleanup() {
   }
   if (proc && proc.exitCode === null) proc.kill();
   if (userDataDir) {
-    const relative = path.relative(path.resolve(os.tmpdir()), path.resolve(userDataDir));
-    assert.ok(relative && !relative.startsWith('..') && !path.isAbsolute(relative) && path.basename(userDataDir).startsWith('arescope-chrome-'), 'Unsafe browser profile cleanup path');
+    const relative = path.relative(baseDir, path.resolve(userDataDir));
+    assert.ok(relative && !relative.startsWith('..') && !path.isAbsolute(relative) && path.basename(userDataDir).startsWith('.verify-chrome-'), 'Unsafe browser profile cleanup path');
     for (let attempt = 0; attempt < 8; attempt++) {
       try { fs.rmSync(userDataDir, { recursive: true, force: true }); break; } catch { await sleep(250); }
     }
