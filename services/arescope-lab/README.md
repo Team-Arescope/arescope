@@ -108,7 +108,8 @@ on phones. Both fonts are local WOFF2 files. Icons are inline Lucide SVGs.
 
 ## Deployment templates
 
-These files are templates; no remote deployment is performed by this project.
+These files are deployment templates. The current production layout and verified
+rollout are recorded in [V2 deployment](../../docs/V2_DEPLOYMENT.md).
 
 1. On a Linux host, create a system account named `arescope-lab`. Install this
    service directory at `/opt/arescope-lab` and create its `.venv` there.

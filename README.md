@@ -2,6 +2,11 @@
 
 Clean-room recreation of the **Arescope** system for Mars surface exploration (Meta Quest 3S MR spatial scanner, Arescope LAB Mission Control, and Voice Copilot), reconstructed from the specifications and evidence in [archive/](archive/).
 
+V2 focuses on rovers: a shared terrain view, synthetic rover fault replay, and
+Guardian risk warnings with an operator-reviewed learning loop. Quest 3S is the
+sensor-mast testbed. [Production LAB](https://arescope.mrfenek.eu.cc) and
+[deployment evidence and rollback](docs/V2_DEPLOYMENT.md).
+
 ## Repository Structure
 
 - [services/arescope-lab/](services/arescope-lab/README.md) — FastAPI Mission Control server (`127.0.0.1:18965`), SQLite history with gzipped frames and retention pruning, ARSM v1/v2 binary mesh parser/storage, ASCII PLY exporter, WebSocket `/api/live/stream`, device log endpoint, and static 3D Mission Control web dashboard (`NASA MGS MOLA` + `NASA MRO HiRISE` Gale Crater terrain + live WebSocket stream).
@@ -12,7 +17,7 @@ Clean-room recreation of the **Arescope** system for Mars surface exploration (M
 
 ## Verification Scope
 
-- **Arescope LAB (`services/arescope-lab`):** `pytest` (65 passed), `node --test tests/mission_control.test.cjs` (8 passed), headless browser QA (WebSocket push/4401 close, auth-header Blob downloads, zero drawer horizontal overflow), and NASA PDS terrain verification (20,866 heights).
-- **Arescope Copilot (`services/arescope-copilot`):** `pytest` (175 passed on Windows with mocked upstream router transport; POSIX `0600` permission check verified on Linux).
-- **Unity Quest Client (`unity/arescope-quest`):** `Scripts/Verification/verify_project.py` (9 passed: reference bytes, Android manifest, project settings, XR serialized links, unique asset GUIDs, idempotent patchers, logcat triage) and standalone `csc.exe` C# core kernel tests (`Scripts/run-core-tests.ps1`, 22 passed).
-- **Remaining External / Cloud Gates:** Unity `6000.2.9f1` + Android NDK/SDK compilation and APK build (`BuildQuestAndroid.Build`), HUD preview PNG capture (`RenderArescopeHudPreview.Run`), `aapt2` / `libxatlas.so` / `libUnityARFoundationMeta.so` APK inspection, live OmniRoute upstream checks, and Meta Quest 3S device QA (`H-01..H-10`). Do not run Unity/Android builds on the local Windows workstation; execute them on the InstaBox cloud build host.
+- **Arescope LAB (`services/arescope-lab`):** 139 Python tests passed on the deployment host; 12 Node tests passed in V2 implementation QA. Production browser checks found no page errors, missing assets, or drawer horizontal overflow at desktop/mobile sizes. NASA PDS terrain verification covers 20,866 heights.
+- **Arescope Copilot (`services/arescope-copilot`):** 260 Python tests passed on the deployment host, including legacy SQLite migration, provider fallback, role isolation and POSIX `0600` permissions.
+- **Unity Quest Client (`unity/arescope-quest`):** project verification (10 passed) and standalone C# core kernel tests (22 passed). Unity scene wiring, HUD preview, cloud APK build and package inspection completed in prior V2 QA; these do not establish headset runtime behavior.
+- **Remaining hardware gate:** Meta Quest 3S device QA (`H-01..H-10`). Do not run Unity/Android builds on the local Windows workstation; execute them on the InstaBox cloud build host. Guardian benchmark results are synthetic hold-out validation, not flight or field validation.

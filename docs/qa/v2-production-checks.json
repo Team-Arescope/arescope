@@ -1,0 +1,572 @@
+{
+  "ok": true,
+  "results": [
+    {
+      "name": "base_configuration",
+      "status": "ok"
+    },
+    {
+      "name": "role_configuration",
+      "status": "ok"
+    },
+    {
+      "name": "root",
+      "status": "ok",
+      "http_status": 200,
+      "bytes": 12294
+    },
+    {
+      "name": "root_media",
+      "status": "ok"
+    },
+    {
+      "name": "root_source_path",
+      "status": "ok"
+    },
+    {
+      "name": "root_content",
+      "status": "ok",
+      "bytes": 12294,
+      "sha256": "55f1ef968a5fd2d9fe92da4cbc882392a09a7b784b8682377ac8b70d8686f03b",
+      "hash_mismatch": false
+    },
+    {
+      "name": "static_origin",
+      "status": "ok"
+    },
+    {
+      "name": "static_origin",
+      "status": "ok"
+    },
+    {
+      "name": "static_origin",
+      "status": "ok"
+    },
+    {
+      "name": "static_origin",
+      "status": "ok"
+    },
+    {
+      "name": "static_origin",
+      "status": "ok"
+    },
+    {
+      "name": "static_origin",
+      "status": "ok"
+    },
+    {
+      "name": "static_origin",
+      "status": "ok"
+    },
+    {
+      "name": "static_origin",
+      "status": "ok"
+    },
+    {
+      "name": "static_inventory",
+      "status": "ok",
+      "count": 8
+    },
+    {
+      "name": "asset_0",
+      "status": "ok",
+      "http_status": 200,
+      "bytes": 38090
+    },
+    {
+      "name": "asset_0_source_path",
+      "status": "ok"
+    },
+    {
+      "name": "asset_0_content",
+      "status": "ok",
+      "bytes": 38090,
+      "sha256": "4dfc8afce589de21bd5ef7dbee7508e06166f8c67b39810f0f0e9bfeeeab952e",
+      "hash_mismatch": false
+    },
+    {
+      "name": "asset_1",
+      "status": "ok",
+      "http_status": 200,
+      "bytes": 3372
+    },
+    {
+      "name": "asset_1_source_path",
+      "status": "ok"
+    },
+    {
+      "name": "asset_1_content",
+      "status": "ok",
+      "bytes": 3372,
+      "sha256": "793a9b13ae912b9b041602e755e31eeddcfb83074673ed197358eb0f2d4eb621",
+      "hash_mismatch": false
+    },
+    {
+      "name": "asset_2",
+      "status": "ok",
+      "http_status": 200,
+      "bytes": 252
+    },
+    {
+      "name": "asset_2_source_path",
+      "status": "ok"
+    },
+    {
+      "name": "asset_2_content",
+      "status": "ok",
+      "bytes": 252,
+      "sha256": "168951418c5141e85a2f1b3ae9ad91948ce39d349c8388d91468627fc0e2102c",
+      "hash_mismatch": false
+    },
+    {
+      "name": "asset_3",
+      "status": "ok",
+      "http_status": 200,
+      "bytes": 14820
+    },
+    {
+      "name": "asset_3_source_path",
+      "status": "ok"
+    },
+    {
+      "name": "asset_3_content",
+      "status": "ok",
+      "bytes": 14820,
+      "sha256": "e1896b13b2b1bb112fac2f9571bd6c40e118746e77a4511edbf43fbb41bf3e1e",
+      "hash_mismatch": false
+    },
+    {
+      "name": "asset_4",
+      "status": "ok",
+      "http_status": 200,
+      "bytes": 24532
+    },
+    {
+      "name": "asset_4_source_path",
+      "status": "ok"
+    },
+    {
+      "name": "asset_4_content",
+      "status": "ok",
+      "bytes": 24532,
+      "sha256": "8c2def024c1bf31aacf3624ae3c4d701269b4ec3dc765c04830839f0d36b2d9e",
+      "hash_mismatch": false
+    },
+    {
+      "name": "asset_5",
+      "status": "ok",
+      "http_status": 200,
+      "bytes": 8827
+    },
+    {
+      "name": "asset_5_source_path",
+      "status": "ok"
+    },
+    {
+      "name": "asset_5_content",
+      "status": "ok",
+      "bytes": 8827,
+      "sha256": "db114d3d56af02bf5b5dd4271a87a2bc478bc60087c4527d91900f807e197a7b",
+      "hash_mismatch": false
+    },
+    {
+      "name": "asset_6",
+      "status": "ok",
+      "http_status": 200,
+      "bytes": 4502
+    },
+    {
+      "name": "asset_6_source_path",
+      "status": "ok"
+    },
+    {
+      "name": "asset_6_content",
+      "status": "ok",
+      "bytes": 4502,
+      "sha256": "7059008aa35a6f31670d805ea31944efca45e921838351b3d6a527c65cd1b4c3",
+      "hash_mismatch": false
+    },
+    {
+      "name": "asset_7",
+      "status": "ok",
+      "http_status": 200,
+      "bytes": 4091
+    },
+    {
+      "name": "asset_7_source_path",
+      "status": "ok"
+    },
+    {
+      "name": "asset_7_content",
+      "status": "ok",
+      "bytes": 4091,
+      "sha256": "982c76771525477df3559cb6e3a737c4611623d3b2627fb4b9fa18751cf91133",
+      "hash_mismatch": false
+    },
+    {
+      "name": "lab_denies_anonymous_0",
+      "status": "ok",
+      "http_status": 401,
+      "bytes": 25
+    },
+    {
+      "name": "lab_denies_invalid_0",
+      "status": "ok",
+      "http_status": 401,
+      "bytes": 25
+    },
+    {
+      "name": "lab_denies_producer_0",
+      "status": "ok",
+      "http_status": 401,
+      "bytes": 25
+    },
+    {
+      "name": "lab_denies_anonymous_1",
+      "status": "ok",
+      "http_status": 401,
+      "bytes": 25
+    },
+    {
+      "name": "lab_denies_invalid_1",
+      "status": "ok",
+      "http_status": 401,
+      "bytes": 25
+    },
+    {
+      "name": "lab_denies_producer_1",
+      "status": "ok",
+      "http_status": 401,
+      "bytes": 25
+    },
+    {
+      "name": "lab_denies_anonymous_2",
+      "status": "ok",
+      "http_status": 401,
+      "bytes": 25
+    },
+    {
+      "name": "lab_denies_invalid_2",
+      "status": "ok",
+      "http_status": 401,
+      "bytes": 25
+    },
+    {
+      "name": "lab_denies_producer_2",
+      "status": "ok",
+      "http_status": 401,
+      "bytes": 25
+    },
+    {
+      "name": "lab_denies_anonymous_3",
+      "status": "ok",
+      "http_status": 401,
+      "bytes": 25
+    },
+    {
+      "name": "lab_denies_invalid_3",
+      "status": "ok",
+      "http_status": 401,
+      "bytes": 25
+    },
+    {
+      "name": "lab_denies_producer_3",
+      "status": "ok",
+      "http_status": 401,
+      "bytes": 25
+    },
+    {
+      "name": "lab_denies_anonymous_4",
+      "status": "ok",
+      "http_status": 401,
+      "bytes": 25
+    },
+    {
+      "name": "lab_denies_invalid_4",
+      "status": "ok",
+      "http_status": 401,
+      "bytes": 25
+    },
+    {
+      "name": "lab_denies_producer_4",
+      "status": "ok",
+      "http_status": 401,
+      "bytes": 25
+    },
+    {
+      "name": "lab_write_denies_anonymous",
+      "status": "ok",
+      "http_status": 401,
+      "bytes": 25
+    },
+    {
+      "name": "lab_write_denies_invalid",
+      "status": "ok",
+      "http_status": 401,
+      "bytes": 25
+    },
+    {
+      "name": "lab_write_denies_viewer",
+      "status": "ok",
+      "http_status": 401,
+      "bytes": 25
+    },
+    {
+      "name": "guardian_status",
+      "status": "ok",
+      "http_status": 200,
+      "bytes": 17830
+    },
+    {
+      "name": "guardian_model",
+      "status": "ok",
+      "http_status": 200,
+      "bytes": 16424
+    },
+    {
+      "name": "guardian_incidents",
+      "status": "ok",
+      "http_status": 200,
+      "bytes": 233
+    },
+    {
+      "name": "storage_before",
+      "status": "ok",
+      "http_status": 200,
+      "bytes": 325
+    },
+    {
+      "name": "guardian_contract",
+      "status": "ok"
+    },
+    {
+      "name": "storage_errors",
+      "status": "ok"
+    },
+    {
+      "name": "copilot_denies_anonymous_0",
+      "status": "ok",
+      "http_status": 401,
+      "bytes": 26
+    },
+    {
+      "name": "copilot_denies_invalid_0",
+      "status": "ok",
+      "http_status": 401,
+      "bytes": 26
+    },
+    {
+      "name": "copilot_denies_anonymous_1",
+      "status": "ok",
+      "http_status": 401,
+      "bytes": 26
+    },
+    {
+      "name": "copilot_denies_invalid_1",
+      "status": "ok",
+      "http_status": 401,
+      "bytes": 26
+    },
+    {
+      "name": "copilot_status_denies_device",
+      "status": "ok",
+      "http_status": 401,
+      "bytes": 26
+    },
+    {
+      "name": "copilot_write_denies_device",
+      "status": "ok",
+      "http_status": 401,
+      "bytes": 26
+    },
+    {
+      "name": "copilot_ack_denies_panel",
+      "status": "ok",
+      "http_status": 401,
+      "bytes": 26
+    },
+    {
+      "name": "copilot_denies_origin",
+      "status": "ok",
+      "http_status": 403,
+      "bytes": 35
+    },
+    {
+      "name": "copilot_status",
+      "status": "ok",
+      "http_status": 200,
+      "bytes": 122
+    },
+    {
+      "name": "copilot_status_origin",
+      "status": "ok"
+    },
+    {
+      "name": "copilot_features",
+      "status": "ok"
+    },
+    {
+      "name": "copilot_settings_panel",
+      "status": "ok",
+      "http_status": 200,
+      "bytes": 139
+    },
+    {
+      "name": "copilot_settings_panel_origin",
+      "status": "ok"
+    },
+    {
+      "name": "copilot_settings_contract_panel",
+      "status": "ok"
+    },
+    {
+      "name": "copilot_settings_device",
+      "status": "ok",
+      "http_status": 200,
+      "bytes": 139
+    },
+    {
+      "name": "copilot_settings_device_origin",
+      "status": "ok"
+    },
+    {
+      "name": "copilot_settings_contract_device",
+      "status": "ok"
+    },
+    {
+      "name": "wss_denies_anonymous",
+      "status": "ok"
+    },
+    {
+      "name": "wss_denies_invalid",
+      "status": "ok"
+    },
+    {
+      "name": "wss_denies_producer",
+      "status": "ok"
+    },
+    {
+      "name": "wss_snapshot",
+      "status": "ok"
+    },
+    {
+      "name": "exercise_ingest",
+      "status": "ok",
+      "http_status": 200,
+      "bytes": 633
+    },
+    {
+      "name": "exercise_stored",
+      "status": "ok"
+    },
+    {
+      "name": "exercise_push",
+      "status": "ok"
+    },
+    {
+      "name": "exercise_session",
+      "status": "ok",
+      "http_status": 200,
+      "bytes": 773
+    },
+    {
+      "name": "exercise_owned",
+      "status": "ok"
+    },
+    {
+      "name": "exercise_ply",
+      "status": "ok",
+      "http_status": 200,
+      "bytes": 122
+    },
+    {
+      "name": "exercise_ply_content",
+      "status": "ok"
+    },
+    {
+      "name": "cleanup_verify",
+      "status": "ok",
+      "http_status": 200,
+      "bytes": 773
+    },
+    {
+      "name": "cleanup_owned",
+      "status": "ok"
+    },
+    {
+      "name": "cleanup_delete",
+      "status": "ok",
+      "http_status": 200,
+      "bytes": 24
+    },
+    {
+      "name": "cleanup_absent",
+      "status": "ok",
+      "http_status": 404,
+      "bytes": 30
+    },
+    {
+      "name": "storage_after",
+      "status": "ok",
+      "http_status": 200,
+      "bytes": 365
+    },
+    {
+      "name": "storage_no_increase",
+      "status": "ok"
+    },
+    {
+      "name": "ai_chat",
+      "status": "ok",
+      "http_status": 200,
+      "bytes": 1365
+    },
+    {
+      "name": "ai_chat_media",
+      "status": "ok"
+    },
+    {
+      "name": "ai_chat_origin",
+      "status": "ok"
+    },
+    {
+      "name": "ai_complete",
+      "status": "ok",
+      "bytes": 82
+    },
+    {
+      "name": "ai_tts",
+      "status": "ok",
+      "http_status": 200,
+      "bytes": 163572
+    },
+    {
+      "name": "ai_tts_media",
+      "status": "ok"
+    },
+    {
+      "name": "ai_tts_origin",
+      "status": "ok"
+    },
+    {
+      "name": "ai_tts_bytes",
+      "status": "ok",
+      "bytes": 163572
+    },
+    {
+      "name": "ai_asr",
+      "status": "ok",
+      "http_status": 200,
+      "bytes": 164
+    },
+    {
+      "name": "ai_asr_origin",
+      "status": "ok"
+    },
+    {
+      "name": "ai_asr_text",
+      "status": "ok",
+      "characters": 73
+    }
+  ]
+}

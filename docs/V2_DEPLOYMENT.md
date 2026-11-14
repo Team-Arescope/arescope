@@ -1,0 +1,117 @@
+# V2 production deployment
+
+Target: [Arescope LAB](https://arescope.mrfenek.eu.cc). Deployed on 2026-11-15
+(operator local date), from `ee18cb0` plus the deployment compatibility fixes in
+the commit containing this document. No Unity/Android build is part of this rollout.
+
+## Server layout
+
+- SSH account: `ubuntu`, port 22. Deployment credentials remain outside Git.
+- Release: `/opt/arescope-releases/v2-20261115-002532/services/`.
+- LAB: `arescope-lab.service`, system user `arescope-lab`, Python 3.12 virtual
+  environment, one Uvicorn worker on `127.0.0.1:18965`.
+- Copilot: `arescope-copilot.service`, system user `arescope-copilot`, separate
+  Python 3.12 environment, one worker on `127.0.0.1:18975`.
+- Existing state retained under `/var/lib/arescope-lab/` and
+  `/var/lib/arescope-copilot/`; directories 0700, Copilot SQLite file 0600.
+- Credentials remain in root-owned, 0600 `/etc/arescope-lab.env` and
+  `/etc/arescope-copilot.env`. Existing producer, viewer, panel and device
+  credentials are retained. The supplied producer/device credentials matched
+  the existing service credentials before cutover.
+- Copilot uses the configured HTTPS OmniRoute endpoint. Provider keys remain
+  server-side. The allowed browser origin is the production site.
+
+nginx preserves the existing certificate, domain and listener. It routes
+`/api/copilot/` to Copilot and other application paths to LAB. The exact live
+WebSocket location forwards Upgrade headers and suppresses access/error request
+logging; Copilot disables buffering, caching and gzip. LAB accepts mesh uploads
+up to the application limit of 32 MiB. Public `/healthz` belongs to LAB; check
+Copilot health separately on its loopback port.
+
+## Compatibility changes
+
+The original server's LAB schema had no `frames.metadata`; V2 adds that nullable
+column without rewriting compressed point payloads. The original database
+contained three sessions and 106 frames before deployment.
+
+The original Copilot database used `settings(id, version, payload)` with version
+zero. `SettingsStore.initialize()` now migrates that recognized schema in an
+explicit transaction, validates every setting, preserves the settings, and maps
+version zero to one. Positive versions remain unchanged; acknowledgement starts
+unset. Unsupported or malformed legacy data fails without resetting the database.
+Repeated initialization is idempotent.
+
+At rollout, OmniRoute listed the fallback chat models but no longer listed
+`agy/gemini-4-hydrogen-low`; selecting that provider returned HTTP 401 with the
+specific `provider_not_configured` code. Chat now recognizes only that bounded
+error as provider unavailability and can continue to the next model before
+emitting text. General 401/402/403 authentication/account failures remain terminal;
+an interrupted answer never switches models. The available `cx/gpt-6-luna` route
+was verified directly before enabling the fallback fix.
+
+## Verification and evidence
+
+The migration was first exercised against an SQLite backup of the actual server
+database. The saved voice, volume, HUD visibility and follow mode were preserved.
+Both services passed their Python suites on the target Python 3.12 environments:
+139 LAB tests and 260 Copilot tests, including the provider fix. The initial
+cutover followed successful LAB tests and the 239-test Copilot migration suite;
+the expanded Copilot suite passed before restarting with the provider fix.
+
+The reusable checker reads existing protected environment files without printing
+their contents:
+
+```sh
+sudo /opt/arescope-releases/v2-20261115-002532/services/arescope-lab/.venv/bin/python \
+  /opt/arescope-releases/v2-20261115-002532/scripts/verify_v2_deployment.py \
+  --source-dir /opt/arescope-releases/v2-20261115-002532/services/arescope-lab \
+  --exercise --ai
+```
+
+The installed checker matches [the repository script](../scripts/verify_v2_deployment.py).
+The default checks cover static asset hashes, role separation, Guardian
+reads, Copilot status/settings, authenticated WSS snapshot, rejected credentials
+and storage errors. `--exercise` adds a uniquely named synthetic carrier, verifies
+push/history/PLY, and deletes only that test session. `--ai` makes paid router
+requests for chat, speech and transcription of the generated speech. It never
+labels incidents, retrains or activates a Guardian model, changes operator
+settings, or acknowledges on behalf of a device.
+
+All **108 production checks passed**, including a complete streamed answer,
+163,572 bytes of MP3 speech, and a nonempty ASR transcript of that speech. The
+checker removed its own synthetic test session and observed no increase in storage
+errors. Sanitized evidence: [production checks](qa/v2-production-checks.json).
+
+Cache-disabled Chrome verification of the production site passed: no page errors
+or missing assets; all five drawer panes had zero horizontal overflow at
+1440 × 900 and 390 × 844. Starting the synthetic rover and injecting dust produced
+a Guardian warning with a dust/occlusion cause. The simulator was stopped and its
+fault selection restored to nominal afterwards. The active Guardian model remains
+`v1`; no candidate was approved during deployment.
+
+Screenshot: [production Guardian](qa/v2-production-1440.png). It shows synthetic
+rover data on archived HiRISE terrain. This is not physical rover or Quest runtime
+validation; benchmark metrics remain synthetic hold-out results.
+
+## Backups and rollback
+
+Root-only backups are under `/var/backups/arescope/v2-20261115-002532/`:
+original unit/environment files, nginx configuration, original Copilot code,
+online SQLite snapshots, stopped-state `*.cutover.sqlite3` snapshots taken
+immediately before migration, and LAB meshes/logs. The former LAB checkout remains
+untouched at `/root/Developer/arescope-lab`.
+
+For rollback, stop both services before restoring files. Restore both original
+unit and environment files and `nginx-arescope-lab`. The old Copilot requires its
+pre-migration database schema: restore `arescope-copilot.cutover.sqlite3` to
+`/var/lib/arescope-copilot/settings.sqlite3` while stopped, handling any SQLite
+sidecar files only for that stopped database. Restore the LAB database from its
+cutover snapshot only if required; this discards all writes after cutover.
+Restore appropriate file ownership, run `systemctl daemon-reload`, validate
+`nginx -t`, start both services, then reload nginx and repeat endpoint checks.
+The old units point to the preserved original code directories.
+
+Never restore environment backups into the repository or print them. Backend and
+static assets must roll back together. Returning to older code does not itself
+restore Guardian model state; database restoration is a separate, data-losing
+operator decision.

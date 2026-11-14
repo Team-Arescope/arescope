@@ -442,6 +442,7 @@ def test_chat_falls_back_in_exact_order_only_before_delta(client, harness):
 @pytest.mark.parametrize("tail", [
     [], [httpx.ReadError("secret upstream detail")], [b"data: invalid\n\n"],
     [b'data: {"error":{"message":"sensitive"}}\n\n'],
+    [b'data: {"error":{"type":"authentication_error","code":"provider_not_configured","message":"sensitive"}}\n\n'],
     [frame(finish="length")], [b"data: unfinished"],
 ])
 def test_chat_after_delta_aborts_without_switch_or_complete(client, harness, tail):
@@ -459,6 +460,101 @@ def test_chat_auth_and_billing_failures_are_sse_errors(client, harness, status):
     result = events(client.post("/api/copilot/chat", headers=AUTH["panel"], json={"text": "Помоги"}))
     assert result == [{"type": "error", "message": f"Upstream router returned HTTP {status}."}]
     assert len(harness.requests) == 1
+
+
+@pytest.mark.parametrize("wrapped", [False, True])
+@pytest.mark.parametrize("at_limit", [False, True])
+def test_chat_unconfigured_provider_falls_back_before_text(client, harness, wrapped, at_limit):
+    error = {"type": "authentication_error", "code": "provider_not_configured", "message": "sensitive"}
+    body = json.dumps({"error": error} if wrapped else error).encode()
+    if at_limit:
+        body += b" " * (JSON_LIMIT - len(body))
+    unavailable = Chunks([body[:20], body[20:]])
+    available = Chunks([frame("Готово."), b"data: [DONE]\n\n"])
+
+    def handler(request):
+        if json.loads(request.content)["model"] == CHAT_MODELS[0]:
+            return httpx.Response(401, headers={"Content-Type": "application/json"}, stream=unavailable)
+        return upstream_sse(available)
+
+    harness.handler = handler
+    result = events(client.post("/api/copilot/chat", headers=AUTH["device"], json={"text": "Помоги"}))
+    assert result == [
+        {"type": "text", "text": "Готово.", "model": CHAT_MODELS[1]},
+        {"type": "complete", "text": "Готово.", "model": CHAT_MODELS[1]},
+    ]
+    assert [json.loads(request.content)["model"] for request in harness.requests] == list(CHAT_MODELS[:2])
+    assert unavailable.closed and available.closed
+
+
+@pytest.mark.parametrize("status,payload", [
+    (401, {"error": {"type": "authentication_error", "code": "invalid_api_key", "message": "provider_not_configured sensitive"}}),
+    (401, {"error": {"type": "authentication_error", "code": "provider_not_configured_extra"}}),
+    (401, {"error": {"code": ["provider_not_configured"]}}),
+    (401, {"error": "provider_not_configured"}),
+    (401, {"message": "provider_not_configured"}),
+    (401, []),
+    (402, {"error": {"code": "provider_not_configured"}}),
+    (403, {"error": {"code": "provider_not_configured"}}),
+])
+def test_chat_only_exact_provider_code_on_401_allows_fallback(client, harness, status, payload):
+    stream = Chunks([json.dumps(payload).encode()])
+    harness.handler = lambda request: httpx.Response(status, stream=stream)
+    result = events(client.post("/api/copilot/chat", headers=AUTH["panel"], json={"text": "Помоги"}))
+    assert result == [{"type": "error", "message": f"Upstream router returned HTTP {status}."}]
+    assert len(harness.requests) == 1 and stream.closed
+
+
+@pytest.mark.parametrize("split", [False, True])
+def test_chat_oversized_401_body_is_bounded_and_terminal(client, harness, split):
+    body = b'{"error":{"code":"provider_not_configured","message":"sensitive"}}'
+    body += b" " * (JSON_LIMIT + 1 - len(body))
+    chunks = [body[:JSON_LIMIT], body[JSON_LIMIT:]] if split else [body]
+    stream = Chunks([*chunks, AssertionError("Error body read continued beyond its limit.")])
+    harness.handler = lambda request: httpx.Response(401, stream=stream)
+    result = events(client.post("/api/copilot/chat", headers=AUTH["panel"], json={"text": "Помоги"}))
+    assert result == [{"type": "error", "message": "Upstream router returned HTTP 401."}]
+    assert len(harness.requests) == 1 and stream.closed
+
+
+@pytest.mark.parametrize("chunks", [
+    [b'{"error":{"code":"provider_not_configured"}'],
+    [b"\xff"],
+    [b"[" * 2_000 + b"0" + b"]" * 2_000],
+    [b'{"error":{"code":"provider_not_configured"}}', httpx.ReadError("sensitive")],
+])
+def test_chat_unreadable_401_body_remains_terminal(client, harness, chunks):
+    stream = Chunks(chunks)
+    harness.handler = lambda request: httpx.Response(401, stream=stream)
+    result = events(client.post("/api/copilot/chat", headers=AUTH["panel"], json={"text": "Помоги"}))
+    assert result == [{"type": "error", "message": "Upstream router returned HTTP 401."}]
+    assert len(harness.requests) == 1 and stream.closed
+
+
+def test_chat_401_body_read_obeys_total_deadline(client, harness, monkeypatch):
+    monkeypatch.setattr(core, "CHAT_TIMEOUT", 0.05)
+    stream = Chunks([b'{"error":{"code":"provider_not_configured"}}'], delay=0.2)
+    harness.handler = lambda request: httpx.Response(401, stream=stream)
+    started = time.monotonic()
+    result = events(client.post("/api/copilot/chat", headers=AUTH["panel"], json={"text": "Помоги"}))
+    assert time.monotonic() - started < 1.0
+    assert result == [{"type": "error", "message": "Upstream chat is unavailable or interrupted."}]
+    assert len(harness.requests) == 1 and stream.closed
+
+
+def test_chat_all_providers_unconfigured_reports_safe_error(client, harness):
+    streams = []
+
+    def handler(request):
+        stream = Chunks([b'{"error":{"code":"provider_not_configured","message":"sensitive"}}'])
+        streams.append(stream)
+        return httpx.Response(401, stream=stream)
+
+    harness.handler = handler
+    result = events(client.post("/api/copilot/chat", headers=AUTH["panel"], json={"text": "Помоги"}))
+    assert result == [{"type": "error", "message": "Upstream chat provider is unavailable."}]
+    assert [json.loads(request.content)["model"] for request in harness.requests] == list(CHAT_MODELS)
+    assert all(stream.closed for stream in streams)
 
 
 def test_chat_all_models_fail_without_text(client, harness):

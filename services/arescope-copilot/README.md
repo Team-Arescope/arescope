@@ -68,7 +68,10 @@ Chat uses the Russian rover-operator system prompt in `copilot_core.py` and trie
 `agy/gemini-4-hydrogen-low`, `cx/gpt-6-luna`, `th/muse-ember`, then
 `th/glm-5.3-flash`, in that order. Fallback stops at the first emitted text delta.
 A subsequent interruption emits `error` without `complete` or another model.
-Upstream 401/402/403 terminate immediately with an SSE error. A successful stream
+Upstream 401/402/403 terminate immediately with an SSE error, except an exact
+`provider_not_configured` code on a bounded 401 chat error: that means the selected
+provider is unavailable and permits fallback before any text. General credential
+and account failures remain terminal. A successful stream
 requires `[DONE]` or `finish_reason=stop`; an unexpected EOF is an interruption.
 Upstream SSE frames are decoded after byte framing so split UTF-8 characters
 survive. Limits are 4 MiB upstream bytes, 1 MiB per pending SSE frame, 12,000
@@ -93,7 +96,9 @@ and normalization `basic`. Voices map to `Deep_Voice_Man` and `Calm_Woman`.
 
 ## Deployment templates
 
-The files in `deploy/` are templates; nothing is installed automatically.
+The files in `deploy/` are templates; nothing is installed automatically. See
+[V2 deployment](../../docs/V2_DEPLOYMENT.md) for the current production layout,
+legacy settings migration and rollback procedure.
 
 1. Create an unprivileged `arescope-copilot` system user/group and install this
    service under `/opt/arescope-copilot`, with its virtual environment at `.venv`.

@@ -185,6 +185,18 @@ class SettingsStore:
         finally:
             os.close(descriptor)
         with self._connect() as db:
+            # SQLite DDL only rolls back when an explicit transaction is active.
+            db.execute("BEGIN IMMEDIATE")
+            columns = [row["name"] for row in db.execute("PRAGMA table_info(settings)")]
+            legacy = None
+            if columns == ["id", "version", "payload"]:
+                legacy = self._read_legacy_settings(db)
+                db.execute("ALTER TABLE settings RENAME TO settings_legacy")
+            elif columns and columns != [
+                "id", "version", "voice", "volume", "hud_enabled", "hud_follow_mode",
+                "ack_version", "acked_at",
+            ]:
+                raise ValueError("Unsupported settings database schema.")
             db.execute(
                 """CREATE TABLE IF NOT EXISTS settings (
                     id INTEGER PRIMARY KEY CHECK (id = 1),
@@ -197,9 +209,56 @@ class SettingsStore:
                     acked_at REAL
                 )"""
             )
-            db.execute(
-                "INSERT OR IGNORE INTO settings VALUES (1, 1, 'male', 1.0, 1, 'smooth', NULL, NULL)"
-            )
+            if legacy is None:
+                db.execute(
+                    """INSERT OR IGNORE INTO settings
+                        (id, version, voice, volume, hud_enabled, hud_follow_mode, ack_version, acked_at)
+                        VALUES (1, 1, 'male', 1.0, 1, 'smooth', NULL, NULL)"""
+                )
+            else:
+                version, settings = legacy
+                db.execute(
+                    """INSERT INTO settings
+                        (id, version, voice, volume, hud_enabled, hud_follow_mode, ack_version, acked_at)
+                        VALUES (1, ?, ?, ?, ?, ?, NULL, NULL)""",
+                    (
+                        version, settings["voice"], settings["volume"],
+                        int(settings["hud_enabled"]), settings["hud_follow_mode"],
+                    ),
+                )
+                db.execute("DROP TABLE settings_legacy")
+
+    @staticmethod
+    def _read_legacy_settings(db: sqlite3.Connection) -> tuple[int, dict]:
+        rows = db.execute("SELECT id, version, payload FROM settings").fetchall()
+        if len(rows) != 1 or type(rows[0]["id"]) is not int or rows[0]["id"] != 1:
+            raise ValueError("Legacy settings must contain exactly one row with id 1.")
+        row = rows[0]
+        if type(row["version"]) is not int or row["version"] < 0:
+            raise ValueError("Legacy settings version must be a nonnegative integer.")
+        if not isinstance(row["payload"], str):
+            raise ValueError("Legacy settings payload must be JSON text.")
+
+        def unique_fields(pairs: list[tuple[str, object]]) -> dict:
+            fields = {}
+            for key, value in pairs:
+                if key in fields:
+                    raise ValueError("Legacy settings payload contains duplicate fields.")
+                fields[key] = value
+            return fields
+
+        settings = json.loads(row["payload"], object_pairs_hook=unique_fields)
+        if not isinstance(settings, dict) or settings.keys() != DEFAULT_SETTINGS.keys():
+            raise ValueError("Legacy settings payload must contain exactly the expected settings fields.")
+        if (
+            settings["voice"] not in ("male", "female")
+            or type(settings["volume"]) not in (int, float)
+            or not 0 <= settings["volume"] <= 1
+            or type(settings["hud_enabled"]) is not bool
+            or settings["hud_follow_mode"] not in ("hard", "smooth")
+        ):
+            raise ValueError("Legacy settings payload contains invalid settings values.")
+        return max(1, row["version"]), settings
 
     @contextmanager
     def _connect(self) -> Iterator[sqlite3.Connection]:
@@ -345,6 +404,19 @@ class CopilotRouter:
                 terminal=response.status_code in {401, 402, 403},
             )
 
+    async def _check_chat_status(self, response: httpx.Response) -> None:
+        if response.status_code == 401:
+            try:
+                payload = json.loads(await read_bounded(response, JSON_LIMIT))
+            except (UpstreamFailure, httpx.HTTPError, ValueError, RecursionError):
+                # Unreadable or oversized errors retain the terminal HTTP status.
+                pass
+            else:
+                error = payload.get("error", payload) if isinstance(payload, dict) else None
+                if isinstance(error, dict) and error.get("code") == "provider_not_configured":
+                    raise UpstreamFailure("Upstream chat provider is unavailable.")
+        self._check_status(response)
+
     async def transcribe(self, audio: bytes, media_type: str) -> dict:
         try:
             async with asyncio.timeout(ASR_TIMEOUT):
@@ -386,7 +458,7 @@ class CopilotRouter:
                 )
                 async with asyncio.timeout_at(deadline):
                     response = await self.client.send(request, stream=True)
-                self._check_status(response)
+                    await self._check_chat_status(response)
                 if response.headers.get("content-type", "").split(";", 1)[0].strip().lower() != "text/event-stream":
                     raise UpstreamFailure("Upstream chat did not return an SSE stream.")
                 completed = False
