@@ -41,12 +41,16 @@ namespace Arescope.Editor
             {
                 EditorUserBuildSettings.SwitchActiveBuildTarget(BuildTargetGroup.Android, BuildTarget.Android);
             }
+            EditorUserBuildSettings.selectedBuildTargetGroup = BuildTargetGroup.Android;
 
             PlayerSettings.colorSpace = ColorSpace.Linear;
             PlayerSettings.SetApplicationIdentifier(NamedBuildTarget.Android, PackageId);
             PlayerSettings.SetScriptingBackend(NamedBuildTarget.Android, ScriptingImplementation.IL2CPP);
+            PlayerSettings.SetIl2CppCompilerConfiguration(NamedBuildTarget.Android, Il2CppCompilerConfiguration.Master);
             PlayerSettings.Android.targetArchitectures = AndroidArchitecture.ARM64;
             PlayerSettings.Android.minSdkVersion = AndroidSdkVersions.AndroidApiLevel29;
+
+            StageMetaArFoundationNativePlugin();
 
             string outputPath = Environment.GetEnvironmentVariable("ARESCOPE_APK_PATH");
             if (string.IsNullOrWhiteSpace(outputPath))
@@ -75,6 +79,27 @@ namespace Arescope.Editor
             if (summary.result != BuildResult.Succeeded || summary.totalErrors > 0)
             {
                 throw new InvalidOperationException($"QuestRoomScan build failed: result={summary.result}, errors={summary.totalErrors}");
+            }
+        }
+
+        private static void StageMetaArFoundationNativePlugin()
+        {
+            string cacheDir = Path.GetFullPath("Library/PackageCache");
+            if (!Directory.Exists(cacheDir)) return;
+            string[] matches = Directory.GetFiles(cacheDir, "libUnityARFoundationMeta.so", SearchOption.AllDirectories);
+            string source = matches.FirstOrDefault(p => p.Replace('\\', '/').Contains("/arm64"));
+            if (string.IsNullOrEmpty(source))
+            {
+                Debug.LogWarning("[Arescope] libUnityARFoundationMeta.so not found under Library/PackageCache.");
+                return;
+            }
+            string destDir = Path.GetFullPath("Assets/Plugins/Android/arm64-v8a");
+            Directory.CreateDirectory(destDir);
+            string dest = Path.Combine(destDir, "libUnityARFoundationMeta.so");
+            if (!File.Exists(dest) || new FileInfo(dest).Length != new FileInfo(source).Length)
+            {
+                File.Copy(source, dest, overwrite: true);
+                Debug.Log("[Arescope] Staged native plugin -> Assets/Plugins/Android/arm64-v8a/libUnityARFoundationMeta.so");
             }
         }
     }

@@ -21,21 +21,26 @@ namespace Arescope
         public bool Busy { get; private set; }
         public Mesh FinalMesh { get; private set; }
         bool previousX, previousY, resetFired, combo; float yHeld;
+        string lastGuardianRisk, lastGuardianCause, lastRecoveryAction;
         void Awake()
         {
             if(headsetCamera==null) headsetCamera=Camera.main;
             if(passthroughLayer==null) passthroughLayer=FindFirstObjectByType<OVRPassthroughLayer>();
-            if(modes==null) modes=GetComponent<ViewModeController>() ?? gameObject.AddComponent<ViewModeController>();
+            if(modes==null) modes=GetComponent<ViewModeController>();
+            if(modes==null) modes=gameObject.AddComponent<ViewModeController>();
             if(hud==null) hud=GetComponent<ArescopeHudController>();
             if(minimap==null) minimap=GetComponent<LiveScanMinimap>();
-            if(wireframe==null) wireframe=GetComponent<ScanWireframe>() ?? gameObject.AddComponent<ScanWireframe>();
-            if(livePoints==null) livePoints=GetComponent<LiveScanPoints>() ?? gameObject.AddComponent<LiveScanPoints>();
+            if(wireframe==null) wireframe=GetComponent<ScanWireframe>();
+            if(wireframe==null) wireframe=gameObject.AddComponent<ScanWireframe>();
+            if(livePoints==null) livePoints=GetComponent<LiveScanPoints>();
+            if(livePoints==null) livePoints=gameObject.AddComponent<LiveScanPoints>();
             livePoints.headsetCamera=headsetCamera;
             ConfigureView(); modes.Switch(ViewMode.Passthrough);
         }
         void ConfigureView() => modes.Configure(headsetCamera,passthroughLayer,null,wireframe.VisualRoot);
         void Update()
         {
+            PollGuardianAlert();
             var left=InputDevices.GetDeviceAtXRNode(XRNode.LeftHand);
             left.TryGetFeatureValue(CommonUsages.primaryButton,out bool x);
             left.TryGetFeatureValue(CommonUsages.secondaryButton,out bool y);
@@ -55,6 +60,30 @@ namespace Arescope
             if(!x && !y) combo=false;
             previousX=x; previousY=y;
         }
+        void PollGuardianAlert()
+        {
+            string currentRisk=LiveFrameSender.LastGuardianRisk;
+            string cause=LiveFrameSender.LastGuardianCause;
+            string action=LiveFrameSender.LastRecoveryAction;
+            if(string.Equals(currentRisk,lastGuardianRisk,StringComparison.OrdinalIgnoreCase) &&
+               string.Equals(cause,lastGuardianCause,StringComparison.Ordinal) &&
+               string.Equals(action,lastRecoveryAction,StringComparison.Ordinal)) return;
+            lastGuardianRisk=currentRisk;
+            lastGuardianCause=cause;
+            lastRecoveryAction=action;
+            if(string.IsNullOrEmpty(currentRisk)) return;
+            bool warning=string.Equals(currentRisk,"warning",StringComparison.OrdinalIgnoreCase);
+            bool critical=string.Equals(currentRisk,"critical",StringComparison.OrdinalIgnoreCase);
+            if(!warning && !critical)
+            {
+                ArescopeLog.Info("guardian","level="+currentRisk);
+                return;
+            }
+            string detail=!string.IsNullOrEmpty(action)?action:cause;
+            string msg=string.IsNullOrEmpty(detail)?"GUARDIAN "+currentRisk.ToUpperInvariant():"GUARDIAN "+currentRisk.ToUpperInvariant()+": "+detail;
+            hud?.ShowEvent(msg,5f);
+            ArescopeLog.Warn("guardian","level="+currentRisk+" cause="+(cause??"")+" action="+(action??""));
+        }
         public async void StartOrFinishScan()
         {
             if(Busy) return;
@@ -68,6 +97,7 @@ namespace Arescope
                     wireframe.Clear(); if(FinalMesh!=null) Destroy(FinalMesh); FinalMesh=null;
                     ConfigureView(); modes.Switch(ViewMode.Passthrough); minimap?.SetMesh(null);
                     LiveFrameSender.ResetSession();
+                    lastGuardianRisk=lastGuardianCause=lastRecoveryAction=null;
                     ArescopeFrame.Capture();
                     await RoomScanSession.Instance.StartScanAsync();
                     if(this==null) return;
@@ -143,6 +173,7 @@ namespace Arescope
                 GetComponent<MeshUploader>()?.ClearCapture();
                 ConfigureView(); modes.Switch(ViewMode.Passthrough);
                 LiveFrameSender.ResetSession();
+                lastGuardianRisk=lastGuardianCause=lastRecoveryAction=null;
                 hud?.ShowEvent("Scan reset"); ArescopeLog.Info("scan","reset");
             }
             catch(Exception e) { ArescopeLog.Exception("scan-reset",e); }

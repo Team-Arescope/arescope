@@ -2,12 +2,12 @@
   "dependencies": {
     "com.genesis.roomscan": "https://github.com/arghyasur1991/QuestRoomScan.git#4791b24b81015641d4cfb010a93c6283d4eb3dee",
     "com.meta.xr.mrutilitykit": "205.0.0",
-    "com.unity.burst": "1.8.25",
     "com.unity.collections": "2.6.2",
     "com.unity.mathematics": "1.3.2",
     "com.unity.render-pipelines.universal": "17.2.0",
     "com.unity.xr.arfoundation": "6.2.0",
     "com.unity.xr.management": "4.5.2",
+    "com.unity.xr.meta-openxr": "2.4.1",
     "com.unity.xr.openxr": "1.15.1",
     "com.unity.modules.animation": "1.0.0",
     "com.unity.modules.androidjni": "1.0.0",

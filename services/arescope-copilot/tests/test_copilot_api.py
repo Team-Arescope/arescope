@@ -388,11 +388,12 @@ def test_transcribe_output_cap_and_malformed_json(client, harness):
     assert client.post("/api/copilot/transcribe", headers={**AUTH["device"], "Content-Type": "audio/wav"}, content=b"RIFF").status_code == 200
 
 
-def test_chat_utf8_chunks_crlf_and_mission_prompt(client, harness):
+def test_chat_utf8_chunks_crlf_and_rover_operator_prompt(client, harness):
     wire = b": keepalive\r\n\r\n" + frame(newline="\r\n") + frame("Остановись ", newline="\r\n") + frame("и проверь карту.", newline="\r\n") + b"data: [DONE]\r\n\r\n"
     stream = Chunks([bytes([byte]) for byte in wire])
     harness.handler = lambda request: upstream_sse(stream)
-    response = client.post("/api/copilot/chat", headers=AUTH["device"], json={"text": "Куда идти?", "context": "Карта отсутствует."})
+    context = "Guardian: warning, wheel_slip; карта низкой уверенности, путь отката не проверен."
+    response = client.post("/api/copilot/chat", headers=AUTH["device"], json={"text": "Как восстановить движение ровера?", "context": context})
     result = events(response)
     assert result == [
         {"type": "text", "text": "Остановись ", "model": CHAT_MODELS[0]},
@@ -406,11 +407,21 @@ def test_chat_utf8_chunks_crlf_and_mission_prompt(client, harness):
     assert "1–3" in payload["messages"][0]["content"]
     assert "Никогда не выдумывай" in payload["messages"][0]["content"]
     assert "Безопасность" in payload["messages"][0]["content"]
-    assert "Карта отсутствует." in payload["messages"][1]["content"]
+    prompt = payload["messages"][0]["content"]
+    for requirement in ("Mars Rover Mission Control", "полевого инженера", "Guardian", "Slow Loop",
+                        "hold-out", "F1", "ложные тревоги", "одобрения оператора",
+                        "dust", "glare", "low_texture", "wheel_slip", "sensor_drop",
+                        "разреженная атмосфера", "проверки проходимости", "недоверенные данные"):
+        assert requirement in prompt
+    assert "астронавта" not in prompt
+    assert context in payload["messages"][1]["content"]
     assert harness.requests[-1].extensions["timeout"] == {"connect": 10.0, "read": 90.0, "write": 90.0, "pool": 90.0}
 
 
 def test_chat_falls_back_in_exact_order_only_before_delta(client, harness):
+    assert CHAT_MODELS == (
+        "agy/gemini-4-hydrogen-low", "cx/gpt-6-luna", "th/muse-ember", "th/glm-5.3-flash",
+    )
     def handler(request):
         model = json.loads(request.content)["model"]
         if model == CHAT_MODELS[0]:

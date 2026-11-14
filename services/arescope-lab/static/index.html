@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#0d0907">
-  <title>Arescope LAB · Mission control</title>
+  <title>Arescope LAB · Mars Rover &amp; Mast Mission Control</title>
   <link rel="icon" href="/static/favicon.svg" type="image/svg+xml">
   <link rel="preload" href="/static/fonts/manrope.woff2" as="font" type="font/woff2" crossorigin>
   <link rel="preload" href="/static/fonts/dm-mono.woff2" as="font" type="font/woff2" crossorigin>
@@ -21,6 +21,7 @@
   </header>
   <nav class="icon-rail" aria-label="Mission panels">
     <button data-panel="equipment" aria-controls="equipment" aria-expanded="false" title="Equipment and live"><i data-icon="radio"></i><span class="sr-only">Equipment and live</span></button>
+    <button data-panel="guardian" aria-controls="guardian" aria-expanded="false" title="Guardian"><i data-icon="shield-check"></i><span class="sr-only">Guardian</span></button>
     <button data-panel="sessions" aria-controls="sessions" aria-expanded="false" title="Sessions"><i data-icon="layers"></i><span class="sr-only">Sessions</span></button>
     <button data-panel="logs" aria-controls="logs" aria-expanded="false" title="Device logs"><i data-icon="file-text"></i><span class="sr-only">Device logs</span></button>
     <button data-panel="settings" aria-controls="settings" aria-expanded="false" title="View settings"><i data-icon="sliders-horizontal"></i><span class="sr-only">View settings</span></button>
@@ -28,21 +29,25 @@
   </nav>
   <main class="stage" id="stage">
     <canvas id="terrain" tabindex="0" aria-label="Interactive 3D terrain of Gale crater. Drag to orbit, scroll to zoom, press R to reset."></canvas>
-    <div class="stage-heading"><p class="eyebrow">Mars / Gale crater</p><h1>Read the terrain.</h1><p id="terrain-caption">Loading archived elevation data</p></div>
+    <div class="stage-heading"><p class="eyebrow">Mars / Gale crater</p><h1>Mars rover &amp; mast mission control</h1><p id="terrain-caption">Loading archived elevation data</p></div>
+    <section id="carrier-stage" class="carrier-stage" aria-label="Live carriers"><p class="muted">Awaiting rover or mast telemetry.</p></section>
     <div class="stage-toolbar" aria-label="Terrain controls"><button id="reset-view" class="icon-button" title="Reset view"><i data-icon="rotate-ccw"></i><span class="sr-only">Reset view</span></button><span class="mono" id="grid-count">Terrain loading</span></div>
     <div class="terrain-error" id="terrain-error" hidden><p>Terrain could not be loaded.</p><button id="retry-terrain">Reload terrain</button></div>
-    <section id="live-overlay" class="live-overlay" aria-label="Quest scan overlay" hidden>
-      <header><span class="status-dot active"></span><h2 id="overlay-title">Quest live</h2><button id="close-overlay" class="icon-button" aria-label="Close scan overlay"><i data-icon="x"></i></button></header>
-      <canvas id="scan" aria-label="Quest point cloud in local metres"></canvas>
+    <section id="live-overlay" class="live-overlay" aria-label="Carrier scan overlay" tabindex="0" hidden>
+      <header><span class="status-dot active"></span><h2 id="overlay-title">Carrier live</h2><button id="close-overlay" class="icon-button" aria-label="Close scan overlay"><i data-icon="x"></i></button></header>
+      <p id="scan-confidence" class="confidence-warning" role="status" hidden><i data-icon="alert-triangle"></i>Low confidence · Verify terrain before driving.</p>
+      <p id="scan-guardian" class="carrier-risk"></p>
+      <canvas id="scan" aria-label="Carrier point cloud in local metres"></canvas>
       <p class="mono" id="scan-caption"></p>
+      <p class="mono" id="scan-telemetry"></p>
     </section>
     <footer class="stage-footer"><span><i data-icon="mouse-pointer-2"></i>Drag to orbit · Scroll to zoom</span><span class="mono" id="terrain-source">Archived terrain</span></footer>
   </main>
   <aside id="drawer" class="drawer" aria-label="Mission tools" hidden>
     <header class="drawer-header"><h2 id="drawer-title">Equipment and live</h2><button id="close-drawer" class="icon-button" aria-label="Close panel"><i data-icon="x"></i></button></header>
     <section id="equipment" class="drawer-pane" hidden>
-      <div class="section-heading"><i data-icon="radio"></i><h3>Quest uplink</h3><span class="tag">Viewer</span></div>
-      <p>Connect to your Quest feed to inspect room scans as they arrive.</p>
+      <div class="section-heading"><i data-icon="radio"></i><h3>Rover and mast uplink</h3><span class="tag">Viewer</span></div>
+      <p>Inspect rover telemetry and the Quest 3S mast testbed feed. Local testbed scans stay separate from the NASA terrain archive.</p>
       <form id="connect-form">
         <label for="viewer-token">Viewer token</label>
         <div class="token-field"><input id="viewer-token" type="password" autocomplete="off" spellcheck="false" placeholder="Paste viewer token" required><button id="paste-token" type="button" class="icon-button" aria-label="Paste viewer token"><i data-icon="clipboard"></i></button></div>
@@ -51,19 +56,46 @@
         <button id="disconnect" type="button" hidden>Disconnect</button>
       </form>
       <p id="live-message" role="status">Awaiting viewer connection.</p>
-      <h3 class="ruled-heading">Active rooms</h3><div id="rooms" class="card-list"><p class="muted">Rooms appear when a scan arrives.</p></div>
+      <h3 class="ruled-heading">Active carriers</h3><div id="rooms" class="card-list"><p class="muted">Carriers appear when a scan arrives.</p></div>
       <h3 class="ruled-heading">Storage</h3><dl id="storage-stats"><div><dt>Retention</dt><dd>7 days by default</dd></div><div><dt>History</dt><dd>Connect to inspect</dd></div></dl>
+    </section>
+    <section id="guardian" class="drawer-pane" hidden>
+      <div class="section-heading"><i data-icon="shield-check"></i><h3>Arescope Guardian</h3><button id="refresh-guardian" class="icon-button" aria-label="Refresh Guardian"><i data-icon="refresh-cw"></i></button></div>
+      <p>Review live risk, label incidents and validate the next model before approving deployment.</p>
+      <div id="guardian-risk" class="guardian-risk" data-risk="unknown">
+        <div class="risk-heading"><span id="guardian-level">Awaiting telemetry</span><strong id="guardian-score" class="mono">—</strong></div>
+        <progress id="guardian-meter" max="1" value="0" aria-label="Guardian risk score" hidden></progress>
+        <p id="guardian-carrier">Connect a viewer to inspect live risk.</p>
+        <dl><div><dt>Predicted cause</dt><dd id="guardian-cause">—</dd></div><div><dt>Lead time</dt><dd id="guardian-lead">—</dd></div><div><dt>Frame model</dt><dd id="guardian-frame-model">—</dd></div></dl>
+        <p id="guardian-recovery">Recovery guidance appears with telemetry.</p>
+        <p id="guardian-confidence" class="confidence-warning" role="status" hidden><i data-icon="alert-triangle"></i>Low confidence · Verify terrain before driving.</p>
+      </div>
+      <h3 class="ruled-heading">Hold-out validation</h3>
+      <dl id="guardian-validation"><div><dt>Active model</dt><dd id="guardian-model">—</dd></div><div><dt>Faults caught / total</dt><dd id="guardian-caught">—</dd></div><div><dt>Mean lead time</dt><dd id="guardian-validation-lead">—</dd></div><div><dt>False alarms</dt><dd id="guardian-false-alarms">—</dd></div><div><dt>Baseline F1</dt><dd id="guardian-baseline-f1">—</dd></div><div><dt>Retrained F1</dt><dd id="guardian-retrained-f1">—</dd></div><div><dt>Candidate model</dt><dd id="guardian-candidate">—</dd></div></dl>
+      <p id="guardian-validation-note" class="field-help">No hold-out results loaded.</p>
+      <button id="guardian-export" type="button" disabled><i data-icon="download"></i>Download active model</button>
+      <h3 class="ruled-heading">Operator access</h3>
+      <label for="producer-token">Producer token</label><input id="producer-token" type="password" autocomplete="off" spellcheck="false" placeholder="Paste producer token">
+      <p class="field-help">Kept in this input for simulator, labeling and model actions. Cleared on disconnect. Also authorizes session deletion.</p>
+      <h3 class="ruled-heading">Rover simulator</h3><p class="field-help">Synthetic rover telemetry on archived HiRISE terrain.</p>
+      <div class="guardian-controls" aria-label="Rover simulator controls"><button data-sim-action="start"><i data-icon="play"></i>Start</button><button data-sim-action="stop"><i data-icon="square"></i>Stop</button><button data-sim-action="step"><i data-icon="step-forward"></i>Step</button></div>
+      <p id="sim-status" role="status">Simulator state unknown.</p>
+      <div class="fault-controls" aria-label="Simulator fault injection"><button data-sim-fault="nominal">Nominal</button><button data-sim-fault="dust">Dust</button><button data-sim-fault="low_texture">Low texture</button><button data-sim-fault="glare">Glare</button><button data-sim-fault="wheel_slip">Wheel slip</button><button data-sim-fault="sensor_drop">Sensor drop</button></div>
+      <h3 class="ruled-heading">Incident queue</h3><div id="incident-list" class="card-list"><p class="muted">Connect a viewer to load incidents.</p></div>
+      <div class="model-actions"><button id="guardian-retrain"><i data-icon="refresh-cw"></i>Retrain &amp; validate</button><button id="guardian-deploy" class="primary" disabled><i data-icon="shield-check"></i>Approve &amp; deploy</button></div>
+      <p id="guardian-deploy-note" class="field-help">A validated candidate must be reviewed before deployment.</p>
+      <p id="guardian-message" role="status">Awaiting viewer connection.</p>
     </section>
     <section id="sessions" class="drawer-pane" hidden>
       <div class="section-heading"><i data-icon="layers"></i><h3>Scan history</h3><button id="refresh-sessions" class="icon-button" aria-label="Refresh sessions"><i data-icon="refresh-cw"></i></button></div>
       <p>Inspect the last stored frame or download a point cloud and captured mesh.</p>
       <div id="session-list" class="card-list"><p class="muted">Connect a viewer to load sessions.</p></div>
       <p id="session-message" role="status"></p>
-      <div class="delete-control"><h3>Remove a session</h3><label for="producer-token">Producer token</label><input id="producer-token" type="password" autocomplete="off" placeholder="Enter only to delete"><p class="field-help">Used only for the selected deletion, then cleared.</p></div>
+      <div class="delete-control"><h3>Remove a session</h3><p class="field-help">Enter the producer token in Guardian, then select Delete twice. The token is cleared after each deletion attempt.</p></div>
     </section>
     <section id="logs" class="drawer-pane" hidden>
       <div class="section-heading"><i data-icon="file-text"></i><h3>Device logs</h3><button id="refresh-logs" class="icon-button" aria-label="Refresh device logs"><i data-icon="refresh-cw"></i></button></div>
-      <p>Diagnostics uploaded by the headset, ordered by capture time.</p><div id="log-list" class="card-list"><p class="muted">Connect a viewer to load logs.</p></div><p id="log-message" role="status"></p><pre id="log-preview" tabindex="0" hidden></pre>
+      <p>Diagnostics uploaded by rover and mast testbeds, ordered by capture time.</p><div id="log-list" class="card-list"><p class="muted">Connect a viewer to load logs.</p></div><p id="log-message" role="status"></p><pre id="log-preview" tabindex="0" hidden></pre>
     </section>
     <section id="settings" class="drawer-pane" hidden>
       <div class="section-heading"><i data-icon="sliders-horizontal"></i><h3>Terrain view</h3></div>
@@ -71,7 +103,7 @@
       <label for="grid-mode">Grid mode</label><select id="grid-mode"><option value="polygonal">Polygonal Grid</option><option value="minimal">Minimal Grid</option></select>
       <label for="exaggeration">Elevation scale <output id="exaggeration-value">1.5×</output></label><input id="exaggeration" type="range" min="0.5" max="4" value="1.5" step="0.1">
       <p class="field-help">Elevation is visually scaled; source coordinates stay in metres.</p>
-      <label class="checkbox-label"><input type="checkbox" id="show-live" checked>Show Quest overlay</label>
+      <label class="checkbox-label"><input type="checkbox" id="show-live" checked>Show carrier scan overlay</label>
       <h3 class="ruled-heading">Source notes</h3><p id="source-notes">HiRISE display grid: 129 × 129. About 1.04 km across, with an 8.09 m display step.</p><a class="text-link" href="/static/docs/terrain-sources.md" target="_blank" rel="noopener">Read terrain provenance<i data-icon="arrow-up-right"></i></a>
     </section>
   </aside>

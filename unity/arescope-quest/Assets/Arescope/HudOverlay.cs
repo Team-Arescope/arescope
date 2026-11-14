@@ -21,7 +21,7 @@ namespace Arescope
                 var go=new GameObject("Arescope HUD Overlay",typeof(Camera)); go.transform.SetParent(headCamera.transform,false);
                 overlay=go.GetComponent<Camera>(); overlay.CopyFrom(headCamera); overlay.cullingMask=1<<hudLayer;
                 overlay.clearFlags=CameraClearFlags.Depth;
-                var data=overlay.GetUniversalAdditionalCameraData(); data.renderType=CameraRenderType.Overlay; data.clearDepth=true;
+                var data=overlay.GetUniversalAdditionalCameraData(); data.renderType=CameraRenderType.Overlay;
                 var baseData=headCamera.GetUniversalAdditionalCameraData();
                 if(baseData.cameraStack==null) { ArescopeLog.Warn("hud","active URP renderer does not support camera stacking"); Destroy(go); enabled=false; return; }
                 baseData.cameraStack.Add(overlay); headCamera.cullingMask &= ~(1<<hudLayer); configured=true;

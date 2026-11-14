@@ -463,8 +463,15 @@ namespace Arescope.Hud
                 Transform existing = transform.Find("ArescopeHudCanvas");
                 GameObject canvasGo = existing != null ? existing.gameObject : new GameObject("ArescopeHudCanvas");
                 canvasGo.transform.SetParent(transform, false);
-                worldCanvas = canvasGo.GetComponent<Canvas>() ?? canvasGo.AddComponent<Canvas>();
-                canvasGo.GetComponent<CanvasScaler>() ?? canvasGo.AddComponent<CanvasScaler>();
+                worldCanvas = canvasGo.GetComponent<Canvas>();
+                if (worldCanvas == null)
+                {
+                    worldCanvas = canvasGo.AddComponent<Canvas>();
+                }
+                if (canvasGo.GetComponent<CanvasScaler>() == null)
+                {
+                    canvasGo.AddComponent<CanvasScaler>();
+                }
             }
 
             worldCanvas.gameObject.layer = HudLayer;

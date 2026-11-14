@@ -15,6 +15,52 @@ PROJECT = Path(__file__).resolve().parents[1]
 BRIDGES = ("ArescopeLiveCloud", "ArescopeMeshExport", "ArescopeTexturedMesh")
 
 
+def patch_editor_source(text: str) -> str:
+    """Adapt the pinned wizard to 6000.2 without dropping its 6000.3 UI setup."""
+    text = re.sub(r"\bFindObjectsByType<([\w.]+)>\(\s*\)",
+        r"FindObjectsByType<\1>(UnityEngine.FindObjectsSortMode.None)", text)
+    text = re.sub(
+        r"\bFindObjectsByType<([\w.]+)>\(\s*((?:UnityEngine\.)?FindObjectsInactive\.(?:Include|Exclude))\s*\)",
+        r"FindObjectsByType<\1>(\2, UnityEngine.FindObjectsSortMode.None)", text)
+
+    # Track enclosing guards so a second install (or an already guarded SDK)
+    # never nests another copy of our version gate. Group adjacent assignments.
+    assignment = re.compile(r"([ \t]*)uiDoc\.(?:worldSpaceSizeMode|pivot|pivotReferenceSize)[ \t]*=")
+    directive = re.compile(r"^[ \t]*#(if|elif|else|endif)\b(.*)")
+    lines = text.splitlines(keepends=True)
+    result, guards = [], []
+    index = 0
+    while index < len(lines):
+        line = lines[index]
+        command = directive.match(line)
+        if command:
+            kind, condition = command.groups()
+            is_newer = condition.split("//", 1)[0].strip() == "UNITY_6000_3_OR_NEWER"
+            if kind == "if":
+                guards.append(is_newer)
+            elif kind in ("else", "elif") and guards:
+                guards[-1] = is_newer if kind == "elif" else False
+            elif kind == "endif" and guards:
+                guards.pop()
+        match = assignment.match(line)
+        if match and not any(guards):
+            end = index + 1
+            while end < len(lines) and assignment.match(lines[end]):
+                end += 1
+            indent = match[1]
+            newline = "\r\n" if line.endswith("\r\n") else "\n"
+            block = "".join(lines[index:end])
+            if not block.endswith("\n"):
+                block += newline
+            result.extend((indent + "#if UNITY_6000_3_OR_NEWER" + newline,
+                           block, indent + "#endif" + newline))
+            index = end
+        else:
+            result.append(line)
+            index += 1
+    return "".join(result)
+
+
 def install(package: Path, check: bool = False) -> int:
     package = package.resolve()
     allowed = ((PROJECT / "Library/PackageCache").resolve(), (PROJECT / "Packages").resolve())
@@ -49,18 +95,19 @@ def install(package: Path, check: bool = False) -> int:
         if not check:
             references.append("Arescope.Core")
             asm.write_text(json.dumps(definition, indent=2) + "\n", encoding="utf-8")
-    # UnityCsReference 6000.2.9f1 requires an explicit FindObjectsSortMode;
-    # the pinned wizard's parameterless BuildingBlock lookup targets a newer API.
-    for editor in sorted(package.rglob("*.cs")):
+    # Keep compatibility edits in the SDK editor scripts; bridge/runtime code
+    # does not need these wizard-specific API adjustments.
+    for editor in sorted((package / "Editor").rglob("*.cs")):
         if not editor.resolve().is_relative_to(package):
             raise ValueError("Source symlink escapes package root")
-        text = editor.read_text(encoding="utf-8-sig")
-        updated = re.sub(r"\bFindObjectsByType<([\w.]+)>\(\s*\)",
-            r"FindObjectsByType<\1>(UnityEngine.FindObjectsSortMode.None)", text)
+        original = editor.read_bytes()
+        text = original.decode("utf-8-sig")
+        updated = patch_editor_source(text)
         if updated != text:
             missing.append(str(editor.relative_to(package)))
             if not check:
-                editor.write_text(updated, encoding="utf-8")
+                bom = b"\xef\xbb\xbf" if original.startswith(b"\xef\xbb\xbf") else b""
+                editor.write_bytes(bom + updated.encode("utf-8"))
     print(("CHECK" if check else "PATCH"), "changes=" + str(len(missing)))
     for item in missing:
         print("  " + item)

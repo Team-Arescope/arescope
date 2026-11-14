@@ -12,6 +12,7 @@ SKIP_DIRS = {
     ".git",
     ".venv",
     ".cache",
+    ".qa",
     ".tmp",
     ".pytest_cache",
     ".npm-cache",

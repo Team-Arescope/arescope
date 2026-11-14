@@ -1,7 +1,8 @@
 # Arescope Copilot
 
-Python 3.11+ FastAPI service for ASR, streamed chat, speech, and persistent headset
-settings. The application runs on `127.0.0.1:18975`; OmniRoute defaults to
+Python 3.11+ FastAPI service for a Russian-language Mars Rover Mission Control
+operator and field test engineer assistant: ASR, streamed chat, speech, and
+persistent mast testbed headset settings. The application runs on `127.0.0.1:18975`; OmniRoute defaults to
 `http://127.0.0.1:20128/v1`. No decision/SDM route exists.
 
 ## Run locally
@@ -63,9 +64,9 @@ are enforced while reading, including chunked uploads. ASR rejects empty audio
 with 400 and unsupported media types with 415. ASR and TTS upstream failures
 return 502 without exposing provider bodies, keys, or exception details.
 
-Chat uses the Russian mission/safety system prompt in `copilot_core.py` and tries
-`cx/gpt-6-luna`, `th/glm-5.3-flash`, `th/gpt-6-luna`, then
-`agy/gemini-3.8-flash-tiered`. Fallback stops at the first emitted text delta.
+Chat uses the Russian rover-operator system prompt in `copilot_core.py` and tries
+`agy/gemini-4-hydrogen-low`, `cx/gpt-6-luna`, `th/muse-ember`, then
+`th/glm-5.3-flash`, in that order. Fallback stops at the first emitted text delta.
 A subsequent interruption emits `error` without `complete` or another model.
 Upstream 401/402/403 terminate immediately with an SSE error. A successful stream
 requires `[DONE]` or `finish_reason=stop`; an unexpected EOF is an interruption.
@@ -75,6 +76,17 @@ output characters, and one overall 90-second deadline across chat attempts.
 Connection timeout is 10 seconds. ASR has a 60-second deadline; TTS has a
 90-second deadline and an 8 MiB output limit. Timeouts cover the whole operation
 as well as HTTP transport inactivity. HTTP redirects are not followed.
+
+Replies stay within 1–3 Russian sentences. Supply Guardian risk, predicted cause,
+lead time, confidence, and rover telemetry in `context`; the assistant has no
+independent telemetry access and must never invent readings or completed actions.
+It explains dust/occlusion, glare/shadows, low texture, wheel slip, sensor dropout,
+pose jumps, and link loss without exaggerated claims about Martian wind. Recovery
+guidance prioritizes stopping and checking sensors/landmarks; reversing requires
+a verified traversable path. Synthetic rover data, NASA archives, and live mast
+testbed captures remain distinct. For Slow Loop updates it helps review incident
+labels and independent hold-out metrics before/after training; deployment requires
+explicit operator approval, and improvement is never assumed without results.
 
 Speech uses `minimax/speech-2.8-hd`, MP3 output, speed 0.95, volume 1, pitch 0,
 and normalization `basic`. Voices map to `Deep_Voice_Man` and `Calm_Woman`.

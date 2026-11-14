@@ -391,9 +391,18 @@ namespace Arescope.Editor
         internal static string GetFeatureId(OpenXRFeature feature)
         {
             if (feature == null) return null;
+            var so = new SerializedObject(feature);
+            string serializedId = so.FindProperty("featureIdInternal")?.stringValue;
+            if (!string.IsNullOrEmpty(serializedId))
+            {
+                return serializedId;
+            }
             FieldInfo fi = feature.GetType().GetField(
                 "featureId",
-                BindingFlags.Public | BindingFlags.Static | BindingFlags.FlattenHierarchy);
+                BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Static | BindingFlags.FlattenHierarchy)
+                ?? feature.GetType().GetField(
+                    "k_FeatureId",
+                    BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Static | BindingFlags.FlattenHierarchy);
             return fi?.GetValue(null) as string;
         }
 

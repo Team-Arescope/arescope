@@ -26,13 +26,15 @@ def module(name, path):
 class ProjectTests(unittest.TestCase):
     def test_reference_bytes(self):
         copies = {
-            "Packages__manifest.json": "Packages/manifest.json",
-            "Packages__packages-lock.json": "Packages/packages-lock.json",
             "ProjectSettings__EditorBuildSettings.asset": "ProjectSettings/EditorBuildSettings.asset",
             "Assets__Plugins__Android__AndroidManifest.xml": "Assets/Plugins/Android/AndroidManifest.xml",
         }
         for source, target in copies.items():
             self.assertEqual((ARCHIVE / "evidence/reference_config" / source).read_bytes(), (PROJECT / target).read_bytes(), target)
+        manifest = json.loads((PROJECT / "Packages/manifest.json").read_text(encoding="utf-8-sig"))["dependencies"]
+        self.assertEqual("https://github.com/arghyasur1991/QuestRoomScan.git#4791b24b81015641d4cfb010a93c6283d4eb3dee", manifest["com.genesis.roomscan"])
+        self.assertEqual("2.4.1", manifest["com.unity.xr.meta-openxr"])
+        self.assertNotIn("com.unity.burst", manifest)
         for directory in ("ArescopeIcons", "ArescopeFonts"):
             for source in (ARCHIVE / "evidence/reference_assets" / directory).iterdir():
                 self.assertEqual(source.read_bytes(), (PROJECT / "Assets/Resources" / directory / source.name).read_bytes())
@@ -122,8 +124,20 @@ class ScriptFixtures(unittest.TestCase):
         (package / "Runtime/Core/GPUSurfaceNets.cs").write_text("VertexStride = 48; VertexPosOffset = 0; VertexNormalOffset = 24; VertexPackedColorOffset = 36;")
         wizard = package / "Editor/RoomScanSetupWizard.BuildingBlocks.cs"
         wizard.write_text("var blocks = Object.FindObjectsByType<BuildingBlock>();")
+        setup = package / "Editor/RoomScanSetupWizard.cs"
+        setup.write_bytes(b"\xef\xbb\xbf" + (
+            "var occlusion = Object.FindObjectsByType<AROcclusionManager>(FindObjectsInactive.Include);\r\n"
+            "var cameras = Object.FindObjectsByType<PassthroughCameraAccess>(FindObjectsInactive.Include);\r\n"
+            "    uiDoc.worldSpaceSizeMode = WorldSpaceSizeMode.Dynamic;\r\n"
+            "    uiDoc.pivot = Pivot.Center;\r\n"
+            "    uiDoc.pivotReferenceSize = PivotReferenceSize.Layout;\r\n"
+            "    uiDoc.enabled = true;\r\n").encode("utf-8"))
+        runtime = package / "Runtime/Core/Unrelated.cs"
+        runtime.write_text("var items = FindObjectsByType<Unrelated>();")
+        original = {str(p): p.read_bytes() for p in package.rglob("*") if p.is_file()}
         with contextlib.redirect_stdout(io.StringIO()):
             self.assertEqual(1, patcher.install(package, check=True))
+            self.assertEqual(original, {str(p): p.read_bytes() for p in package.rglob("*") if p.is_file()})
             self.assertEqual(0, patcher.install(package))
             before = {str(p): p.read_bytes() for p in package.rglob("*") if p.is_file()}
             self.assertEqual(0, patcher.install(package))
@@ -131,6 +145,19 @@ class ScriptFixtures(unittest.TestCase):
         after = {str(p): p.read_bytes() for p in package.rglob("*") if p.is_file()}
         self.assertEqual(before, after)
         self.assertIn("UnityEngine.FindObjectsSortMode.None", wizard.read_text())
+        for component in ("AROcclusionManager", "PassthroughCameraAccess"):
+            self.assertIn("FindObjectsByType<" + component + ">"
+                          "(FindObjectsInactive.Include, UnityEngine.FindObjectsSortMode.None)", setup.read_text())
+        guard = ("    #if UNITY_6000_3_OR_NEWER\n"
+                 "    uiDoc.worldSpaceSizeMode = WorldSpaceSizeMode.Dynamic;\n"
+                 "    uiDoc.pivot = Pivot.Center;\n"
+                 "    uiDoc.pivotReferenceSize = PivotReferenceSize.Layout;\n"
+                 "    #endif\n"
+                 "    uiDoc.enabled = true;\n")
+        self.assertIn(guard, setup.read_text(encoding="utf-8-sig"))
+        self.assertTrue(setup.read_bytes().startswith(b"\xef\xbb\xbf"))
+        self.assertNotIn(b"\n", setup.read_bytes().replace(b"\r\n", b""))
+        self.assertEqual(original[str(runtime)], runtime.read_bytes())
         self.assertEqual(["Arescope.Core"], json.loads((package / "Runtime/Genesis.RoomScan.asmdef").read_text())["references"])
         self.assertEqual(6, len(list((package / "Runtime/Utils").iterdir())))
         with self.assertRaises(ValueError):
@@ -139,6 +166,38 @@ class ScriptFixtures(unittest.TestCase):
         surface.write_text(surface.read_text().replace("VertexNormalOffset = 24", "VertexNormalOffset = 12"))
         with self.assertRaises(ValueError):
             patcher.install(package)
+
+    def test_roomscan_editor_patch_categories_and_existing_guards(self):
+        patcher = module("roomscan_editor_patch", PROJECT / "Scripts/patch_roomscan_editor.py")
+        block = ("        uiDoc.worldSpaceSizeMode = WorldSpaceSizeMode.Dynamic;\n"
+                 "        uiDoc.pivot = Pivot.Center;\n"
+                 "        uiDoc.pivotReferenceSize = PivotReferenceSize.Layout;\n")
+        guarded = "        #if UNITY_6000_3_OR_NEWER\n" + block + "        #endif\n"
+        cases = {
+            "parameterless": ("Object.FindObjectsByType<BuildingBlock>( \n );",
+                              "Object.FindObjectsByType<BuildingBlock>(UnityEngine.FindObjectsSortMode.None);"),
+            "inactive": ("Object.FindObjectsByType<AROcclusionManager>(\n FindObjectsInactive.Include\n);",
+                         "Object.FindObjectsByType<AROcclusionManager>(FindObjectsInactive.Include, UnityEngine.FindObjectsSortMode.None);"),
+            "qualified inactive": ("Object.FindObjectsByType<PassthroughCameraAccess>(UnityEngine.FindObjectsInactive.Include);",
+                                   "Object.FindObjectsByType<PassthroughCameraAccess>(UnityEngine.FindObjectsInactive.Include, UnityEngine.FindObjectsSortMode.None);"),
+            "explicit sort": ("FindObjectsByType<BuildingBlock>(FindObjectsInactive.Include, FindObjectsSortMode.InstanceID);",) * 2,
+            "sort only": ("FindObjectsByType<BuildingBlock>(UnityEngine.FindObjectsSortMode.None);",) * 2,
+            "world space": ("before();\n" + block + "after();\n", "before();\n" + guarded + "after();\n"),
+            "already guarded": (guarded,) * 2,
+            "nested guard": ("#if UNITY_6000_3_OR_NEWER\n#if UNITY_EDITOR\n" + block + "#endif\n#endif\n",) * 2,
+            "else branch": (guarded.rstrip() + "\n#if UNITY_EDITOR\n#else\n" + block + "#endif\n",
+                            guarded.rstrip() + "\n#if UNITY_EDITOR\n#else\n" + guarded + "#endif\n"),
+            "version else": ("#if UNITY_6000_3_OR_NEWER\n" + block + "#else\n" + block + "#endif\n",
+                             "#if UNITY_6000_3_OR_NEWER\n" + block + "#else\n" + guarded + "#endif\n"),
+            "version elif": ("#if OTHER_VERSION\n#elif UNITY_6000_3_OR_NEWER\n" + block + "#endif\n",) * 2,
+        }
+        for name, (source, expected) in cases.items():
+            for newline in ("\n", "\r\n"):
+                with self.subTest(category=name, newline=repr(newline)):
+                    expected_text = expected.replace("\n", newline)
+                    patched = patcher.patch_editor_source(source.replace("\n", newline))
+                    self.assertEqual(expected_text, patched)
+                    self.assertEqual(patched, patcher.patch_editor_source(patched))
 
     def test_logcat_encodings_and_gate_detection(self):
         triage = module("logcat_triage", PROJECT / "Scripts/triage_logcat.py")

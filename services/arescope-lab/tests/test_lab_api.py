@@ -82,8 +82,11 @@ def test_it01_ingest_and_compact_gzip_schema(rig):
     c, a, cfg, now = rig
     points = [[i / 10, i % 3, -i / 5] for i in range(384)]
     result = ingest(c, points, "q" * 100).json()
-    assert result == {"ok": True, "room": "q" * 64, "pointCount": 384, "viewers": 0,
-                      "sessionId": 1, "stored": True, "throttled": False}
+    original = {"ok": True, "room": "q" * 64, "pointCount": 384, "viewers": 0,
+                "sessionId": 1, "stored": True, "throttled": False}
+    assert {key: result[key] for key in original} == original
+    assert result["carrierId"] == "q" * 64 and result["carrierType"] == "mast-testbed"
+    assert result["telemetry"] == {} and result["guardian"]["modelVersion"] == "v1"
     latest = c.get("/api/live/latest", headers=V).json()
     assert latest["source"] == "live-quest" and latest["rooms"][0]["points"] == points
     listing = c.get("/api/live/sessions", headers=V).json()
@@ -308,6 +311,7 @@ def test_db_failure_still_publishes_and_recovers(rig, failure):
         stats = c.get("/api/live/stats", headers=V).json()
         assert stats["ingest"] == 1 and stats["storage_errors"] == 1
         assert ingest(c).json()["stored"]
+        assert ws.receive_json()["pointCount"] == 1
 
 
 def test_real_sqlite_lock_cannot_block_broadcast(rig):
@@ -323,6 +327,7 @@ def test_real_sqlite_lock_cannot_block_broadcast(rig):
             assert ws.receive_json()["points"] == [[8, 9, 10]]
             result = pending.result(timeout=5)
             assert result.status_code == 200 and not result.json()["stored"]
+            ws.close()
     finally:
         locked.rollback()
         locked.close()

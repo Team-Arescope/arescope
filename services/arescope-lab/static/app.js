@@ -6,7 +6,11 @@
     session: id => `/api/live/sessions/${id}`, stats: '/api/live/stats',
     ply: (id, frame) => `/api/live/sessions/${id}/export.ply?frame=${frame}`,
     mesh: id => `/api/live/sessions/${id}/mesh`, logs: '/api/live/logs',
-    log: name => `/api/live/logs/${encodeURIComponent(name)}`
+    log: name => `/api/live/logs/${encodeURIComponent(name)}`,
+    guardianStatus: '/api/guardian/status', guardianModel: '/api/guardian/model',
+    incidents: '/api/guardian/incidents?limit=30',
+    label: id => `/api/guardian/incidents/${encodeURIComponent(id)}/label`,
+    retrain: '/api/guardian/retrain', deploy: '/api/guardian/deploy', simulator: '/api/sim/rover'
   };
   const bytes = n => n < 1024 ? `${n} B` : n < 1048576 ? `${(n / 1024).toFixed(1)} KiB` : `${(n / 1048576).toFixed(1)} MiB`;
   const date = at => new Date(at * 1000).toLocaleString();
@@ -15,8 +19,9 @@
     const b = node('button'); b.type = 'button'; b.append(window.LabShell.icon(symbol), document.createTextNode(text));
     b.addEventListener('click', async () => {
       b.disabled = true;
-      try { await handler(); } catch (e) { $(b.closest('#logs') ? 'log-message' : 'session-message').textContent = e.message; }
-      finally { b.disabled = false; }
+      const generation = epoch;
+      try { await handler(); } catch (e) { if (generation === epoch) $(b.closest('#guardian') ? 'guardian-message' : b.closest('#logs') ? 'log-message' : 'session-message').textContent = e.message; }
+      finally { if (b.closest('#guardian')) updateGuardianControls(); else b.disabled = false; }
     }); return b;
   }
 
@@ -147,34 +152,201 @@
   loadTerrain();
 
   let token = '', socket = null, poll = null, reconnect = null, epoch = 0, activeScan = null;
+  let guardianRequest = 0, guardianBusy = false, candidateReady = false, candidateVersion = null, incidentSnapshot = '';
+  const incidentDrafts = new Map();
   const rooms = new Map();
   async function api(path, options = {}, producer = null) {
     const auth = producer === null ? token : producer;
-    if (!auth) throw new Error('Connect a viewer first.');
+    if (!auth) throw new Error(producer === null ? 'Connect a viewer first.' : 'Enter a producer token in Guardian.');
     const response = await fetch(path, {...options, cache: 'no-store', headers: {...options.headers, Authorization: `Bearer ${auth}`}});
-    if (!response.ok) throw new Error(response.status === 401 ? 'Token was not accepted.' : response.status === 404 ? 'This item is no longer available.' : 'Request could not be completed. Try again.');
+    if (!response.ok) throw new Error(response.status === 401 || response.status === 403 ? 'Token was not accepted for this action.' : response.status === 404 ? 'This item or service is not available.' : response.status === 409 ? 'Model state changed or validation is required. Refresh Guardian and review the candidate.' : 'Request could not be completed. Try again.');
     return response;
   }
   async function download(path, name) {
-    const response = await api(path), blob = await response.blob(), url = URL.createObjectURL(blob);
+    const generation = epoch, response = await api(path), blob = await response.blob(); if (generation !== epoch) return;
+    const url = URL.createObjectURL(blob);
     const a = node('a'); a.href = url; a.download = name; document.body.append(a); a.click(); a.remove();
     setTimeout(() => URL.revokeObjectURL(url), 1000);
   }
   function state(text, active = false) { $('connection-status').textContent = text; $('connection-dot').classList.toggle('active', active); }
+  const number = value => typeof value === 'number' && Number.isFinite(value);
+  const metric = (value, digits = 0, suffix = '') => number(value) ? `${value.toFixed(digits)}${suffix}` : '—';
+  const causeNames = {nominal: 'Nominal', dust: 'Dust or occlusion', dust_or_occlusion: 'Dust or occlusion', low_texture: 'Low texture', glare: 'Glare or shadow', glare_or_shadow: 'Glare or shadow', wheel_slip: 'Wheel slip', pose_jump: 'Pose jump', sensor_drop: 'Sensor dropout', sensor_dropout: 'Sensor dropout'};
+  const causes = ['nominal', 'dust', 'low_texture', 'glare', 'wheel_slip', 'sensor_drop'];
+  const causeName = value => causeNames[value] || value || '—';
+  const carrierName = frame => frame.carrierType === 'rover' ? 'Rover' : 'Mast testbed';
+  const carrierKey = frame => frame.carrierId || frame.room;
+  const archived = frame => String(frame.source || '').startsWith('archived-');
+  const riskLevel = g => ['nominal', 'warning', 'critical'].includes(g?.riskLevel) ? g.riskLevel : 'unknown';
+  function telemetrySummary(frame) {
+    const t = frame.telemetry || {};
+    return `Points ${metric(t.pointCount ?? t.point_count ?? frame.pointCount ?? frame.points?.length)} · Slip ${number(t.slipRatio ?? t.slip_ratio) ? metric((t.slipRatio ?? t.slip_ratio) * 100, 0, '%') : '—'} · Contrast ${metric(t.lumaContrast ?? t.luma_contrast, 2)} · Pose jump ${metric(t.poseJumpM ?? t.pose_jump_m, 2, ' m')}`;
+  }
+  function riskText(guardian) {
+    if (!guardian) return 'Guardian awaiting telemetry';
+    const level = riskLevel(guardian);
+    return `${level[0].toUpperCase() + level.slice(1)} · ${number(guardian.riskScore) ? metric(guardian.riskScore * 100, 0, '%') : '—'}`;
+  }
+  function renderCarriers() {
+    $('carrier-stage').replaceChildren();
+    for (const frame of rooms.values()) {
+      const card = node('article', null, 'carrier-card');
+      card.dataset.carrier = carrierKey(frame); card.dataset.lowConfidence = String(frame.guardian?.lowConfidence === true);
+      card.dataset.risk = riskLevel(frame.guardian);
+      const badge = node('h2', null, 'carrier-badge'); badge.append(window.LabShell.icon(frame.carrierType === 'rover' ? 'truck' : 'radio'), document.createTextNode(carrierName(frame)));
+      const inspect = node('button', 'Inspect', 'carrier-inspect'); inspect.type = 'button'; inspect.addEventListener('click', () => showScan(frame));
+      card.append(badge, node('p', carrierKey(frame), 'carrier-id mono'), node('p', telemetrySummary(frame), 'mono'), node('p', riskText(frame.guardian), 'carrier-risk'), inspect);
+      if (frame.guardian?.lowConfidence === true) card.append(node('p', 'Low confidence · Verify before driving.', 'confidence-warning'));
+      $('carrier-stage').append(card);
+    }
+    if (!rooms.size) $('carrier-stage').append(node('p', 'Awaiting rover or mast telemetry.', 'muted'));
+    renderRisk();
+  }
+  function renderRisk() {
+    const frames = [...rooms.values()].filter(f => f.guardian);
+    frames.sort((a, b) => (b.guardian.riskScore ?? -1) - (a.guardian.riskScore ?? -1) || (b.receivedAt ?? 0) - (a.receivedAt ?? 0));
+    const frame = frames[0], g = frame?.guardian;
+    $('guardian-risk').dataset.risk = riskLevel(g);
+    $('guardian-level').textContent = g ? riskText(g).split(' · ')[0] : 'Awaiting telemetry';
+    $('guardian-score').textContent = g && number(g.riskScore) ? metric(g.riskScore * 100, 0, '%') : '—';
+    $('guardian-meter').hidden = !g || !number(g.riskScore); $('guardian-meter').value = number(g?.riskScore) ? Math.max(0, Math.min(1, g.riskScore)) : 0;
+    $('guardian-carrier').textContent = frame ? `${carrierName(frame)} · ${carrierKey(frame)} · Highest live risk` : 'No current Guardian telemetry.';
+    $('guardian-cause').textContent = causeName(g?.predictedCause); $('guardian-lead').textContent = metric(g?.leadTimeS, 1, ' s');
+    $('guardian-frame-model').textContent = g?.modelVersion || '—';
+    $('guardian-recovery').textContent = g?.recoveryAction || 'Recovery guidance appears with telemetry.';
+    $('guardian-confidence').hidden = g?.lowConfidence !== true;
+  }
+  function resetValidation() {
+    for (const id of ['guardian-model', 'guardian-caught', 'guardian-validation-lead', 'guardian-false-alarms', 'guardian-baseline-f1', 'guardian-retrained-f1', 'guardian-candidate']) $(id).textContent = '—';
+    $('guardian-validation-note').textContent = 'No hold-out results loaded.';
+    $('guardian-deploy-note').textContent = 'A validated candidate must be reviewed before deployment.';
+  }
+  function updateGuardianControls() {
+    const permitted = Boolean(token && $('producer-token').value.trim()) && !guardianBusy;
+    document.querySelectorAll('[data-sim-action], [data-sim-fault], #guardian-retrain, #incident-list button').forEach(b => { b.disabled = !permitted; });
+    document.querySelectorAll('#incident-list select').forEach(select => { select.disabled = guardianBusy; });
+    $('guardian-deploy').disabled = !permitted || !candidateReady;
+    $('refresh-guardian').disabled = !token || guardianBusy;
+    $('guardian-export').disabled = !token;
+  }
+  function renderValidation(status) {
+    const current = status.currentMetrics;
+    const baseline = status.baselineMetrics;
+    const candidate = status.candidateMetrics;
+    candidateVersion = status.candidateVersion || null;
+    candidateReady = status.candidateReady === true && Boolean(candidateVersion && candidate && number(candidate.F1));
+    $('guardian-model').textContent = status.modelVersion || '—';
+    $('guardian-caught').textContent = current ? `${metric(current.caughtFailures)} / ${metric(current.totalFailures)}` : '—';
+    $('guardian-validation-lead').textContent = metric(current?.meanLeadTimeS, 1, ' s');
+    $('guardian-false-alarms').textContent = metric(current?.falseAlarms);
+    $('guardian-baseline-f1').textContent = number(baseline?.F1) ? metric(baseline.F1 * 100, 1, '%') : '—';
+    $('guardian-retrained-f1').textContent = number(candidate?.F1) ? metric(candidate.F1 * 100, 1, '%') : '—';
+    $('guardian-candidate').textContent = candidate ? candidateVersion || (candidateReady ? 'Ready for review' : 'Validation gate not met') : '—';
+    $('guardian-validation-note').textContent = current ? `Synthetic chassis and optics on disjoint HiRISE hold-out trajectories. False alarms count nominal windows. ${metric(current.evaluatedWindows)} windows evaluated.` : 'No hold-out results loaded.';
+    $('guardian-deploy-note').textContent = candidate ? `Review ${candidateVersion || 'candidate'}: ${metric(candidate.caughtFailures)} / ${metric(candidate.totalFailures)} faults caught, ${metric(candidate.meanLeadTimeS, 1, ' s')} mean lead, ${metric(candidate.falseAlarms)} false alarms. ${candidateReady ? 'Approve only after reviewing the hold-out results.' : 'Validation gate not met; deployment is blocked.'}` : 'A validated candidate must be reviewed before deployment.';
+    updateGuardianControls();
+  }
+  function renderSimulator(sim) {
+    if (!sim) return;
+    $('sim-status').textContent = `${sim.running ? 'Running' : 'Stopped'} · ${causeName(sim.fault)} · ${metric(sim.steps)} steps${sim.error ? ' · Simulator interrupted; check server diagnostics.' : ''}`;
+    document.querySelectorAll('[data-sim-fault]').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.simFault === sim.fault)));
+  }
+  function renderIncidents(incidents) {
+    const snapshot = JSON.stringify(incidents);
+    if (snapshot === incidentSnapshot) { updateGuardianControls(); return; }
+    incidentSnapshot = snapshot;
+    const present = new Set(incidents.map(i => i.id));
+    for (const id of incidentDrafts.keys()) if (!present.has(id)) incidentDrafts.delete(id);
+    $('incident-list').replaceChildren();
+    for (const incident of incidents) {
+      const card = node('article', null, 'card incident-card');
+      card.append(node('h3', `${incident.carrierId || incident.room || 'Carrier'} · Incident ${incident.id}`), node('p', `${causeName(incident.predictedCause)} · ${date(incident.createdAt)}`), node('p', incident.status || 'pending', 'incident-status'));
+      const select = node('select'); select.id = `incident-cause-${incident.id}`;
+      const label = node('label', 'Verified cause'); label.htmlFor = select.id;
+      const empty = node('option', 'Select a verified cause'); empty.value = ''; select.append(empty);
+      for (const cause of causes) { const option = node('option', causeName(cause)); option.value = cause; select.append(option); }
+      select.value = incidentDrafts.get(incident.id) ?? (causes.includes(incident.trueCause) ? incident.trueCause : '');
+      const save = button('Save label', 'shield-check', () => {
+        if (!select.value) { select.setCustomValidity('Select the observed cause first.'); select.reportValidity(); return; }
+        return guardianAction(endpoints.label(incident.id), {trueCause: select.value}, incident.id);
+      });
+      select.addEventListener('change', () => { select.setCustomValidity(''); incidentDrafts.set(incident.id, select.value); });
+      // Keep unverified predictions separate from an operator's label.
+      card.append(label, select, save); $('incident-list').append(card);
+    }
+    if (!incidents.length) $('incident-list').append(node('p', 'No incidents recorded.', 'muted'));
+    updateGuardianControls();
+  }
+  async function refreshGuardian() {
+    if (!token) return;
+    const generation = epoch, request = ++guardianRequest;
+    try {
+      const [status, incidents] = await Promise.all([
+        api(endpoints.guardianStatus).then(r => r.json()), api(endpoints.incidents).then(r => r.json())
+      ]);
+      if (generation !== epoch || request !== guardianRequest) return;
+      renderValidation(status); renderIncidents(incidents.incidents); renderSimulator(status.simState);
+      $('guardian-message').textContent = 'Guardian updated. Review incident labels and hold-out results.';
+    } catch (e) {
+      if (generation !== epoch || request !== guardianRequest) return;
+      candidateReady = false; updateGuardianControls(); $('guardian-message').textContent = e.message;
+    }
+  }
+  async function guardianAction(path, payload, incidentId = null) {
+    if (guardianBusy) return;
+    const producer = $('producer-token').value.trim(), generation = epoch;
+    if (!token || !producer) { $('guardian-message').textContent = 'Connect a viewer and enter a producer token in Guardian.'; return; }
+    guardianBusy = true; guardianRequest++; updateGuardianControls();
+    $('guardian-message').textContent = 'Processing operator request.';
+    try {
+      const result = await (await api(path, {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(payload)}, producer)).json();
+      if (generation !== epoch) return;
+      if (incidentId !== null) incidentDrafts.delete(incidentId);
+      if (result.candidateVersion) candidateVersion = result.candidateVersion;
+      if (result.latestFrame) accept(result.latestFrame);
+      if (result.simState) renderSimulator(result.simState);
+      await refreshGuardian();
+    } catch (e) {
+      if (generation === epoch) { candidateReady = false; $('guardian-message').textContent = e.message; }
+    } finally {
+      if (generation === epoch) { guardianBusy = false; updateGuardianControls(); }
+    }
+  }
+  $('producer-token').addEventListener('input', updateGuardianControls);
+  $('refresh-guardian').addEventListener('click', refreshGuardian);
+  $('guardian-export').addEventListener('click', async () => {
+    const generation = epoch;
+    try { await download(endpoints.guardianModel, 'arescope-guardian-model.json'); }
+    catch (e) { if (generation === epoch) $('guardian-message').textContent = e.message; }
+  });
+  $('guardian-retrain').addEventListener('click', () => guardianAction(endpoints.retrain, {}));
+  $('guardian-deploy').addEventListener('click', () => { if (candidateReady) guardianAction(endpoints.deploy, {approved: true, candidateVersion}); });
+  document.querySelectorAll('[data-sim-action]').forEach(b => b.addEventListener('click', () => guardianAction(endpoints.simulator, {action: b.dataset.simAction})));
+  document.querySelectorAll('[data-sim-fault]').forEach(b => {
+    b.setAttribute('aria-pressed', 'false');
+    b.addEventListener('click', () => guardianAction(endpoints.simulator, {action: 'fault', fault: b.dataset.simFault}));
+  });
+  updateGuardianControls();
   function renderRooms() {
     $('rooms').replaceChildren();
     for (const [room, frame] of rooms) {
-      const card = node('article', null, 'card'); card.append(node('h3', room), node('p', `${frame.pointCount} points · ${date(frame.receivedAt)}`), button('Inspect scan', 'eye', () => showScan(frame))); $('rooms').append(card);
+      const card = node('article', null, 'card'); card.append(node('h3', `${carrierName(frame)} · ${room}`), node('p', telemetrySummary(frame)), node('p', date(frame.receivedAt)), button('Inspect scan', 'eye', () => showScan(frame))); $('rooms').append(card);
     }
-    if (!rooms.size) $('rooms').append(node('p', 'Awaiting a new room scan.', 'muted'));
+    if (!rooms.size) $('rooms').append(node('p', 'Awaiting a carrier scan.', 'muted'));
+    renderCarriers();
   }
   function accept(message) {
-    if (Array.isArray(message.rooms)) { rooms.clear(); message.rooms.forEach(f => rooms.set(f.room, f)); }
-    else if (message.source === 'live-quest' && Array.isArray(message.points)) {
-      rooms.set(message.room, message);
-      if (activeScan?.source !== 'archived-quest') showScan(message);
-      $('live-message').textContent = `Receiving scans from ${message.room}.`;
+    if (message.type === 'guardian_update') { if (!guardianBusy) refreshGuardian(); return; }
+    if (Array.isArray(message.rooms)) {
+      rooms.clear(); message.rooms.forEach(f => rooms.set(carrierKey(f), f));
+      if (message.rooms.length && !archived(activeScan || {})) showScan(message.rooms[message.rooms.length - 1]);
+      else if (!message.rooms.length && activeScan && !archived(activeScan)) { activeScan = null; $('live-overlay').hidden = true; }
     }
+    else if (Array.isArray(message.points) && !archived(message)) {
+      rooms.set(carrierKey(message), message);
+      if (!archived(activeScan || {})) showScan(message);
+      $('live-message').textContent = `Receiving scans from ${carrierKey(message)}.`;
+    } else return;
     renderRooms();
   }
   async function latest(generation) {
@@ -189,7 +361,7 @@
     const ws = new WebSocket(url); socket = ws;
     ws.onopen = () => {
       if (generation !== epoch) { ws.close(); return; }
-      clearInterval(poll); poll = null; state('Viewer connected', true); $('live-message').textContent = 'Live feed connected. Waiting for room scans.';
+      clearInterval(poll); poll = null; state('Viewer connected', true); $('live-message').textContent = 'Live feed connected. Waiting for carrier scans.';
     };
     ws.onmessage = e => { if (generation === epoch) { try { accept(JSON.parse(e.data)); } catch { $('live-message').textContent = 'A scan update could not be read.'; } } };
     ws.onclose = e => {
@@ -205,9 +377,15 @@
     epoch++; token = ''; clearInterval(poll); clearTimeout(reconnect); poll = reconnect = null;
     if (socket) { socket.close(); socket = null; }
     rooms.clear(); activeScan = null; renderRooms(); $('live-overlay').hidden = true;
+    guardianRequest++; guardianBusy = false; candidateReady = false; candidateVersion = null; incidentSnapshot = ''; incidentDrafts.clear(); resetValidation();
+    $('incident-list').replaceChildren(node('p', 'Connect a viewer to load incidents.', 'muted'));
+    $('guardian-message').textContent = 'Awaiting viewer connection.'; $('sim-status').textContent = 'Simulator state unknown.';
     $('viewer-token').value = ''; $('producer-token').value = ''; $('disconnect').hidden = true;
+    document.querySelectorAll('[data-sim-fault]').forEach(b => b.setAttribute('aria-pressed', 'false')); updateGuardianControls();
     $('session-list').replaceChildren(node('p', 'Connect a viewer to load sessions.', 'muted'));
-    $('log-list').replaceChildren(node('p', 'Connect a viewer to load logs.', 'muted')); $('log-preview').hidden = true;
+    $('log-list').replaceChildren(node('p', 'Connect a viewer to load logs.', 'muted')); $('log-preview').hidden = true; $('log-preview').textContent = '';
+    $('session-message').textContent = ''; $('log-message').textContent = '';
+    $('storage-stats').replaceChildren(node('p', 'Connect to inspect storage.', 'muted'));
     state('Ready to connect'); $('live-message').textContent = 'Viewer disconnected.';
   }
   $('connect-form').addEventListener('submit', async e => {
@@ -215,8 +393,8 @@
     disconnect(); token = value; const generation = epoch; $('live-message').textContent = 'Checking viewer access.';
     try {
       const r = await api(endpoints.latest), data = await r.json(); if (generation !== epoch) return;
-      accept(data); $('disconnect').hidden = false; openSocket(generation);
-      await Promise.allSettled([refreshSessions(), refreshLogs(), refreshStats()]);
+      accept(data); $('disconnect').hidden = false; updateGuardianControls(); openSocket(generation);
+      await Promise.allSettled([refreshSessions(), refreshLogs(), refreshStats(), refreshGuardian()]);
     } catch (error) { if (generation === epoch) { disconnect(); $('live-message').textContent = error.message; } }
   });
   $('disconnect').addEventListener('click', disconnect);
@@ -233,15 +411,15 @@
       for (const s of data.sessions) {
         const card = node('article', null, 'card'), actions = node('div', null, 'actions');
         card.append(node('h3', `${s.room} · Session ${s.id}`), node('p', `${date(s.startedAt)} · ${s.frameCount} frames · ${s.maxPoints} points`));
-        actions.append(button('Inspect', 'eye', async () => { const data = await (await api(endpoints.session(s.id))).json(); if (data.frame) showScan(data.frame); else $('session-message').textContent = 'This session has no stored frames.'; }),
+        actions.append(button('Inspect', 'eye', async () => { const data = await (await api(endpoints.session(s.id))).json(); if (generation !== epoch) return; if (data.frame) showScan(data.frame); else $('session-message').textContent = 'This session has no stored frames.'; }),
           button('Merged PLY', 'download', () => download(endpoints.ply(s.id, 'merged'), `arescope-${s.id}-merged.ply`)),
           button('Last PLY', 'download', () => download(endpoints.ply(s.id, 'last'), `arescope-${s.id}-last.ply`)));
         if (s.hasMesh) actions.append(button('ARSM mesh', 'download', () => download(endpoints.mesh(s.id), `${s.id}.arsm`)));
         const remove = button('Delete', 'trash', async () => {
-          const producer = $('producer-token').value; $('producer-token').value = '';
-          if (!producer) { $('session-message').textContent = 'Enter a producer token below to remove a session.'; $('producer-token').focus(); return; }
-          if (remove.dataset.confirm !== 'yes') { remove.dataset.confirm = 'yes'; remove.lastChild.textContent = 'Confirm delete'; $('session-message').textContent = 'Select Confirm delete to remove this session. Enter the producer token again.'; return; }
-          await api(endpoints.session(s.id), {method: 'DELETE'}, producer); await refreshSessions(); await refreshStats();
+          if (remove.dataset.confirm !== 'yes') { remove.dataset.confirm = 'yes'; remove.lastChild.textContent = 'Confirm delete'; $('session-message').textContent = 'Enter a producer token in Guardian, then select Confirm delete to remove this session.'; return; }
+          const producer = $('producer-token').value.trim(); $('producer-token').value = ''; updateGuardianControls();
+          if (!producer) { $('session-message').textContent = 'Enter a producer token in Guardian to remove a session.'; document.querySelector('[data-panel="guardian"]').click(); $('producer-token').focus(); return; }
+          await api(endpoints.session(s.id), {method: 'DELETE'}, producer); if (generation !== epoch) return; await refreshSessions(); await refreshStats();
         });
         actions.append(remove); card.append(actions); $('session-list').append(card);
       }
@@ -256,7 +434,7 @@
       for (const log of data.logs) {
         const card = node('article', null, 'card'), actions = node('div', null, 'actions');
         card.append(node('h3', log.file), node('p', `${bytes(log.bytes)} · ${new Date(log.at).toLocaleString()}`));
-        actions.append(button('Read log', 'eye', async () => { const text = await (await api(endpoints.log(log.file))).text(); $('log-preview').textContent = text; $('log-preview').hidden = false; }), button('Download', 'download', () => download(endpoints.log(log.file), log.file)));
+        actions.append(button('Read log', 'eye', async () => { const text = await (await api(endpoints.log(log.file))).text(); if (generation !== epoch) return; $('log-preview').textContent = text; $('log-preview').hidden = false; }), button('Download', 'download', () => download(endpoints.log(log.file), log.file)));
         card.append(actions); $('log-list').append(card);
       }
       if (!data.logs.length) $('log-list').append(node('p', 'Uploaded diagnostics will appear here.', 'muted'));
@@ -274,7 +452,7 @@
     } catch (e) { if (generation === epoch) $('live-message').textContent = e.message; }
   }
   $('refresh-sessions').addEventListener('click', refreshSessions); $('refresh-logs').addEventListener('click', refreshLogs);
-  document.addEventListener('panelchange', e => { if (token) { if (e.detail === 'sessions') refreshSessions(); if (e.detail === 'logs') refreshLogs(); if (e.detail === 'equipment') refreshStats(); } });
+  document.addEventListener('panelchange', e => { if (token) { if (e.detail === 'sessions') refreshSessions(); if (e.detail === 'logs') refreshLogs(); if (e.detail === 'equipment') refreshStats(); if (e.detail === 'guardian') refreshGuardian(); } });
 
   function drawScan() {
     if (!activeScan) return;
@@ -284,7 +462,7 @@
     const low = [Infinity, Infinity, Infinity], high = [-Infinity, -Infinity, -Infinity];
     for (const p of pts) p.forEach((v, k) => { low[k] = Math.min(low[k], v); high[k] = Math.max(high[k], v); });
     const center = low.map((v, k) => (v + high[k]) / 2), extent = Math.max(1, ...low.map((v, k) => high[k] - v)), scale = Math.min(w, h) / extent * .58;
-    ctx.fillStyle = '#ee8a5b';
+    ctx.fillStyle = activeScan.guardian?.lowConfidence === true ? '#f0a39a' : '#ee8a5b';
     for (const p of pts) {
       const [x, y, z] = p.map((v, k) => v - center[k]);
       ctx.globalAlpha = .55 + (y - low[1] + center[1]) / Math.max(1, high[1] - low[1]) * .45;
@@ -295,17 +473,23 @@
   function showScan(frame) {
     if (!Array.isArray(frame.points)) return;
     activeScan = frame; $('live-overlay').hidden = !$('show-live').checked;
-    $('overlay-title').textContent = frame.source === 'archived-quest' ? 'Quest archive' : 'Quest live';
-    $('scan-caption').textContent = `${frame.room} · ${frame.points.length} points · Local metres`; drawScan();
+    $('overlay-title').textContent = `${carrierName(frame)} ${archived(frame) ? 'archive' : frame.source === 'simulated-rover' ? 'simulation' : 'live'}`;
+    $('live-overlay').dataset.lowConfidence = String(frame.guardian?.lowConfidence === true); $('live-overlay').dataset.risk = riskLevel(frame.guardian);
+    $('scan-confidence').hidden = frame.guardian?.lowConfidence !== true;
+    $('scan-caption').textContent = `${carrierKey(frame)} · ${frame.points.length} points · Local metres${frame.points.length ? '' : ' · No scan points'}${frame.source === 'simulated-rover' ? ' · Synthetic rover on HiRISE archive' : ''}`;
+    $('scan-telemetry').textContent = telemetrySummary(frame);
+    $('scan-guardian').textContent = `${riskText(frame.guardian)}${frame.guardian ? ` · ${causeName(frame.guardian.predictedCause)} · ${metric(frame.guardian.leadTimeS, 1, ' s')} lead · ${frame.guardian.recoveryAction || 'Awaiting recovery guidance'}` : ''}`;
+    drawScan();
   }
   $('close-overlay').addEventListener('click', () => { $('show-live').checked = false; $('live-overlay').hidden = true; });
   $('show-live').addEventListener('change', () => { $('live-overlay').hidden = !$('show-live').checked || !activeScan; drawScan(); });
   new ResizeObserver(drawScan).observe($('scan'));
   setInterval(() => {
     const now = Date.now() / 1000;
-    for (const [room, frame] of rooms) if (now - frame.receivedAt > 30) rooms.delete(room);
-    if (activeScan?.source === 'live-quest' && now - activeScan.receivedAt > 30) { activeScan = null; $('live-overlay').hidden = true; }
-    renderRooms();
+    let changed = false;
+    for (const [room, frame] of rooms) if (now - frame.receivedAt > 30) { rooms.delete(room); changed = true; }
+    if (activeScan && !archived(activeScan) && now - activeScan.receivedAt > 30) { activeScan = null; $('live-overlay').hidden = true; }
+    if (changed) renderRooms();
   }, 2000);
-  setInterval(() => { if (token) refreshStats(); }, 15000);
+  setInterval(() => { if (token) { refreshStats(); if (!guardianBusy && !$('guardian').hidden) refreshGuardian(); } }, 15000);
 })();

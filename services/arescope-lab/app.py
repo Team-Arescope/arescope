@@ -1,6 +1,7 @@
 """Arescope LAB: one Uvicorn worker owns the live fanout and session cache."""
 
 import asyncio
+from collections import deque
 from contextlib import asynccontextmanager, contextmanager
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta, timezone
@@ -24,11 +25,14 @@ from fastapi.staticfiles import StaticFiles
 from starlette.concurrency import run_in_threadpool
 
 from arsm import InvalidMesh, parse_arsm
+from guardian import GuardianEngine
+from rover_sim import CAUSES, RoverSimManager
 
 ROOT = Path(__file__).resolve().parent
 LIVE_TTL_SECONDS = 30
 WS_IDLE_SECONDS = 20
 WS_QUEUE_SIZE = 32
+INCIDENT_COOLDOWN_SECONDS = 60
 
 
 class StreamQueryFilter(logging.Filter):
@@ -91,6 +95,7 @@ class Store:
     def __init__(self, settings):
         self.settings = settings
         self.lock = threading.RLock()
+        self.retrain_lock = threading.Lock()
         self.rooms = {}
         self.last_prune = None
 
@@ -120,6 +125,24 @@ class Store:
             received_at REAL NOT NULL, yaw REAL, point_count INTEGER NOT NULL, payload BLOB NOT NULL)""")
         db.execute("CREATE INDEX IF NOT EXISTS frames_session_received ON frames(session_id, received_at)")
         db.execute("CREATE INDEX IF NOT EXISTS sessions_started ON sessions(started_at DESC)")
+        # Additive V1 migration: the compact gzip point payload stays unchanged.
+        if "metadata" not in {row[1] for row in db.execute("PRAGMA table_info(frames)")}:
+            try:
+                db.execute("ALTER TABLE frames ADD COLUMN metadata TEXT")
+            except sqlite3.OperationalError:
+                if "metadata" not in {row[1] for row in db.execute("PRAGMA table_info(frames)")}:
+                    raise
+        db.execute("""CREATE TABLE IF NOT EXISTS incidents(
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            session_id INTEGER REFERENCES sessions(id) ON DELETE SET NULL,
+            room TEXT NOT NULL, carrier_id TEXT NOT NULL, carrier_type TEXT NOT NULL,
+            created_at REAL NOT NULL, predicted_cause TEXT NOT NULL, risk_score REAL NOT NULL,
+            window_json TEXT NOT NULL, true_cause TEXT,
+            status TEXT NOT NULL DEFAULT 'pending', notes TEXT NOT NULL DEFAULT '')""")
+        db.execute("CREATE INDEX IF NOT EXISTS incidents_carrier_cause ON incidents(carrier_id,predicted_cause,created_at DESC)")
+        db.execute("CREATE INDEX IF NOT EXISTS incidents_created ON incidents(created_at DESC,id DESC)")
+        db.execute("""CREATE TABLE IF NOT EXISTS guardian_state(
+            id INTEGER PRIMARY KEY CHECK(id=1), payload TEXT NOT NULL)""")
 
     def prune(self, db, now, force=False):
         if not force and self.last_prune is not None and now - self.last_prune < 3600:
@@ -138,12 +161,15 @@ class Store:
 
     def append(self, frame):
         now, room = frame["receivedAt"], frame["room"]
+        carrier = frame.get("carrierId", room)
         with self.lock, self.connect() as db:
             db.execute("BEGIN IMMEDIATE")
-            cached = self.rooms.get(room)
+            cached = self.rooms.get(carrier)
             row = None
             if cached and now - cached[1] <= self.settings.session_gap:
                 row = db.execute("SELECT * FROM sessions WHERE id=?", (cached[0],)).fetchone()
+                if row is not None and row["room"] != room:
+                    row = None
             if row is None:
                 sid = db.execute("INSERT INTO sessions(room,started_at,ended_at) VALUES(?,?,?)",
                                  (room, now, now)).lastrowid
@@ -154,15 +180,17 @@ class Store:
             stored = count < self.settings.max_frames_per_session and not throttled
             if stored:
                 payload = gzip.compress(json.dumps(frame["points"], separators=(",", ":"), allow_nan=False).encode(), compresslevel=6)
-                db.execute("INSERT INTO frames(session_id,received_at,yaw,point_count,payload) VALUES(?,?,?,?,?)",
-                           (sid, now, frame["yawDeg"], frame["pointCount"], payload))
+                metadata = {key: frame[key] for key in ("source", "carrierId", "carrierType", "telemetry", "guardian") if key in frame}
+                db.execute("INSERT INTO frames(session_id,received_at,yaw,point_count,payload,metadata) VALUES(?,?,?,?,?,?)",
+                           (sid, now, frame["yawDeg"], frame["pointCount"], payload,
+                            json.dumps(metadata, separators=(",", ":"), allow_nan=False)))
                 db.execute("UPDATE sessions SET ended_at=?, frame_count=frame_count+1, max_points=MAX(max_points,?) WHERE id=?",
                            (now, frame["pointCount"], sid))
                 last_stored = now
             due = self.last_prune is None or now - self.last_prune >= 3600
             self.prune(db, now)
             db.commit()
-            self.rooms[room] = (sid, now, last_stored)
+            self.rooms[carrier] = (sid, now, last_stored)
             if due:
                 self.last_prune = now
             return sid, stored, throttled
@@ -184,6 +212,15 @@ class Store:
             frame = None if f is None else {"source": "archived-quest", "room": row["room"], "sessionId": sid,
                 "receivedAt": f["received_at"], "yawDeg": f["yaw"], "pointCount": f["point_count"],
                 "points": json.loads(gzip.decompress(f["payload"]))}
+            if frame is not None:
+                metadata = json.loads(f["metadata"] or "{}")
+                source = metadata.pop("source", "live-quest")
+                frame.update(metadata)
+                frame.setdefault("carrierId", row["room"])
+                frame.setdefault("carrierType", "mast-testbed")
+                frame.setdefault("telemetry", {})
+                frame.setdefault("guardian", None)
+                frame["source"] = "archived-rover" if source in ("simulated-rover", "live-rover") else "archived-quest"
             return {"session": summary(row), "frame": frame}
 
     def delete(self, sid):
@@ -244,6 +281,149 @@ class Store:
             finally:
                 Path(name).unlink(missing_ok=True)
 
+    @staticmethod
+    def incident(row, include_window=False):
+        result = {"id": row["id"], "sessionId": row["session_id"], "room": row["room"],
+                  "carrierId": row["carrier_id"], "carrierType": row["carrier_type"],
+                  "createdAt": row["created_at"], "predictedCause": row["predicted_cause"],
+                  "riskScore": row["risk_score"], "trueCause": row["true_cause"],
+                  "status": row["status"], "notes": row["notes"]}
+        if include_window:
+            result["window"] = json.loads(row["window_json"])
+        return result
+
+    def record_incident(self, frame, window, sid):
+        if frame["guardian"]["riskLevel"] == "nominal":
+            return
+        with self.lock, self.connect() as db:
+            db.execute("BEGIN IMMEDIATE")
+            previous = db.execute("""SELECT created_at FROM incidents
+                WHERE carrier_id=? AND predicted_cause=? ORDER BY created_at DESC,id DESC LIMIT 1""",
+                (frame["carrierId"], frame["guardian"]["predictedCause"])).fetchone()
+            if previous and frame["receivedAt"] - previous[0] < INCIDENT_COOLDOWN_SECONDS:
+                return
+            if sid is not None and not db.execute("SELECT 1 FROM sessions WHERE id=?", (sid,)).fetchone():
+                sid = None
+            db.execute("""INSERT INTO incidents(session_id,room,carrier_id,carrier_type,created_at,
+                predicted_cause,risk_score,window_json) VALUES(?,?,?,?,?,?,?,?)""",
+                (sid, frame["room"], frame["carrierId"], frame["carrierType"], frame["receivedAt"],
+                 frame["guardian"]["predictedCause"], frame["guardian"]["riskScore"],
+                 json.dumps(window, separators=(",", ":"), allow_nan=False)))
+
+    def list_incidents(self, limit):
+        with self.lock, self.connect() as db:
+            return {"incidents": [self.incident(row) for row in db.execute(
+                "SELECT * FROM incidents ORDER BY created_at DESC,id DESC LIMIT ?", (limit,))]}
+
+    def refresh_guardian(self, engine, best_effort=False):
+        # A live prediction must never wait for a writer or a failed history disk.
+        if best_effort:
+            try:
+                with engine.lock:
+                    db = sqlite3.connect(self.settings.db.resolve().as_uri() + "?mode=ro", uri=True, timeout=0)
+                    try:
+                        row = db.execute("SELECT payload FROM guardian_state WHERE id=1").fetchone()
+                    finally:
+                        db.close()
+                    if row:
+                        engine.restore_state(json.loads(row[0]))
+            except (sqlite3.Error, OSError):
+                pass
+            return
+        with self.lock, self.connect() as db, engine.lock:
+            db.execute("BEGIN IMMEDIATE")
+            row = db.execute("SELECT payload FROM guardian_state WHERE id=1").fetchone()
+            if row:
+                engine.restore_state(json.loads(row[0]))
+            else:
+                self.save_guardian(db, engine)
+
+    @staticmethod
+    def save_guardian(db, engine):
+        db.execute("INSERT OR REPLACE INTO guardian_state(id,payload) VALUES(1,?)",
+                   (json.dumps(engine.dump_state(), separators=(",", ":"), allow_nan=False),))
+
+    def guardian_status(self, engine):
+        with self.lock, self.connect() as db, engine.lock:
+            row = db.execute("SELECT payload FROM guardian_state WHERE id=1").fetchone()
+            if row:
+                engine.restore_state(json.loads(row[0]))
+            counts = dict(db.execute("SELECT status,count(*) FROM incidents GROUP BY status"))
+            return {"modelVersion": engine.model_version, "activeModel": engine.export_model(),
+                    "candidateReady": engine.candidate_ready, "baselineMetrics": engine.baseline_metrics,
+                    "candidateVersion": engine.candidate_model["modelVersion"] if engine.candidate_model else None,
+                    "currentMetrics": engine.current_metrics, "candidateMetrics": engine.candidate_metrics,
+                    "pendingIncidents": counts.get("pending", 0),
+                    "labeledIncidents": counts.get("labeled", 0) + counts.get("validated", 0),
+                    "deployedAt": engine.deployed_at}
+
+    def guardian_change(self, engine, action, at, incident_id=None, label=None, notes="", candidate_version=None):
+        if action == "retrain":
+            with self.retrain_lock:
+                with self.lock, self.connect() as db:
+                    row = db.execute("SELECT payload FROM guardian_state WHERE id=1").fetchone()
+                    working = GuardianEngine()
+                    working.restore_state(json.loads(row[0]) if row else engine.dump_state())
+                    incidents = [self.incident(r, include_window=True) for r in db.execute(
+                        "SELECT * FROM incidents WHERE true_cause IS NOT NULL ORDER BY id")]
+                    snap_labels = [(i["id"], i["trueCause"]) for i in incidents]
+                result = working.retrain(incidents)
+                with self.lock, self.connect() as db:
+                    db.execute("BEGIN IMMEDIATE")
+                    current_labels = [(r["id"], r["true_cause"]) for r in db.execute(
+                        "SELECT id, true_cause FROM incidents WHERE true_cause IS NOT NULL ORDER BY id")]
+                    row = db.execute("SELECT payload FROM guardian_state WHERE id=1").fetchone()
+                    if current_labels != snap_labels:
+                        latest = GuardianEngine()
+                        latest.restore_state(json.loads(row[0]) if row else engine.dump_state())
+                        engine.restore_state(latest.dump_state())
+                        raise HTTPException(409, "Incident labels changed during retraining; retry")
+                    db.execute("UPDATE incidents SET status='labeled' WHERE status='validated'")
+                    if working.candidate_ready:
+                        db.execute("UPDATE incidents SET status='validated' WHERE status='labeled'")
+                    self.save_guardian(db, working)
+                    db.commit()
+                    engine.restore_state(working.dump_state())
+                return result
+        # Serialize writers across processes; commit model + reviewed incident statuses together.
+        with self.lock, self.connect() as db:
+            db.execute("BEGIN IMMEDIATE")
+            row = db.execute("SELECT payload FROM guardian_state WHERE id=1").fetchone()
+            working = GuardianEngine()
+            if row:
+                working.restore_state(json.loads(row[0]))
+            else:
+                working.restore_state(engine.dump_state())
+            if action == "label":
+                if not db.execute("SELECT 1 FROM incidents WHERE id=?", (incident_id,)).fetchone():
+                    raise HTTPException(404, "Incident not found")
+                # A correction invalidates any candidate trained with that old label.
+                if incident_id in working.candidate_incident_ids:
+                    working.candidate_model = working.candidate_metrics = None
+                    working.candidate_incident_ids = []
+                    db.execute("UPDATE incidents SET status='labeled' WHERE status='validated'")
+                db.execute("UPDATE incidents SET true_cause=?,notes=?,status='labeled' WHERE id=?",
+                           (label, notes, incident_id))
+                result = self.incident(db.execute("SELECT * FROM incidents WHERE id=?", (incident_id,)).fetchone())
+            elif action == "deploy":
+                if candidate_version is not None and (
+                    working.candidate_model is None or working.candidate_model["modelVersion"] != candidate_version
+                ):
+                    raise HTTPException(409, "Candidate version changed; review it again")
+                try:
+                    result = working.deploy(approved=True, at=at)
+                except ValueError as exc:
+                    raise HTTPException(409, str(exc)) from None
+                db.executemany("UPDATE incidents SET status='deployed' WHERE id=?",
+                               [(i,) for i in working.candidate_incident_ids])
+                working.candidate_incident_ids = []
+            else:
+                raise ValueError("Unknown Guardian operation")
+            self.save_guardian(db, working)
+            db.commit()
+            engine.restore_state(working.dump_state())
+            return result
+
 
 class LiveState:
     def __init__(self):
@@ -251,11 +431,13 @@ class LiveState:
         self.subscribers = set()
         self.ingest = 0
         self.storage_errors = 0
+        self.telemetry_windows = {}
 
     def snapshot(self, now):
         for room, frame in list(self.frames.items()):
             if now - frame["receivedAt"] > LIVE_TTL_SECONDS:
                 del self.frames[room]
+                self.telemetry_windows.pop(room, None)
         return {"source": "live-quest", "rooms": list(self.frames.values())}
 
     def broadcast(self, frame):
@@ -300,26 +482,68 @@ def validate_frame(body):
         yaw = data.get("yawDeg")
         if yaw is not None and (isinstance(yaw, bool) or not isinstance(yaw, (int, float)) or not math.isfinite(yaw)):
             raise ValueError
-        return room[:64], yaw, points
+        room = room[:64]
+        carrier_id = data.get("carrierId", room)
+        carrier_type = data.get("carrierType", "mast-testbed")
+        if not isinstance(carrier_id, str) or not carrier_id.strip() or len(carrier_id) > 64:
+            raise ValueError
+        if carrier_type not in ("rover", "mast-testbed", "helmet"):
+            raise ValueError
+        telemetry = data.get("telemetry", {})
+        if not isinstance(telemetry, dict):
+            raise ValueError
+        for key, value in telemetry.items():
+            if key == "linkOk":
+                if not isinstance(value, bool):
+                    raise ValueError
+            elif key == "position":
+                if not isinstance(value, list) or len(value) != 3 or any(
+                    isinstance(x, bool) or not isinstance(x, (int, float)) or not math.isfinite(x) for x in value
+                ):
+                    raise ValueError
+            elif isinstance(value, bool) or not isinstance(value, (int, float)) or not math.isfinite(value):
+                raise ValueError
+        source = "live-rover" if carrier_type == "rover" else "live-quest"
+        if data.get("source") == "simulated-rover" and carrier_type == "rover":
+            source = "simulated-rover"
+        return {"source": source, "room": room, "yawDeg": yaw, "points": points,
+                "pointCount": len(points), "carrierId": carrier_id, "carrierType": carrier_type,
+                "telemetry": telemetry}
     except (ValueError, KeyError, TypeError, OverflowError, RecursionError):
-        raise HTTPException(422, "Expected room, optional yawDeg and at most 4096 finite xyz points") from None
+        raise HTTPException(422, "Expected valid carrier, finite telemetry and at most 4096 finite xyz points") from None
+
+
+async def json_object(request):
+    try:
+        result = json.loads(await read_limited(request, 64 * 1024))
+        if not isinstance(result, dict):
+            raise ValueError
+        return result
+    except (ValueError, TypeError, RecursionError):
+        raise HTTPException(422, "Expected a JSON object") from None
 
 
 def create_app(settings=None, clock=time.time):
     cfg = settings or Settings()
     store, live = Store(cfg), LiveState()
+    guardian = GuardianEngine()
 
     @asynccontextmanager
     async def lifespan(application):
         cfg.check()
         try:
             await run_in_threadpool(store.stats)
+            await run_in_threadpool(store.refresh_guardian, guardian)
         except (sqlite3.Error, OSError):
             live.storage_errors += 1
-        yield
+        try:
+            yield
+        finally:
+            await simulator.stop()
 
     app = FastAPI(title="Arescope LAB", lifespan=lifespan, docs_url=None, redoc_url=None, openapi_url=None)
     app.state.settings, app.state.store, app.state.live = cfg, store, live
+    app.state.guardian = guardian
 
     def auth(expected_role):
         def dependency(request: Request):
@@ -360,24 +584,83 @@ def create_app(settings=None, clock=time.time):
     def index():
         return FileResponse(ROOT / "static/index.html", headers={"Cache-Control": "no-cache"})
 
-    @app.post("/api/live/frame", dependencies=[Depends(producer)])
-    async def frame(request: Request):
-        room, yaw, points = validate_frame(await read_limited(request, 2 * 1024 * 1024))
+    async def ingest(current):
+        await run_in_threadpool(store.refresh_guardian, guardian, True)
         now = clock()
-        current = {"source": "live-quest", "room": room, "yawDeg": yaw, "points": points,
-                   "pointCount": len(points), "receivedAt": now}
-        live.ingest += 1
-        # Publish before touching disk: a locked/failed DB cannot hold up viewers.
+        current["receivedAt"] = now
         live.snapshot(now)
-        live.frames[room] = current
+        key = current["carrierId"]
+        window = live.telemetry_windows.setdefault(key, deque(maxlen=5))
+        window.append({"telemetry": current["telemetry"], "receivedAt": now})
+        captured = list(window)
+        current["guardian"] = guardian.predict(captured)
+        live.ingest += 1
+        # Publish before history writes: a locked/failed DB cannot hold up viewers.
+        live.frames[key] = current
         live.broadcast(current)
         sid, stored, throttled = None, False, False
         try:
             sid, stored, throttled = await run_in_threadpool(store.append, current)
+            await run_in_threadpool(store.record_incident, current, captured, sid)
         except (sqlite3.Error, OSError):
             live.storage_errors += 1
-        return {"ok": True, "room": room, "pointCount": len(points), "viewers": len(live.subscribers),
+        return {**current, "ok": True, "viewers": len(live.subscribers),
                 "sessionId": sid, "stored": stored, "throttled": throttled}
+
+    async def ingest_simulated(payload):
+        return await ingest(validate_frame(json.dumps(payload, allow_nan=False)))
+
+    simulator = RoverSimManager(ingest_simulated)
+    app.state.simulator = simulator
+
+    @app.post("/api/live/frame", dependencies=[Depends(producer)])
+    async def frame(request: Request):
+        return await ingest(validate_frame(await read_limited(request, 2 * 1024 * 1024)))
+
+    @app.get("/api/guardian/status", dependencies=[Depends(viewer)])
+    def guardian_status():
+        return {**store.guardian_status(guardian), "simState": simulator.state()}
+
+    @app.get("/api/guardian/model", dependencies=[Depends(viewer)])
+    def guardian_model():
+        store.refresh_guardian(guardian)
+        return guardian.export_model()
+
+    @app.get("/api/guardian/incidents", dependencies=[Depends(viewer)])
+    def guardian_incidents(limit: int = 30):
+        return store.list_incidents(max(1, min(limit, 100)))
+
+    @app.post("/api/guardian/incidents/{id}/label", dependencies=[Depends(producer)])
+    async def label_incident(id: int, request: Request):
+        data = await json_object(request)
+        cause, notes = data.get("trueCause"), data.get("notes", "")
+        if cause not in CAUSES or not isinstance(notes, str) or len(notes) > 4096:
+            raise HTTPException(422, "Expected trueCause in CAUSES and optional notes up to 4096 characters")
+        return await run_in_threadpool(store.guardian_change, guardian, "label", clock(), id, cause, notes)
+
+    @app.post("/api/guardian/retrain", dependencies=[Depends(producer)])
+    async def retrain_guardian():
+        return await run_in_threadpool(store.guardian_change, guardian, "retrain", clock())
+
+    @app.post("/api/guardian/deploy", dependencies=[Depends(producer)])
+    async def deploy_guardian(request: Request):
+        data = await json_object(request)
+        if data.get("approved") is not True:
+            raise HTTPException(422, "Explicit human approval (approved: true) is required")
+        if "candidateVersion" in data and not isinstance(data["candidateVersion"], str):
+            raise HTTPException(422, "Expected candidateVersion string")
+        result = await run_in_threadpool(store.guardian_change, guardian, "deploy", clock(),
+                                        candidate_version=data.get("candidateVersion"))
+        live.broadcast({"type": "guardian_update", **result})
+        return result
+
+    @app.post("/api/sim/rover", dependencies=[Depends(producer)])
+    async def sim_rover(request: Request):
+        data = await json_object(request)
+        try:
+            return await simulator.control(data.get("action"), data.get("fault"))
+        except ValueError as exc:
+            raise HTTPException(422, str(exc)) from None
 
     @app.get("/api/live/latest", dependencies=[Depends(viewer)])
     def latest():
