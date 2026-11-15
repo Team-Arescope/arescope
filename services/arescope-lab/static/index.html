@@ -9,14 +9,15 @@
   <link rel="preload" href="/static/fonts/manrope.woff2" as="font" type="font/woff2" crossorigin>
   <link rel="preload" href="/static/fonts/dm-mono.woff2" as="font" type="font/woff2" crossorigin>
   <link rel="stylesheet" href="/static/style.css">
-  <link rel="stylesheet" href="/static/mission.css">
-  <script src="/static/shell.js" defer></script>
-  <script src="/static/app.js" defer></script>
+  <link rel="stylesheet" href="/static/mission.css?v=public-20261115">
+  <script src="/static/shell.js?v=public-20261115" defer></script>
+  <script src="/static/app.js?v=public-20261115" defer></script>
 </head>
 <body>
   <header class="topbar">
     <a class="brand" href="/" aria-label="Arescope LAB home"><i data-icon="aperture"></i><strong>ARESCOPE LAB</strong><span>Mission control</span></a>
-    <div class="top-status"><span class="status-dot" id="connection-dot"></span><span id="connection-status">Ready to connect</span></div>
+    <div class="top-status" role="status"><span class="status-dot" id="connection-dot"></span><span id="connection-status">Checking LAB access</span></div>
+    <button id="reconnect-lab" class="connection-retry" type="button" hidden>Reconnect</button>
     <time id="utc-clock" class="mono" aria-label="UTC time"></time>
   </header>
   <nav class="icon-rail" aria-label="Mission panels">
@@ -68,7 +69,8 @@
     <section id="guardian" class="drawer-pane" hidden>
       <div class="section-heading"><i data-icon="shield-check"></i><h3>Arescope Guardian</h3><button id="refresh-guardian" class="icon-button" aria-label="Refresh Guardian"><i data-icon="refresh-cw"></i></button></div>
       <p>Review live risk, label incidents and validate the next model before approving deployment.</p>
-      <section class="operator-access" aria-label="Operator access">
+      <p id="shared-mission-note" class="field-help shared-mission-note" hidden>Shared mission · Every visitor controls the same fleet. Changes are visible to everyone.</p>
+      <section id="operator-access" class="operator-access" aria-label="Operator access">
         <h3>Operator access</h3>
         <label for="producer-token">Producer token</label><input id="producer-token" type="password" autocomplete="off" spellcheck="false" placeholder="Paste producer token">
         <p class="field-help">Kept in this input for simulator, labeling and model actions. Cleared on disconnect. Also authorizes session deletion.</p>
@@ -76,7 +78,7 @@
       <div id="guardian-risk" class="guardian-risk" data-risk="unknown">
         <div class="risk-heading"><span id="guardian-level">Awaiting telemetry</span><strong id="guardian-score" class="mono">—</strong></div>
         <progress id="guardian-meter" max="1" value="0" aria-label="Guardian risk score" hidden></progress>
-        <p id="guardian-carrier">Connect a viewer to inspect live risk.</p>
+        <p id="guardian-carrier">No current Guardian telemetry.</p>
         <dl><div><dt>Predicted cause</dt><dd id="guardian-cause">—</dd></div><div><dt>Lead time</dt><dd id="guardian-lead">—</dd></div><div><dt>Frame model</dt><dd id="guardian-frame-model">—</dd></div></dl>
         <p id="guardian-recovery">Recovery guidance appears with telemetry.</p>
         <p id="guardian-confidence" class="confidence-warning" role="status" hidden><i data-icon="alert-triangle"></i>Low confidence · Verify terrain before driving.</p>
@@ -89,7 +91,7 @@
         <p id="fleet-area" class="mono field-help">No survey loaded.</p>
         <div id="fleet-summary-rovers" class="fleet-summary-rovers" aria-label="Current fleet roster"></div>
       </section>
-      <section class="fleet-panel" aria-labelledby="fleet-title">
+      <section id="fleet-panel" class="fleet-panel" aria-labelledby="fleet-title">
         <div class="section-heading"><i data-icon="truck"></i><h3 id="fleet-title">Fleet survey demo</h3><button id="refresh-fleet" class="icon-button" aria-label="Refresh fleet"><i data-icon="refresh-cw"></i></button></div>
         <p id="fleet-description" class="field-help">Synthetic accelerated survey on the NASA HiRISE archive. Terrain dimensions are loading. Guardian ML flags risk; sector and assistance planning coordinate the simulated response.</p>
         <div class="fleet-settings">
@@ -99,7 +101,7 @@
         <p class="field-help">Count and speed apply on Start or Reset. Speed is simulated time per wall-clock second.</p>
         <label class="checkbox-label fleet-auto-repair"><input id="fleet-auto-repair" type="checkbox" checked>Auto-repair minor faults</label>
         <p class="field-help">A healthy neighbour can clear simulated dust or a wheel obstruction. Sensor and HQ link failures always need Mission Control approval.</p>
-        <div class="fleet-controls" aria-label="Fleet simulator controls"><button type="button" data-fleet-action="start" aria-describedby="fleet-access-status"><i data-icon="play"></i>Start fleet</button><button type="button" data-fleet-action="stop"><i data-icon="square"></i>Stop fleet</button><button type="button" data-fleet-action="step"><i data-icon="step-forward"></i>Step fleet</button><button type="button" data-fleet-action="reset"><i data-icon="rotate-ccw"></i>Reset fleet</button></div>
+        <div id="fleet-controls" class="fleet-controls" aria-label="Fleet simulator controls"><button type="button" data-fleet-action="start" aria-describedby="fleet-access-status"><i data-icon="play"></i>Start fleet</button><button type="button" data-fleet-action="stop"><i data-icon="square"></i>Stop fleet</button><button type="button" data-fleet-action="step"><i data-icon="step-forward"></i>Step fleet</button><button type="button" data-fleet-action="reset"><i data-icon="rotate-ccw"></i>Reset fleet</button></div>
         <p id="fleet-access-status" class="field-help" role="status">Connect a viewer in Equipment and live to enable Start fleet.</p>
         <div id="fleet-access-steps" class="fleet-controls" aria-label="Fleet access steps"><button id="fleet-connect-viewer" type="button">Connect viewer</button><button id="fleet-enter-producer" type="button" hidden>Enter producer token</button></div>
         <label for="fleet-target">Fault target</label><select id="fleet-target"><option value="">Awaiting fleet</option></select>
@@ -110,7 +112,7 @@
         <details class="fleet-details"><summary>Rover details</summary><div id="fleet-rovers" class="card-list"><p class="muted">No fleet state loaded.</p></div></details>
         <details class="fleet-details"><summary>Recent fleet events</summary><ol id="fleet-events" aria-label="Fleet simulation events"><li class="muted">No fleet events loaded.</li></ol></details>
       </section>
-      <h3 class="ruled-heading">Hold-out validation</h3>
+      <h3 id="guardian-validation-heading" class="ruled-heading">Hold-out validation</h3>
       <dl id="guardian-validation"><div><dt>Active model</dt><dd id="guardian-model">—</dd></div><div><dt>Faults caught / total</dt><dd id="guardian-caught">—</dd></div><div><dt>Mean lead time</dt><dd id="guardian-validation-lead">—</dd></div><div><dt>False alarms</dt><dd id="guardian-false-alarms">—</dd></div><div><dt>Baseline F1</dt><dd id="guardian-baseline-f1">—</dd></div><div><dt>Retrained F1</dt><dd id="guardian-retrained-f1">—</dd></div><div><dt>Candidate model</dt><dd id="guardian-candidate">—</dd></div></dl>
       <p id="guardian-validation-note" class="field-help">No hold-out results loaded.</p>
       <button id="guardian-export" type="button" disabled><i data-icon="download"></i>Download active model</button>
@@ -128,7 +130,7 @@
       <p>Inspect the last stored frame or download a point cloud and captured mesh.</p>
       <div id="session-list" class="card-list"><p class="muted">Connect a viewer to load sessions.</p></div>
       <p id="session-message" role="status"></p>
-      <div class="delete-control"><h3>Remove a session</h3><p class="field-help">Enter the producer token in Guardian, then select Delete twice. The token is cleared after each deletion attempt.</p></div>
+      <div class="delete-control"><h3>Remove a session</h3><p id="session-delete-help" class="field-help">Enter the producer token in Guardian, then select Delete twice. The token is cleared after each deletion attempt.</p></div>
     </section>
     <section id="logs" class="drawer-pane" hidden>
       <div class="section-heading"><i data-icon="file-text"></i><h3>Device logs</h3><button id="refresh-logs" class="icon-button" aria-label="Refresh device logs"><i data-icon="refresh-cw"></i></button></div>

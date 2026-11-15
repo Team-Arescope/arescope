@@ -2,6 +2,7 @@
   'use strict';
   const $ = id => document.getElementById(id);
   const endpoints = {
+    config: '/api/config',
     latest: '/api/live/latest', stream: '/api/live/stream', sessions: '/api/live/sessions',
     session: id => `/api/live/sessions/${id}`, stats: '/api/live/stats',
     ply: (id, frame) => `/api/live/sessions/${id}/export.ply?frame=${frame}`,
@@ -536,16 +537,21 @@
   loadTerrain();
 
   let token = '', socket = null, poll = null, reconnect = null, epoch = 0, activeScan = null;
+  let publicAccess = false, publicConnected = false, accessRequest = 0;
   let guardianRequest = 0, guardianBusy = false, candidateReady = false, candidateVersion = null, incidentSnapshot = '';
   let fleetState = null, fleetPoll = null, fleetRequest = 0, fleetBusy = false, fleetAvailable = null, fleetSnapshot = '';
   const incidentDrafts = new Map();
   const rooms = new Map();
+  const hasViewer = () => publicAccess ? publicConnected : Boolean(token);
+  const canOperate = () => hasViewer() && (publicAccess || Boolean($('producer-token').value.trim()));
   async function api(path, options = {}, producer = null) {
-    const auth = producer === null ? token : producer;
-    if (!auth) throw new Error(producer === null ? 'Connect a viewer first.' : 'Enter a producer token in Guardian.');
-    const response = await fetch(path, {...options, cache: 'no-store', headers: {...options.headers, Authorization: `Bearer ${auth}`}});
+    const auth = producer === null ? token : producer, generation = epoch;
+    if (publicAccess ? !publicConnected : !auth) throw new Error(publicAccess ? 'LAB is disconnected. Select Reconnect.' : producer === null ? 'Connect a viewer first.' : 'Enter a producer token in Guardian.');
+    const response = await fetch(path, {...options, cache: 'no-store', headers: {...options.headers, ...(publicAccess ? {} : {Authorization: `Bearer ${auth}`})}});
     if (!response.ok) {
-      const error = new Error(response.status === 401 || response.status === 403 ? 'Token was not accepted for this action.' : response.status === 404 ? 'This item or service is not available.' : response.status === 409 ? 'Model state changed or validation is required. Refresh Guardian and review the candidate.' : 'Request could not be completed. Try again.');
+      const denied = response.status === 401 || response.status === 403;
+      const error = new Error(denied ? publicAccess ? 'LAB access changed. Select Reconnect to check availability.' : 'Token was not accepted for this action.' : response.status === 404 ? 'This item or service is not available.' : response.status === 409 ? 'Model state changed or validation is required. Refresh Guardian and review the candidate.' : 'Request could not be completed. Try again.');
+      if (denied && publicAccess && generation === epoch) { disconnect(); state('Access changed'); $('live-message').textContent = error.message; }
       error.status = response.status; throw error;
     }
     return response;
@@ -556,7 +562,10 @@
     const a = node('a'); a.href = url; a.download = name; document.body.append(a); a.click(); a.remove();
     setTimeout(() => URL.revokeObjectURL(url), 1000);
   }
-  function state(text, active = false) { $('connection-status').textContent = text; $('connection-dot').classList.toggle('active', active); }
+  function state(text, active = false) {
+    $('connection-status').textContent = text; $('connection-dot').classList.toggle('active', active);
+    $('reconnect-lab').hidden = !publicAccess || active;
+  }
   const number = value => typeof value === 'number' && Number.isFinite(value);
   const metric = (value, digits = 0, suffix = '') => number(value) ? `${value.toFixed(digits)}${suffix}` : '—';
   const causeNames = {nominal: 'Nominal', dust: 'Dust on camera', dust_or_occlusion: 'Dust or occlusion', low_texture: 'Low texture', glare: 'Glare or shadow', glare_or_shadow: 'Glare or shadow', wheel_slip: 'Wheel slip', wheel_jam: 'Wheel obstruction', hq_link_broken: 'HQ link broken', pose_jump: 'Pose jump', sensor_drop: 'Sensor dropout', sensor_dropout: 'Sensor dropout'};
@@ -579,21 +588,22 @@
   const fleetFrame = frame => frame.room === 'gale-fleet-sim' || (frame.source === 'simulated-rover' && /^fleet-rover-/.test(carrierKey(frame) || ''));
   const riskLevel = g => ['nominal', 'warning', 'critical'].includes(g?.riskLevel) ? g.riskLevel : 'unknown';
   function updateFleetControls() {
-    const permitted = Boolean(token && $('producer-token').value.trim()) && !fleetBusy && fleetAvailable !== false;
+    const permitted = canOperate() && !fleetBusy && fleetAvailable !== false;
     document.querySelectorAll('[data-fleet-action]').forEach(b => { b.disabled = !permitted; });
-    for (const id of ['fleet-count', 'fleet-speed', 'fleet-fault']) $(id).disabled = !token || fleetBusy || fleetAvailable === false;
-    $('fleet-target').disabled = !token || fleetBusy || !fleetState?.rovers.length || fleetAvailable === false;
+    for (const id of ['fleet-count', 'fleet-speed', 'fleet-fault']) $(id).disabled = !hasViewer() || fleetBusy || fleetAvailable === false;
+    $('fleet-target').disabled = !hasViewer() || fleetBusy || !fleetState?.rovers.length || fleetAvailable === false;
     $('fleet-inject').disabled = !permitted || !fleetState?.rovers.some(r => r.carrierId === $('fleet-target').value);
-    $('refresh-fleet').disabled = !token || fleetBusy;
+    $('refresh-fleet').disabled = !hasViewer() || fleetBusy;
     $('fleet-auto-repair').disabled = !permitted;
     document.querySelectorAll('[data-fleet-decision]').forEach(b => { b.disabled = !permitted || (b.dataset.fleetDecision === 'hold_recovery' && b.dataset.held === 'true'); });
-    const needsViewer = !token, needsProducer = !needsViewer && !$('producer-token').value.trim();
-    const access = needsViewer ? 'Connect a viewer in Equipment and live to enable Start fleet.'
+    const needsViewer = !publicAccess && !hasViewer(), needsProducer = !publicAccess && !needsViewer && !$('producer-token').value.trim();
+    const access = publicAccess && !publicConnected ? 'LAB is disconnected. Select Reconnect to enable fleet controls.'
+      : needsViewer ? 'Connect a viewer in Equipment and live to enable Start fleet.'
       : needsProducer ? 'Viewer connected. Enter a producer token in Operator access above to enable Start fleet.'
       : fleetBusy ? 'Applying fleet command. Please wait for the controls to become available.'
       : fleetAvailable === false ? 'Fleet service unavailable. Use Refresh fleet to check again.'
-      : !fleetState ? 'Loading fleet state. Viewer connected and producer token entered.'
-      : 'Viewer connected and producer token entered. Fleet controls are available.';
+      : !fleetState ? publicAccess ? 'Loading the public fleet simulation.' : 'Loading fleet state. Viewer connected and producer token entered.'
+      : publicAccess ? 'Public simulation · Fleet controls are available.' : 'Viewer connected and producer token entered. Fleet controls are available.';
     if ($('fleet-access-status').textContent !== access) $('fleet-access-status').textContent = access;
     $('fleet-connect-viewer').hidden = !needsViewer;
     $('fleet-enter-producer').hidden = !needsProducer;
@@ -608,14 +618,14 @@
     $('fleet-map-recovery').hidden = true; $('fleet-map-recovery').textContent = '';
     $('fleet-approvals').hidden = true; $('fleet-approval-list').replaceChildren(); delete $('fleet-approval-list').dataset.snapshot;
     $('fleet-summary').hidden = true; $('fleet-summary-rovers').replaceChildren();
-    $('fleet-status').textContent = 'Connect a viewer to follow the fleet.';
+    $('fleet-status').textContent = publicAccess ? 'Waiting for the public fleet simulation.' : 'Connect a viewer to follow the fleet.';
     $('fleet-percent').textContent = '—'; $('fleet-coverage').value = 0; $('fleet-area').textContent = 'No survey loaded.';
     $('fleet-rovers').replaceChildren(node('p', 'No fleet state loaded.', 'muted'));
     $('fleet-events').replaceChildren(node('li', 'No fleet events loaded.', 'muted'));
     const option = node('option', 'Awaiting fleet'); option.value = ''; $('fleet-target').replaceChildren(option);
     $('fleet-count').value = '3'; $('fleet-speed').value = '60'; $('fleet-fault').value = 'dust';
     $('fleet-auto-repair').checked = true;
-    $('fleet-message').textContent = 'Uses the viewer connection and the token in Operator access.'; updateFleetControls();
+    $('fleet-message').textContent = publicAccess ? 'Synthetic survey · Connects automatically.' : 'Uses the viewer connection and the token in Operator access.'; updateFleetControls();
   }
   function renderFleet(state) {
     if (state?.simulation !== true || state.terrainSource !== 'nasa-pds-hirise' || !Array.isArray(state.rovers) || state.rovers.length > 6 || !state.coverage || !Array.isArray(state.coverage.cells)) throw new Error('Fleet state could not be read. Refresh to try again.');
@@ -697,7 +707,7 @@
     updateFleetControls();
   }
   async function refreshFleet(force = false) {
-    if (!token || fleetBusy || (fleetAvailable === false && !force)) return;
+    if (!hasViewer() || fleetBusy || (fleetAvailable === false && !force)) return;
     const generation = epoch, request = ++fleetRequest;
     try {
       const data = await (await api(endpoints.fleet)).json();
@@ -708,17 +718,17 @@
   function startFleetPolling() {
     clearTimeout(fleetPoll); const generation = epoch;
     const tick = async () => {
-      if (!token || generation !== epoch) return;
+      if (!hasViewer() || generation !== epoch) return;
       const started = Date.now();
       await refreshFleet();
-      if (token && generation === epoch) fleetPoll = setTimeout(tick, Math.max(50, 1000 - (Date.now() - started)));
+      if (hasViewer() && generation === epoch) fleetPoll = setTimeout(tick, Math.max(50, 1000 - (Date.now() - started)));
     };
     tick();
   }
   async function fleetAction(action, decision) {
     if (fleetBusy) return;
     const producer = $('producer-token').value.trim(), generation = epoch;
-    if (!token || !producer) { $('fleet-message').textContent = 'Connect a viewer and enter the producer token in Guardian.'; return; }
+    if (!canOperate()) { $('fleet-message').textContent = publicAccess ? 'LAB is disconnected. Select Reconnect.' : 'Connect a viewer and enter the producer token in Guardian.'; return; }
     const payload = {action};
     if (action === 'start' || action === 'reset') {
       if (!$('fleet-speed').reportValidity()) return;
@@ -815,12 +825,12 @@
     $('guardian-deploy-note').textContent = 'A validated candidate must be reviewed before deployment.';
   }
   function updateGuardianControls() {
-    const permitted = Boolean(token && $('producer-token').value.trim()) && !guardianBusy;
+    const permitted = canOperate() && !guardianBusy;
     document.querySelectorAll('[data-sim-action], [data-sim-fault], #guardian-retrain, #incident-list button').forEach(b => { b.disabled = !permitted; });
     document.querySelectorAll('#incident-list select').forEach(select => { select.disabled = guardianBusy; });
     $('guardian-deploy').disabled = !permitted || !candidateReady;
-    $('refresh-guardian').disabled = !token || guardianBusy;
-    $('guardian-export').disabled = !token;
+    $('refresh-guardian').disabled = !hasViewer() || guardianBusy;
+    $('guardian-export').disabled = !hasViewer();
     updateFleetControls();
   }
   function renderValidation(status) {
@@ -872,7 +882,7 @@
     updateGuardianControls();
   }
   async function refreshGuardian() {
-    if (!token) return;
+    if (!hasViewer()) return;
     const generation = epoch, request = ++guardianRequest;
     try {
       const [status, incidents] = await Promise.all([
@@ -889,7 +899,7 @@
   async function guardianAction(path, payload, incidentId = null) {
     if (guardianBusy) return;
     const producer = $('producer-token').value.trim(), generation = epoch;
-    if (!token || !producer) { $('guardian-message').textContent = 'Connect a viewer and enter a producer token in Guardian.'; return; }
+    if (!canOperate()) { $('guardian-message').textContent = publicAccess ? 'LAB is disconnected. Select Reconnect.' : 'Connect a viewer and enter a producer token in Guardian.'; return; }
     guardianBusy = true; guardianRequest++; updateGuardianControls();
     $('guardian-message').textContent = 'Processing operator request.';
     try {
@@ -951,43 +961,102 @@
     catch (e) { if (generation === epoch) $('live-message').textContent = e.message; }
   }
   function openSocket(generation) {
-    if (!token || generation !== epoch) return;
+    if (!hasViewer() || generation !== epoch) return;
     const url = new URL(endpoints.stream, location.href); url.protocol = location.protocol === 'https:' ? 'wss:' : 'ws:';
-    // WebSocket's contract uses the viewer query parameter. Downloads always use headers.
-    url.searchParams.set('token', token);
-    const ws = new WebSocket(url); socket = ws;
+    // Private streams use the viewer query parameter; public streams carry no credential.
+    if (!publicAccess) url.searchParams.set('token', token);
+    let ws;
+    try { ws = new WebSocket(url); socket = ws; }
+    catch { retryStream(generation); return; }
     ws.onopen = () => {
       if (generation !== epoch) { ws.close(); return; }
-      clearInterval(poll); poll = null; state('Viewer connected', true); $('live-message').textContent = 'Live feed connected. Waiting for carrier scans.';
+      clearInterval(poll); clearTimeout(reconnect); poll = reconnect = null;
+      state(publicAccess ? 'Public LAB connected' : 'Viewer connected', true); $('live-message').textContent = 'Live feed connected. Waiting for carrier scans.';
     };
     ws.onmessage = e => { if (generation === epoch) { try { accept(JSON.parse(e.data)); } catch { $('live-message').textContent = 'A scan update could not be read.'; } } };
     ws.onclose = e => {
-      if (generation !== epoch || !token) return;
-      if (e.code === 4401) { disconnect(); $('live-message').textContent = 'Token was not accepted.'; return; }
-      state('Viewer reconnecting'); $('live-message').textContent = 'Fetching updates while the stream reconnects.';
-      if (!poll) { latest(generation); poll = setInterval(() => latest(generation), 2000); }
-      reconnect = setTimeout(() => openSocket(generation), 5000);
+      if (generation !== epoch || !hasViewer()) return;
+      if (e.code === 4401 || e.code === 4403) {
+        disconnect();
+        if (publicAccess) state('Access changed');
+        $('live-message').textContent = publicAccess ? 'LAB access changed. Select Reconnect to check availability.' : 'Token was not accepted.'; return;
+      }
+      retryStream(generation);
     };
     ws.onerror = () => ws.close();
   }
+  function retryStream(generation) {
+    if (generation !== epoch || !hasViewer()) return;
+    state(publicAccess ? 'Public LAB reconnecting' : 'Viewer reconnecting'); $('live-message').textContent = 'Fetching updates while the stream reconnects.';
+    if (!poll) { latest(generation); poll = setInterval(() => latest(generation), 2000); }
+    clearTimeout(reconnect); reconnect = setTimeout(() => openSocket(generation), 5000);
+  }
   function disconnect() {
-    epoch++; token = ''; clearInterval(poll); clearTimeout(reconnect); poll = reconnect = null;
+    epoch++; token = ''; publicConnected = false; clearInterval(poll); clearTimeout(reconnect); poll = reconnect = null;
     if (socket) { socket.close(); socket = null; }
     resetFleet();
     rooms.clear(); activeScan = null; renderRooms(); $('live-overlay').hidden = true;
     guardianRequest++; guardianBusy = false; candidateReady = false; candidateVersion = null; incidentSnapshot = ''; incidentDrafts.clear(); resetValidation();
-    $('incident-list').replaceChildren(node('p', 'Connect a viewer to load incidents.', 'muted'));
-    $('guardian-message').textContent = 'Awaiting viewer connection.'; $('sim-status').textContent = 'Simulator state unknown.';
+    $('incident-list').replaceChildren(node('p', publicAccess ? 'Waiting for incidents.' : 'Connect a viewer to load incidents.', 'muted'));
+    $('guardian-message').textContent = publicAccess ? 'Waiting for Guardian.' : 'Awaiting viewer connection.'; $('sim-status').textContent = 'Simulator state unknown.';
     $('viewer-token').value = ''; $('producer-token').value = ''; $('disconnect').hidden = true;
     document.querySelectorAll('[data-sim-fault]').forEach(b => b.setAttribute('aria-pressed', 'false')); updateGuardianControls();
-    $('session-list').replaceChildren(node('p', 'Connect a viewer to load sessions.', 'muted'));
-    $('log-list').replaceChildren(node('p', 'Connect a viewer to load logs.', 'muted')); $('log-preview').hidden = true; $('log-preview').textContent = '';
+    $('session-list').replaceChildren(node('p', publicAccess ? 'Waiting for sessions.' : 'Connect a viewer to load sessions.', 'muted'));
+    $('log-list').replaceChildren(node('p', publicAccess ? 'Waiting for device logs.' : 'Connect a viewer to load logs.', 'muted')); $('log-preview').hidden = true; $('log-preview').textContent = '';
     $('session-message').textContent = ''; $('log-message').textContent = '';
-    $('storage-stats').replaceChildren(node('p', 'Connect to inspect storage.', 'muted'));
-    state('Ready to connect'); $('live-message').textContent = 'Viewer disconnected.';
+    $('storage-stats').replaceChildren(node('p', publicAccess ? 'Waiting for storage statistics.' : 'Connect to inspect storage.', 'muted'));
+    state(publicAccess ? 'Public LAB disconnected' : 'Ready to connect'); $('live-message').textContent = publicAccess ? 'Select Reconnect to resume updates.' : 'Viewer disconnected.';
   }
+  async function discoverAccess() {
+    const request = ++accessRequest;
+    disconnect(); publicAccess = false; updateAccessUI();
+    const generation = epoch;
+    state('Checking LAB access'); $('reconnect-lab').hidden = false; $('reconnect-lab').disabled = true;
+    try {
+      const response = await fetch(endpoints.config, {cache: 'no-store', signal: AbortSignal.timeout(10000)});
+      if (!response.ok) throw new Error('Access check failed.');
+      const config = await response.json();
+      if (typeof config?.publicAccess !== 'boolean') throw new Error('Access check failed.');
+      if (generation !== epoch || request !== accessRequest) return;
+      publicAccess = config.publicAccess; updateAccessUI();
+      if (!publicAccess) { state('Ready to connect'); updateGuardianControls(); return; }
+      publicConnected = true;
+      $('reconnect-lab').disabled = false;
+      state('Public LAB connecting'); $('live-message').textContent = 'Connecting to the shared mission.';
+      // Fleet and history must remain usable even if the live feed is temporarily unavailable.
+      $('fleet-message').textContent = 'Synthetic survey · All visitors share this fleet.';
+      updateGuardianControls(); window.LabShell.openPanel('guardian', {focus: false});
+      openSocket(generation); startFleetPolling();
+      await Promise.allSettled([latest(generation), refreshSessions(), refreshLogs(), refreshStats(), refreshGuardian()]);
+    } catch {
+      if (generation !== epoch || request !== accessRequest) return;
+      publicAccess = false; publicConnected = false; updateAccessUI(); updateGuardianControls();
+      state('Access check unavailable'); $('reconnect-lab').hidden = false;
+      $('live-message').textContent = 'Could not check LAB access. Select Reconnect to try again.';
+    } finally {
+      if (request === accessRequest) $('reconnect-lab').disabled = false;
+    }
+  }
+  function updateAccessUI() {
+    document.body.dataset.publicAccess = String(publicAccess);
+    $('connect-form').hidden = publicAccess; $('operator-access').hidden = publicAccess; $('shared-mission-note').hidden = !publicAccess;
+    $('session-delete-help').textContent = publicAccess ? 'Select Delete, then Confirm delete to remove a shared session.' : 'Enter the producer token in Guardian, then select Delete twice. The token is cleared after each deletion attempt.';
+    if (publicAccess) {
+      $('guardian-carrier').textContent = 'No current Guardian telemetry.';
+      $('guardian-message').textContent = 'Loading Guardian.';
+      $('fleet-status').textContent = 'Loading the shared fleet.';
+      for (const [id, message] of [['incident-list', 'Loading incidents.'], ['session-list', 'Loading sessions.'], ['log-list', 'Loading device logs.'], ['storage-stats', 'Loading storage statistics.']]) $(id).replaceChildren(node('p', message, 'muted'));
+      $('guardian').insertBefore($('fleet-panel'), $('guardian-risk'));
+      $('fleet-panel').insertBefore($('fleet-controls'), $('fleet-description'));
+    } else {
+      $('guardian').insertBefore($('fleet-panel'), $('guardian-validation-heading'));
+      $('fleet-panel').insertBefore($('fleet-controls'), $('fleet-access-status'));
+    }
+  }
+  $('reconnect-lab').addEventListener('click', discoverAccess);
   $('connect-form').addEventListener('submit', async e => {
-    e.preventDefault(); const value = $('viewer-token').value.trim(); if (!value) return;
+    e.preventDefault(); if (publicAccess) return;
+    const value = $('viewer-token').value.trim(); if (!value) return;
     disconnect(); token = value; const generation = epoch; $('live-message').textContent = 'Checking viewer access.';
     try {
       const r = await api(endpoints.latest), data = await r.json(); if (generation !== epoch) return;
@@ -1014,9 +1083,9 @@
           button('Last PLY', 'download', () => download(endpoints.ply(s.id, 'last'), `arescope-${s.id}-last.ply`)));
         if (s.hasMesh) actions.append(button('ARSM mesh', 'download', () => download(endpoints.mesh(s.id), `${s.id}.arsm`)));
         const remove = button('Delete', 'trash', async () => {
-          if (remove.dataset.confirm !== 'yes') { remove.dataset.confirm = 'yes'; remove.lastChild.textContent = 'Confirm delete'; $('session-message').textContent = 'Enter a producer token in Guardian, then select Confirm delete to remove this session.'; return; }
+          if (remove.dataset.confirm !== 'yes') { remove.dataset.confirm = 'yes'; remove.lastChild.textContent = 'Confirm delete'; $('session-message').textContent = publicAccess ? 'Select Confirm delete to remove this shared session.' : 'Enter a producer token in Guardian, then select Confirm delete to remove this session.'; return; }
           const producer = $('producer-token').value.trim(); $('producer-token').value = ''; updateGuardianControls();
-          if (!producer) { $('session-message').textContent = 'Enter a producer token in Guardian to remove a session.'; document.querySelector('[data-panel="guardian"]').click(); $('producer-token').focus(); return; }
+          if (!publicAccess && !producer) { $('session-message').textContent = 'Enter a producer token in Guardian to remove a session.'; document.querySelector('[data-panel="guardian"]').click(); $('producer-token').focus(); return; }
           await api(endpoints.session(s.id), {method: 'DELETE'}, producer); if (generation !== epoch) return; await refreshSessions(); await refreshStats();
         });
         actions.append(remove); card.append(actions); $('session-list').append(card);
@@ -1050,7 +1119,7 @@
     } catch (e) { if (generation === epoch) $('live-message').textContent = e.message; }
   }
   $('refresh-sessions').addEventListener('click', refreshSessions); $('refresh-logs').addEventListener('click', refreshLogs);
-  document.addEventListener('panelchange', e => { if (token) { if (e.detail === 'sessions') refreshSessions(); if (e.detail === 'logs') refreshLogs(); if (e.detail === 'equipment') refreshStats(); if (e.detail === 'guardian') refreshGuardian(); } });
+  document.addEventListener('panelchange', e => { if (hasViewer()) { if (e.detail === 'sessions') refreshSessions(); if (e.detail === 'logs') refreshLogs(); if (e.detail === 'equipment') refreshStats(); if (e.detail === 'guardian') refreshGuardian(); } });
 
   function drawScan() {
     if (!activeScan) return;
@@ -1089,5 +1158,6 @@
     if (activeScan && !archived(activeScan) && now - activeScan.receivedAt > 30) { activeScan = null; $('live-overlay').hidden = true; }
     if (changed) renderRooms();
   }, 2000);
-  setInterval(() => { if (token) { refreshStats(); if (!guardianBusy && !$('guardian').hidden) refreshGuardian(); } }, 15000);
+  setInterval(() => { if (hasViewer()) { refreshStats(); if (!guardianBusy && !$('guardian').hidden) refreshGuardian(); } }, 15000);
+  discoverAccess();
 })();

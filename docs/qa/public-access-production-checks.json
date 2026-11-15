@@ -1,0 +1,148 @@
+{
+  "base": "https://arescope.mrfenek.eu.cc",
+  "checks": [
+    {
+      "name": "public_config",
+      "ok": true
+    },
+    {
+      "name": "default_fleet_panel",
+      "ok": true
+    },
+    {
+      "name": "start_visible_on_arrival",
+      "ok": true
+    },
+    {
+      "name": "start_in_first_viewport",
+      "ok": true
+    },
+    {
+      "name": "no_viewer_form",
+      "ok": true
+    },
+    {
+      "name": "no_operator_token",
+      "ok": true
+    },
+    {
+      "name": "no_private_input_values",
+      "ok": true
+    },
+    {
+      "name": "automatic_websocket_without_query",
+      "ok": true
+    },
+    {
+      "name": "anonymous_start",
+      "ok": true
+    },
+    {
+      "name": "renders_three_rovers",
+      "ok": true
+    },
+    {
+      "name": "serious_fault_requires_decision",
+      "ok": true
+    },
+    {
+      "name": "anonymous_hold",
+      "ok": true
+    },
+    {
+      "name": "anonymous_approval",
+      "ok": true
+    },
+    {
+      "name": "anonymous_stop",
+      "ok": true
+    },
+    {
+      "name": "clean_paused_mission",
+      "ok": true
+    },
+    {
+      "name": "drawer_1440_equipment",
+      "ok": true,
+      "overflow": 0,
+      "escape": 0
+    },
+    {
+      "name": "drawer_1440_guardian",
+      "ok": true,
+      "overflow": 0,
+      "escape": 0
+    },
+    {
+      "name": "drawer_1440_sessions",
+      "ok": true,
+      "overflow": 0,
+      "escape": 0
+    },
+    {
+      "name": "drawer_1440_logs",
+      "ok": true,
+      "overflow": 0,
+      "escape": 0
+    },
+    {
+      "name": "drawer_1440_settings",
+      "ok": true,
+      "overflow": 0,
+      "escape": 0
+    },
+    {
+      "name": "drawer_390_equipment",
+      "ok": true,
+      "overflow": 0,
+      "escape": 0
+    },
+    {
+      "name": "drawer_390_guardian",
+      "ok": true,
+      "overflow": 0,
+      "escape": 0
+    },
+    {
+      "name": "drawer_390_sessions",
+      "ok": true,
+      "overflow": 0,
+      "escape": 0
+    },
+    {
+      "name": "drawer_390_logs",
+      "ok": true,
+      "overflow": 0,
+      "escape": 0
+    },
+    {
+      "name": "drawer_390_settings",
+      "ok": true,
+      "overflow": 0,
+      "escape": 0
+    },
+    {
+      "name": "reload_reconnects_without_input",
+      "ok": true
+    },
+    {
+      "name": "all_referenced_assets_available",
+      "ok": true
+    },
+    {
+      "name": "no_authorization_headers",
+      "ok": true
+    },
+    {
+      "name": "no_auth_rejections",
+      "ok": true
+    },
+    {
+      "name": "no_browser_errors",
+      "ok": true,
+      "errors": []
+    }
+  ],
+  "passed": 30,
+  "publicAccess": true
+}

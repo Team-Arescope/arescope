@@ -53,6 +53,7 @@ for _logger in ("uvicorn.access", "uvicorn.error"):
 
 @dataclass
 class Settings:
+    public_access: bool = field(default_factory=lambda: os.getenv("ARESCOPE_LAB_PUBLIC_ACCESS", "0") == "1")
     producer_token: str = field(default_factory=lambda: os.getenv("ARESCOPE_LIVE_PRODUCER_TOKEN", ""))
     viewer_token: str = field(default_factory=lambda: os.getenv("ARESCOPE_LIVE_VIEWER_TOKEN", ""))
     db: Path = field(default_factory=lambda: Path(os.getenv("ARESCOPE_LIVE_DB", "/var/lib/arescope-lab/live.sqlite3")))
@@ -68,9 +69,9 @@ class Settings:
     max_log_bytes: int = field(default_factory=lambda: int(os.getenv("ARESCOPE_MAX_LOG_BYTES", "8388608")))
 
     def check(self):
-        if not self.producer_token.strip() or not self.viewer_token.strip():
+        if not self.public_access and (not self.producer_token.strip() or not self.viewer_token.strip()):
             raise ValueError("Producer and viewer tokens must both be configured")
-        if hmac.compare_digest(self.producer_token.encode(), self.viewer_token.encode()):
+        if not self.public_access and hmac.compare_digest(self.producer_token.encode(), self.viewer_token.encode()):
             raise ValueError("Producer and viewer tokens must be distinct")
         for name in ("session_gap", "retention_days", "max_db_bytes", "max_frames_per_session",
                      "max_export_points", "max_mesh_bytes", "max_log_bytes"):
@@ -550,6 +551,8 @@ def create_app(settings=None, clock=time.time):
 
     def auth(expected_role):
         def dependency(request: Request):
+            if cfg.public_access:
+                return
             scheme, _, token = request.headers.get("authorization", "").partition(" ")
             expected = cfg.producer_token if expected_role == "producer" else cfg.viewer_token
             distinct = not (cfg.producer_token and cfg.viewer_token and
@@ -582,6 +585,11 @@ def create_app(settings=None, clock=time.time):
     @app.get("/healthz")
     def health():
         return {"ok": True, "service": "arescope-lab"}
+
+    @app.get("/api/config")
+    def public_config():
+        # Only UI capabilities belong here; never serialize Settings or credentials.
+        return {"publicAccess": cfg.public_access}
 
     @app.get("/")
     def index():
@@ -695,7 +703,7 @@ def create_app(settings=None, clock=time.time):
     @app.websocket("/api/live/stream")
     async def stream(ws: WebSocket):
         distinct = not hmac.compare_digest(cfg.producer_token.encode(), cfg.viewer_token.encode())
-        if not distinct or not token_matches(ws.query_params.get("token", ""), cfg.viewer_token):
+        if not cfg.public_access and (not distinct or not token_matches(ws.query_params.get("token", ""), cfg.viewer_token)):
             # Complete the upgrade so real browsers receive the custom 4401 code;
             # closing before accept would become an HTTP 403 handshake response.
             await ws.accept()
@@ -845,8 +853,10 @@ LIVE_FRAMES = app.state.live.frames
 if __name__ == "__main__":
     import sys
     if "--check-config" in sys.argv:
-        Settings().check()
-        print("Configuration valid; producer and viewer roles are distinct")
+        settings = Settings()
+        settings.check()
+        print("Configuration valid; public LAB access" if settings.public_access
+              else "Configuration valid; producer and viewer roles are distinct")
     else:
         import uvicorn
         uvicorn.run("app:app", host="127.0.0.1", port=18965, workers=1)

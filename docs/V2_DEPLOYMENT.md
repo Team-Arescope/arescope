@@ -1,5 +1,11 @@
 # V2 production deployment
 
+Current LAB release: `/opt/arescope-releases/v2-public-20261115/services/arescope-lab`.
+Public access is enabled with `ARESCOPE_LAB_PUBLIC_ACCESS=1`: LAB automatically
+connects and opens fleet controls without tokens. The deployment history below
+records earlier releases and their private access setup; the final section
+describes the current public mode.
+
 Target: [Arescope LAB](https://arescope.mrfenek.eu.cc). Deployed on 2026-11-15
 (operator local date), from `ee18cb0` plus the deployment compatibility fixes in
 the commit containing this document. No Unity/Android build is part of this rollout.
@@ -272,3 +278,36 @@ and drawer bounds. The fleet is left paused with Auto-repair enabled.
 [Check report](qa/rover-motion-production-checks.json),
 [close service](qa/rover-motion-repair-production.png) and
 [survey view](qa/rover-motion-survey-production.png).
+
+## Public LAB and immediate fleet controls
+
+The public release uses the same systemd service, loopback port, persistent
+database and original virtual environment. The explicit server setting
+`ARESCOPE_LAB_PUBLIC_ACCESS=1` opens LAB HTTP and WebSocket routes without viewer
+or producer credentials. `GET /api/config` reports only the public capability.
+Private mode remains the default for other installations and still enforces
+distinct roles. Provider keys and the separate Copilot service stay server-side.
+
+The page connects automatically, opens the Guardian fleet panel, puts Start,
+Stop, Step and Reset at the top of the fleet section, and hides credential
+forms. Returning visitors receive versioned script and stylesheet references.
+All visitors share one mission. Request validation, storage limits, recovery
+safety checks and explicit decisions for serious simulated faults remain active.
+
+Rollback files are in `/var/backups/arescope/v2-public-20261115/`: the previous
+systemd unit, environment file and an online SQLite backup. To restore private
+behavior as well as the previous code, restore both the unit and environment
+file, reload systemd and restart LAB. No database schema migration is needed.
+Restarting begins a new process-local mission; archived scans are retained.
+
+The cloud suite passed **318 Python tests** and the Node suite passed **40
+tests** (one optional geometry-browser test skipped). Real Chromium checked anonymous
+connection, token-free Start/Stop/Reset, serious-fault hold and approval, reload,
+all referenced assets and ten desktop/mobile drawer bounds. The private browser
+workflow also passed, including Guardian training and fleet recovery. Historical
+LAB logs were checked for configured credentials before opening access. The
+deployed HTTPS run passed **30 checks** with the browser cache disabled and left
+the shared mission paused with three healthy rovers and auto-repair enabled.
+
+[Public production check report](qa/public-access-production-checks.json),
+[default simulation controls](qa/public-access-production.png).

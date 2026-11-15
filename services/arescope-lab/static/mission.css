@@ -3,6 +3,11 @@
 @media(prefers-reduced-motion:reduce){*{transition:none!important}}
 
 /* Guardian and carrier instruments: Warm Carbon / Copper. */
+.connection-retry { flex-shrink: 0; padding: 8px 10px; font-size: 11px; }
+.shared-mission-note { border-left: 2px solid var(--copper); padding-left: 10px; }
+body[data-public-access='true'] #fleet-panel { margin-top: 8px; padding-top: 12px; }
+body[data-public-access='true'] #fleet-controls { margin: 12px 0; }
+@media(max-width:760px) { .topbar { gap: 8px; } .top-status { flex: 1; justify-content: flex-end; } .connection-retry { padding: 8px; } }
 #guardian { overflow-wrap: anywhere; }
 .drawer { background: var(--panel); }
 .drawer-pane dl > div { min-width: 0; }

@@ -329,7 +329,7 @@ test('fleet coverage, trails and markers share source normalization, camera unif
   terrain.setFleet(null); assert.equal(terrain.fleetGeometry.length, 0);
 });
 
-function fleetHarness() {
+function fleetHarness({publicAccess = false} = {}) {
   class Element {
     constructor(tag = 'div') { this.tagName = tag; this.children = []; this.dataset = {}; this.style = {setProperty() {}}; this.listeners = {}; this.textContent = ''; this.disabled = false; this.hidden = false; this._value = ''; }
     append(...children) { this.children.push(...children); }
@@ -346,15 +346,16 @@ function fleetHarness() {
   const timers = new Map(), requests = [], geometry = []; let timerId = 0, transport;
   const source = read('static/app.js');
   const scope = vm.runInNewContext(`
-    let token = 'test-viewer', epoch = 1, fleetState = null, fleetPoll = null, fleetRequest = 0, fleetBusy = false, fleetAvailable = null, fleetSnapshot = '';
+    let token = ${JSON.stringify(publicAccess ? '' : 'test-viewer')}, publicAccess = ${publicAccess}, publicConnected = ${publicAccess}, epoch = 1, fleetState = null, fleetPoll = null, fleetRequest = 0, fleetBusy = false, fleetAvailable = null, fleetSnapshot = '';
     const endpoints = {fleet: '/api/sim/fleet'};
     const $ = id => document.getElementById(id);
     const fleetColors = ['#eeae76', '#80cdb5', '#8fbde7', '#c6a3df', '#d9ce86', '#ed9da7'];
     ${source.slice(source.indexOf('  function node('), source.indexOf('  function button('))}
+    ${source.slice(source.indexOf('  const hasViewer ='), source.indexOf('  async function api('))}
     ${source.slice(source.indexOf('  async function api('), source.indexOf('  async function download('))}
     ${source.slice(source.indexOf('  const number ='), source.indexOf('  function updateFleetControls('))}
     ${source.slice(source.indexOf('  function updateFleetControls('), source.indexOf('  function telemetrySummary('))}
-    ({updateFleetControls, renderFleet, refreshFleet, fleetAction, startFleetPolling, disconnect() { epoch++; token = ''; resetFleet(); }, state() { return fleetState; }})`, {
+    ({updateFleetControls, renderFleet, refreshFleet, fleetAction, startFleetPolling, disconnect() { epoch++; token = ''; publicConnected = false; resetFleet(); }, state() { return fleetState; }})`, {
     document: {getElementById: id => elements.get(id), createElement: tag => new Element(tag), createTextNode: text => ({textContent: text}), querySelectorAll: selector => selector === '[data-fleet-action]' ? actions : []},
     terrain: {setFleet: state => geometry.push(state)}, refreshGuardian() {},
     setTimeout: callback => { timers.set(++timerId, callback); return timerId; }, clearTimeout: id => timers.delete(id),
@@ -499,4 +500,86 @@ test('late fleet GETs cannot replace acknowledged commands or restore a disconne
   fresh.transport(() => new Promise(resolve => { releaseCommand = resolve; }));
   const command = fresh.scope.fleetAction('reset'); fresh.scope.disconnect(); releaseCommand(fresh.response({ok: true, fleetState: fleetFixture()})); await command;
   assert.equal(fresh.scope.state(), null); assert.equal(fresh.geometry.at(-1), null);
+});
+
+test('public fleet polling and commands work without viewer or producer credentials', async () => {
+  const h = fleetHarness({publicAccess: true});
+  h.transport((_path, options) => h.response(options.method === 'POST' ? {ok: true, fleetState: fleetFixture()} : fleetFixture()));
+  await h.scope.refreshFleet();
+  assert.ok(h.actions.every(b => !b.disabled));
+  assert.equal(h.elements.get('fleet-access-steps').hidden, true);
+  assert.match(h.elements.get('fleet-access-status').textContent, /Public simulation/);
+  for (const action of ['start', 'stop', 'step', 'reset', 'configure', 'fault']) await h.scope.fleetAction(action);
+  assert.equal(h.requests.filter(r => r.options.method === 'POST').length, 6);
+  for (const {options} of h.requests) assert.equal(options.headers.Authorization, undefined);
+  assert.equal(h.elements.get('producer-token').value, '');
+  h.scope.disconnect();
+  assert.ok(h.actions.every(b => b.disabled));
+  assert.match(h.elements.get('fleet-access-status').textContent, /Select Reconnect/);
+  const count = h.requests.length;
+  await h.scope.fleetAction('start'); await h.scope.refreshFleet();
+  assert.equal(h.requests.length, count);
+});
+
+test('public recovery still needs an explicit decision for the current request', async () => {
+  const h = fleetHarness({publicAccess: true}), state = fleetFixture();
+  state.rovers[0].recovery = {phase: 'awaiting_approval', requestId: 71, held: false};
+  h.scope.renderFleet(state);
+  h.transport(() => h.response({ok: true, fleetState: state}));
+  assert.equal(h.requests.length, 0, 'rendering an approval request never approves it');
+  await h.scope.fleetAction('approve_recovery', {roverId: state.rovers[0].carrierId, requestId: 70});
+  assert.equal(h.requests.length, 0, 'stale approvals stay blocked in public mode');
+  for (const action of ['hold_recovery', 'approve_recovery']) {
+    await h.scope.fleetAction(action, {roverId: state.rovers[0].carrierId, requestId: 71});
+    assert.deepEqual(JSON.parse(h.requests.at(-1).options.body), {action, roverId: state.rovers[0].carrierId, requestId: 71});
+    assert.equal(h.requests.at(-1).options.headers.Authorization, undefined);
+  }
+});
+
+function discoveryHarness(response) {
+  const source = read('static/app.js'), calls = [], elements = new Map();
+  const get = id => { if (!elements.has(id)) elements.set(id, {textContent: '', hidden: false, disabled: false}); return elements.get(id); };
+  const scope = vm.runInNewContext(`
+    let accessRequest = 0, epoch = 0, publicAccess = false, publicConnected = false;
+    const $ = get, endpoints = {config: '/api/config'};
+    function disconnect() { epoch++; publicConnected = false; }
+    function updateAccessUI() { calls.push(['access', publicAccess]); }
+    function updateGuardianControls() { calls.push(['controls', publicAccess && publicConnected]); }
+    function state(text) { calls.push(['status', text]); }
+    ${source.slice(source.indexOf('  async function discoverAccess('), source.indexOf('  function updateAccessUI('))}
+    ({discoverAccess, access: () => ({publicAccess, publicConnected})})`, {
+    get, calls, AbortSignal,
+    window: {LabShell: {openPanel: id => calls.push(['panel', id])}},
+    fetch: async (url, options) => { calls.push(['fetch', url, options]); if (response instanceof Error) throw response; return response; },
+    openSocket: () => calls.push(['socket']), startFleetPolling: () => calls.push(['fleet']),
+    ...Object.fromEntries(['latest', 'refreshSessions', 'refreshLogs', 'refreshStats', 'refreshGuardian'].map(name => [name, async () => { calls.push([name]); }]))
+  });
+  return {scope, calls, elements};
+}
+
+test('config alone enables public startup, loads all services and opens Guardian', async () => {
+  const h = discoveryHarness({ok: true, json: async () => ({publicAccess: true})});
+  await h.scope.discoverAccess();
+  assert.deepEqual({...h.scope.access()}, {publicAccess: true, publicConnected: true});
+  assert.deepEqual(h.calls.find(c => c[0] === 'panel'), ['panel', 'guardian']);
+  for (const service of ['socket', 'fleet', 'latest', 'refreshSessions', 'refreshLogs', 'refreshStats', 'refreshGuardian']) assert.ok(h.calls.some(c => c[0] === service), service);
+  const [, url, options] = h.calls.find(c => c[0] === 'fetch');
+  assert.equal(url, '/api/config'); assert.equal(options.cache, 'no-store'); assert.equal(options.headers, undefined);
+  assert.equal(h.elements.get('reconnect-lab').disabled, false);
+});
+
+test('private, unavailable and malformed config never open unauthenticated services', async () => {
+  for (const response of [{ok: true, json: async () => ({publicAccess: false})}, {ok: false}, new Error('offline'), ...[{}, null, {publicAccess: 'true'}, {publicAccess: 1}].map(data => ({ok: true, json: async () => data}))]) {
+    const h = discoveryHarness(response); await h.scope.discoverAccess();
+    assert.deepEqual({...h.scope.access()}, {publicAccess: false, publicConnected: false});
+    assert.ok(!h.calls.some(c => ['socket', 'fleet', 'panel', 'latest'].includes(c[0])));
+    assert.equal(h.elements.get('reconnect-lab').disabled, false);
+  }
+});
+
+test('public assets are cache-versioned and initial Guardian copy has no auth instruction', () => {
+  for (const asset of ['app.js', 'shell.js', 'mission.css']) assert.ok(html.includes(`/static/${asset}?v=public-20261115`));
+  assert.match(html, /id="guardian-carrier">No current Guardian telemetry\./);
+  assert.match(js, /document\.body\.dataset\.publicAccess = String\(publicAccess\)/);
+  assert.match(js, /if \(!publicAccess\) url\.searchParams\.set\('token', token\)/);
 });

@@ -6,7 +6,22 @@ session continuity belong to that process. No external frontend build or CDN is
 needed. Python 3.10+ and Node 18+ are required; this implementation was verified
 with Python 3.12 and Node 24.
 
-## Run locally
+## Public demonstration
+
+Production at <https://arescope.mrfenek.eu.cc> uses
+`ARESCOPE_LAB_PUBLIC_ACCESS=1`. Visitors connect automatically, with rover fleet
+controls open on arrival. No account, viewer token or producer token is needed.
+Choose the rover count and speed, then press **Start fleet**. Guardian actions,
+session downloads and deletion, device ingest and the live WebSocket also work
+without authentication in this mode. The fleet is shared by visitors; controls
+affect the same mission. Serious recovery still needs an explicit Mission Control
+decision. NASA archive terrain and synthetic rover behavior remain labelled.
+
+`GET /api/config` returns only `{"publicAccess": true|false}`. It never exposes
+settings or credentials. Public mode is an explicit server opt-in; the default
+is private. Provider keys for the separate Copilot service remain server-side.
+
+## Run locally in private mode
 
 From this directory on Windows:
 
@@ -63,22 +78,27 @@ display models. Slope, archive bounds and vehicle clearances can block this
 approach; a distant helper cannot start service. The height field is interpolated
 for movement and does not supply new sensor detail or model physical repair.
 
-The existing producer-only `POST /api/sim/fleet` accepts `configure` with
+The `POST /api/sim/fleet` endpoint accepts `configure` with
 `autoRepair: boolean`; `start`, `reset` and `step` also accept that setting.
 `approve_recovery` and `hold_recovery` require the affected `roverId` and current
 `requestId` from its `recovery` object. A stale or invalid decision fails without
-mutating the mission. Viewer access remains read-only.
+mutating the mission. In private mode, producer authorization is required for
+writes and viewer access remains read-only.
 
 `python app.py --check-config` validates exported environment variables without
 printing token values. Startup performs the same validation; missing, blank or
-identical tokens fail startup. Auth handlers also fail closed independently.
+identical tokens fail startup in private mode. Public mode does not require
+tokens. Resource limits and request validation apply in both modes.
 
 ## Contract
 
-All HTTP live endpoints require `Authorization: Bearer <role token>`.
+In private mode, HTTP live endpoints require `Authorization: Bearer <role token>`.
 **P** means producer; **V** means viewer. Tokens are compared with
 `hmac.compare_digest`. The public surface is limited to `/healthz`, `/` and
-the static assets. Framework documentation UIs are disabled.
+the static assets, plus the credential-free `/api/config` capability response.
+With public access enabled, all LAB routes below are accessible without tokens;
+WebSocket clients use `/api/live/stream` without a query string. Framework
+documentation UIs are disabled.
 
 | Method | Route | Role | Behavior |
 | --- | --- | --- | --- |

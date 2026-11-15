@@ -43,19 +43,23 @@
     document.querySelectorAll('[data-panel]').forEach(b => b.setAttribute('aria-expanded', 'false'));
     if (old) document.querySelector(`[data-panel="${old}"]`).focus();
   }
-  document.querySelectorAll('[data-panel]').forEach(button => button.addEventListener('click', () => {
-    const id = button.dataset.panel;
-    if (active === id) { close(); return; }
+  function openPanel(id, {focus = true} = {}) {
+    const button = document.querySelector(`[data-panel="${id}"]`);
+    if (!button || active === id) return;
     active = id; drawer.hidden = false; document.body.classList.add('drawer-open');
     document.querySelector('#drawer-title').textContent = labels[id];
     document.querySelectorAll('.drawer-pane').forEach(pane => { pane.hidden = pane.id !== id; });
     document.querySelectorAll('[data-panel]').forEach(b => b.setAttribute('aria-expanded', String(b === button)));
-    document.querySelector('#close-drawer').focus({preventScroll: true});
+    if (focus) document.querySelector('#close-drawer').focus({preventScroll: true});
     document.dispatchEvent(new CustomEvent('panelchange', {detail: id}));
+  }
+  document.querySelectorAll('[data-panel]').forEach(button => button.addEventListener('click', () => {
+    const id = button.dataset.panel;
+    if (active === id) close(); else openPanel(id);
   }));
   document.querySelector('#close-drawer').addEventListener('click', close);
   document.addEventListener('keydown', e => { if (e.key === 'Escape' && active) close(); });
   const tick = () => { document.querySelector('#utc-clock').textContent = new Date().toISOString().slice(11, 19) + ' UTC'; };
   tick(); setInterval(tick, 1000);
-  window.LabShell = {icon};
+  window.LabShell = {icon, openPanel};
 })();
