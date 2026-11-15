@@ -289,6 +289,17 @@
     $('fleet-target').disabled = !token || fleetBusy || !fleetState?.rovers.length || fleetAvailable === false;
     $('fleet-inject').disabled = !permitted || !fleetState?.rovers.some(r => r.carrierId === $('fleet-target').value);
     $('refresh-fleet').disabled = !token || fleetBusy;
+    const needsViewer = !token, needsProducer = !needsViewer && !$('producer-token').value.trim();
+    const access = needsViewer ? 'Connect a viewer in Equipment and live to enable Start fleet.'
+      : needsProducer ? 'Viewer connected. Enter a producer token in Operator access above to enable Start fleet.'
+      : fleetBusy ? 'Applying fleet command. Please wait for the controls to become available.'
+      : fleetAvailable === false ? 'Fleet service unavailable. Use Refresh fleet to check again.'
+      : !fleetState ? 'Loading fleet state. Viewer connected and producer token entered.'
+      : 'Viewer connected and producer token entered. Fleet controls are available.';
+    if ($('fleet-access-status').textContent !== access) $('fleet-access-status').textContent = access;
+    $('fleet-connect-viewer').hidden = !needsViewer;
+    $('fleet-enter-producer').hidden = !needsProducer;
+    $('fleet-access-steps').hidden = !needsViewer && !needsProducer;
   }
   function resetFleet() {
     clearTimeout(fleetPoll); fleetPoll = null; fleetRequest++; fleetState = null; fleetBusy = false; fleetAvailable = null; fleetSnapshot = '';
@@ -405,6 +416,13 @@
   document.querySelectorAll('[data-fleet-action]').forEach(b => b.addEventListener('click', () => fleetAction(b.dataset.fleetAction)));
   $('fleet-inject').addEventListener('click', () => fleetAction('fault'));
   $('fleet-target').addEventListener('change', updateFleetControls);
+  function focusFleetAccess(panel, input) {
+    const navigation = document.querySelector(`[data-panel="${panel}"]`);
+    if (navigation.getAttribute('aria-expanded') !== 'true') navigation.click();
+    $(input).focus();
+  }
+  $('fleet-connect-viewer').addEventListener('click', () => focusFleetAccess('equipment', 'viewer-token'));
+  $('fleet-enter-producer').addEventListener('click', () => focusFleetAccess('guardian', 'producer-token'));
   updateFleetControls();
   function telemetrySummary(frame) {
     const t = frame.telemetry || {};

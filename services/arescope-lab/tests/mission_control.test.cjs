@@ -349,14 +349,14 @@ function fleetHarness() {
     ${source.slice(source.indexOf('  async function api('), source.indexOf('  async function download('))}
     ${source.slice(source.indexOf('  const number ='), source.indexOf('  function updateFleetControls('))}
     ${source.slice(source.indexOf('  function updateFleetControls('), source.indexOf('  function telemetrySummary('))}
-    ({renderFleet, refreshFleet, fleetAction, startFleetPolling, disconnect() { epoch++; token = ''; resetFleet(); }, state() { return fleetState; }})`, {
+    ({updateFleetControls, renderFleet, refreshFleet, fleetAction, startFleetPolling, disconnect() { epoch++; token = ''; resetFleet(); }, state() { return fleetState; }})`, {
     document: {getElementById: id => elements.get(id), createElement: tag => new Element(tag), createTextNode: text => ({textContent: text}), querySelectorAll: selector => selector === '[data-fleet-action]' ? actions : []},
     terrain: {setFleet: state => geometry.push(state)}, refreshGuardian() {},
     setTimeout: callback => { timers.set(++timerId, callback); return timerId; }, clearTimeout: id => timers.delete(id),
     fetch: async (path, options) => { requests.push({path, options}); return transport(path, options); }
   });
   elements.get('terrain-select').value = 'hirise'; elements.get('fleet-count').value = '3'; elements.get('fleet-speed').value = '60'; elements.get('fleet-fault').value = 'dust';
-  return {scope, elements, timers, requests, geometry, transport: fn => { transport = fn; }, response: (state, status = 200) => ({ok: status === 200, status, json: async () => state})};
+  return {scope, elements, actions, timers, requests, geometry, transport: fn => { transport = fn; }, response: (state, status = 200) => ({ok: status === 200, status, json: async () => state})};
 }
 
 test('fleet polling authenticates as viewer, tolerates missing service and refreshes with the drawer closed', async () => {
@@ -400,6 +400,49 @@ test('fleet commands use existing producer access, explicit target/cause and ack
   h.transport(() => h.response({}, 403)); await h.scope.fleetAction('fault');
   assert.equal(h.scope.state(), acknowledged); assert.match(h.elements.get('fleet-message').textContent, /Token was not accepted/);
   assert.equal(h.elements.get('fleet-target').value, 'fleet-rover-2', 'polling and commands preserve operator fault selection');
+});
+
+test('fleet access instructions persist across polling and keep authentication gates intact', async () => {
+  const h = fleetHarness(); h.scope.renderFleet(fleetFixture());
+  const access = h.elements.get('fleet-access-status');
+  const start = /data-fleet-action="start"[^>]*aria-describedby="fleet-access-status"/;
+  assert.match(html, start);
+  assert.match(access.textContent, /Enter a producer token in Operator access/);
+  assert.ok(h.actions.every(b => b.disabled));
+  assert.equal(h.elements.get('fleet-enter-producer').hidden, false);
+  assert.equal(h.elements.get('fleet-enter-producer').disabled, false);
+  h.transport(() => h.response(fleetFixture()));
+  await h.scope.refreshFleet();
+  assert.match(access.textContent, /Enter a producer token in Operator access/, 'successful polling cannot hide the missing role');
+  await h.scope.fleetAction('start');
+  assert.equal(h.requests.filter(r => r.options.method === 'POST').length, 0);
+  h.elements.get('producer-token').value = 'test-producer'; h.scope.updateFleetControls();
+  assert.match(access.textContent, /Fleet controls are available/);
+  assert.ok(h.actions.every(b => !b.disabled));
+  assert.equal(h.elements.get('fleet-access-steps').hidden, true);
+  h.scope.disconnect();
+  assert.match(access.textContent, /Connect a viewer in Equipment and live/);
+  assert.ok(h.actions.every(b => b.disabled));
+  assert.equal(h.elements.get('fleet-connect-viewer').hidden, false);
+  assert.equal(h.elements.get('fleet-connect-viewer').disabled, false);
+});
+
+test('fleet access distinguishes loading, an in-flight command and an unavailable service', async () => {
+  const h = fleetHarness(); h.elements.get('producer-token').value = 'test-producer';
+  const access = h.elements.get('fleet-access-status');
+  h.scope.updateFleetControls(); assert.match(access.textContent, /Loading fleet state/);
+  h.scope.renderFleet(fleetFixture());
+  let release;
+  h.transport(() => new Promise(resolve => { release = resolve; }));
+  const pending = h.scope.fleetAction('start');
+  assert.match(access.textContent, /Applying fleet command/);
+  assert.ok(h.actions.every(b => b.disabled));
+  release(h.response({ok: true, fleetState: fleetFixture()})); await pending;
+  assert.match(access.textContent, /Fleet controls are available/);
+  h.transport(() => h.response({}, 404)); await h.scope.refreshFleet();
+  assert.match(access.textContent, /Fleet service unavailable.*Refresh fleet/);
+  assert.ok(h.actions.every(b => b.disabled));
+  assert.equal(h.elements.get('refresh-fleet').disabled, false);
 });
 
 test('late fleet GETs cannot replace acknowledged commands or restore a disconnected map', async () => {

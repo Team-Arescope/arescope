@@ -27,9 +27,17 @@ paths. The example deliberately contains empty token values. Never commit `.env`
 
 Open [Mission Control](http://127.0.0.1:18965/). Open Equipment and live, paste
 the **viewer** token and connect. Viewer credentials stay in page memory.
-The producer token is needed only by the device and for a session deletion.
+The producer token authorizes device uploads, session deletion and Guardian or
+simulator commands. Enter it in **Guardian → Operator access** to control a fleet.
 The deletion field is cleared after each use, including its confirmation step.
 Disconnect clears room, session and log views and closes the stream.
+
+To run the rover demo, connect with `ARESCOPE_LIVE_VIEWER_TOKEN` in **Equipment
+and live**, then enter `ARESCOPE_LIVE_PRODUCER_TOKEN` in **Guardian → Operator
+access**. Choose the rover count and speed, then press **Start fleet**. Start
+stays disabled until both fields are supplied; the message beside it shows the
+missing step. These roles require distinct credentials. To change the rover
+count after a mission has begun, use **Reset fleet**, then **Start fleet**.
 
 `python app.py --check-config` validates exported environment variables without
 printing token values. Startup performs the same validation; missing, blank or

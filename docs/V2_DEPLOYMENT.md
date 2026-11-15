@@ -178,3 +178,20 @@ The previous LAB unit and an online SQLite backup are in
 directory's `arescope-lab.service`, reloading systemd and restarting LAB. The
 database schema did not change; existing credentials and state paths are retained.
 The virtual environment still links to the original LAB release. Keep it available.
+
+## Fleet access guidance
+
+Start fleet requires a successful viewer connection in **Equipment and live**
+and a producer token entered in **Guardian → Operator access**. The fleet panel
+now explains the missing step beside Start and offers a button to focus the
+corresponding field. Polling preserves that guidance. Authorization rules are
+unchanged; a producer token cannot establish viewer access, and a viewer token
+cannot issue simulator commands.
+
+The update passed **224 Python tests**, **21 Node tests** and the local Chromium
+workflow, including authorized fleet Start/Stop and wrong-role rejection.
+[Public Chromium verification](qa/fleet-access-production-checks.json) passed
+**30 checks** with caching disabled, including all referenced static assets and
+desktop/mobile drawer bounds. This public check issued no simulator mutations.
+Static files were replaced without restarting LAB or resetting its mission.
+Previous files are backed up in `/var/backups/arescope/v2-fleet-access-20261115/`.

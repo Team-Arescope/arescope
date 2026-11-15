@@ -1,0 +1,146 @@
+{
+  "ok": true,
+  "scope": "Production access UX, real role credentials, no simulator mutations",
+  "checks": [
+    {
+      "name": "anonymous_disabled_with_guidance",
+      "ok": true
+    },
+    {
+      "name": "viewer_shortcut_focus",
+      "ok": true
+    },
+    {
+      "name": "producer_cannot_connect_viewer",
+      "ok": true
+    },
+    {
+      "name": "viewer_only_disabled_with_guidance",
+      "ok": true
+    },
+    {
+      "name": "guidance_survives_polling",
+      "ok": true
+    },
+    {
+      "name": "producer_shortcut_focus",
+      "ok": true
+    },
+    {
+      "name": "both_roles_enable_start",
+      "ok": true
+    },
+    {
+      "name": "credential_input_masked",
+      "ok": true
+    },
+    {
+      "name": "removing_producer_disables_start",
+      "ok": true
+    },
+    {
+      "name": "drawer_1440_equipment",
+      "ok": true,
+      "overflow": 0,
+      "escape": 0
+    },
+    {
+      "name": "drawer_1440_guardian",
+      "ok": true,
+      "overflow": 0,
+      "escape": 0
+    },
+    {
+      "name": "drawer_1440_sessions",
+      "ok": true,
+      "overflow": 0,
+      "escape": 0
+    },
+    {
+      "name": "drawer_1440_logs",
+      "ok": true,
+      "overflow": 0,
+      "escape": 0
+    },
+    {
+      "name": "drawer_1440_settings",
+      "ok": true,
+      "overflow": 0,
+      "escape": 0
+    },
+    {
+      "name": "drawer_390_equipment",
+      "ok": true,
+      "overflow": 0,
+      "escape": 0
+    },
+    {
+      "name": "drawer_390_guardian",
+      "ok": true,
+      "overflow": 0,
+      "escape": 0
+    },
+    {
+      "name": "drawer_390_sessions",
+      "ok": true,
+      "overflow": 0,
+      "escape": 0
+    },
+    {
+      "name": "drawer_390_logs",
+      "ok": true,
+      "overflow": 0,
+      "escape": 0
+    },
+    {
+      "name": "drawer_390_settings",
+      "ok": true,
+      "overflow": 0,
+      "escape": 0
+    },
+    {
+      "name": "asset_/static/favicon.svg",
+      "ok": true
+    },
+    {
+      "name": "asset_/static/fonts/manrope.woff2",
+      "ok": true
+    },
+    {
+      "name": "asset_/static/fonts/dm-mono.woff2",
+      "ok": true
+    },
+    {
+      "name": "asset_/static/style.css",
+      "ok": true
+    },
+    {
+      "name": "asset_/static/mission.css",
+      "ok": true
+    },
+    {
+      "name": "asset_/static/shell.js",
+      "ok": true
+    },
+    {
+      "name": "asset_/static/app.js",
+      "ok": true
+    },
+    {
+      "name": "asset_/static/docs/terrain-sources.md",
+      "ok": true
+    },
+    {
+      "name": "no_page_errors",
+      "ok": true
+    },
+    {
+      "name": "no_failed_assets",
+      "ok": true
+    },
+    {
+      "name": "no_mission_mutations",
+      "ok": true
+    }
+  ]
+}
