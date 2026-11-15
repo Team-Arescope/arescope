@@ -1,0 +1,58 @@
+{
+  "fixture": "Isolated React link repeater with snapshot parsing, handlers and React Hook Form linkage",
+  "react": "19.1.0",
+  "reactHookForm": "7.65.0",
+  "sources": 24,
+  "limit": 25,
+  "liveSiteModified": false,
+  "serverPersistenceVerified": false,
+  "scenarios": [
+    {
+      "name": "empty",
+      "passed": true,
+      "added": 24,
+      "alreadyPresent": 0,
+      "totalSources": 24
+    },
+    {
+      "name": "existing source",
+      "passed": true,
+      "added": 23,
+      "alreadyPresent": 1,
+      "totalSources": 24
+    },
+    {
+      "name": "all present",
+      "passed": true,
+      "added": 0,
+      "alreadyPresent": 24,
+      "totalSources": 24
+    },
+    {
+      "name": "preserve unrelated",
+      "passed": true,
+      "added": 24,
+      "alreadyPresent": 0,
+      "totalSources": 24
+    },
+    {
+      "name": "preserve whitespace",
+      "passed": true,
+      "added": 24,
+      "alreadyPresent": 0,
+      "totalSources": 24
+    },
+    {
+      "name": "preserve partial",
+      "passed": true,
+      "added": 24,
+      "alreadyPresent": 0,
+      "totalSources": 24
+    },
+    {
+      "name": "capacity rejection",
+      "passed": true,
+      "error": "Need 26 rows, but this form supports 25. Existing entries were preserved; nothing changed."
+    }
+  ]
+}
