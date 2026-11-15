@@ -1,0 +1,51 @@
+{
+  "video": {
+    "duration": 30,
+    "frames": 900,
+    "fps": 30,
+    "width": 1920,
+    "height": 1080,
+    "codec": "h264",
+    "audio": false,
+    "bytes": 3245365,
+    "sha256": "86e96ba18a61b4408c8b7c8fead4b192216b5e94141b745c9fdaf29c02125e49",
+    "capture": "deterministic per-frame PNG, same clock for camera, models and captions"
+  },
+  "checks": {
+    "all_900_frames_rendered": true,
+    "repeat_frame_pixels_identical": true,
+    "all_six_wheels_grounded": true,
+    "fixed_model_scale": true,
+    "all_repair_frames_reachable_contact": true,
+    "exact_duration_and_fps": true
+  },
+  "renderer": {
+    "evaluatedFrames": 900,
+    "reachableContactFrames": 210,
+    "maxPoseStepM": 4.7538,
+    "maxCameraCenterStepNormalized": 0.000255,
+    "maxScaleRatioPerFrame": 1.012249,
+    "warnings": []
+  },
+  "timeline": {
+    "fault": 4,
+    "approach": 6,
+    "repair": 14,
+    "validate": 21,
+    "recovered": 24
+  },
+  "sourceAppSha256": "c6dc42ba858682a1389245952ab003f91a86205981a52fce516197b0cb2a629b",
+  "terrainSha256": "e7c254ce0acc3d00b57eeafb4ec1a33454a152bd15d1b6aa5b75ee49e350e0e7",
+  "synthetic": true,
+  "initialFormation": "staged adjacent survey lanes",
+  "publicUrl": "https://arescope.mrfenek.eu.cc/static/demo/Arescope-Fleet-Demo-30s.mp4",
+  "publicPlayback": {
+    "duration": 30,
+    "width": 1920,
+    "height": 1080,
+    "rangeStatus": 206,
+    "contentType": "video/mp4",
+    "playedFrames": 61,
+    "droppedFrames": 2
+  }
+}

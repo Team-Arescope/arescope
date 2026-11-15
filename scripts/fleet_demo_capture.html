@@ -1,0 +1,296 @@
+<!doctype html>
+<html lang="en">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Arescope LAB · Fleet recovery</title>
+<style>
+@font-face{font-family:Manrope;src:url(data:font/woff2;base64,__MANROPE_BASE64__) format('woff2');font-style:normal;font-weight:200 800}
+@font-face{font-family:'DM Mono';src:url(data:font/woff2;base64,__DMMONO_BASE64__) format('woff2');font-weight:400}
+:root{color-scheme:dark;--carbon:#0d0907;--copper:#ee8a5b;--text:#eee2d9;--muted:#b09b8d;--line:rgba(238,226,217,.15)}
+*{box-sizing:border-box;animation:none!important;transition:none!important}
+html,body{margin:0;width:1920px;height:1080px;overflow:hidden;background:var(--carbon);color:var(--text);font-family:Manrope,sans-serif}
+body{background:radial-gradient(ellipse at 52% 44%,#291b13 0,#0d0907 76%)}
+#terrain{position:absolute;inset:0;width:1920px;height:1080px;display:block}
+.veil{position:absolute;inset:0;pointer-events:none;background:linear-gradient(#0d0907e6 0,transparent 22%,transparent 72%,#0d0907ed 86%,#0d0907 100%)}
+header{position:absolute;top:44px;left:64px;right:64px;display:flex;align-items:flex-start;justify-content:space-between}
+.brand{font-size:23px;font-weight:650;letter-spacing:-.6px;display:flex;gap:12px;align-items:center}
+.brand i{display:block;width:5px;height:23px;background:var(--copper)}
+.brand span{font:14px 'DM Mono',monospace;letter-spacing:2px;color:var(--copper);margin-left:5px}
+.strap{font:12px 'DM Mono',monospace;letter-spacing:1.8px;color:var(--muted);margin-top:13px}
+#statuses{display:flex;gap:12px}
+.status{width:220px;padding:14px 18px 15px;border:1px solid var(--line);border-radius:8px;background:#140e0bcc}
+.status .name{font-size:15px;display:flex;align-items:center;gap:9px;font-weight:650;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.status .dot{width:7px;height:7px;border-radius:50%;flex:none}
+.status .detail{margin-top:8px;font:13px 'DM Mono',monospace;color:var(--muted)}
+.status[data-alert=true]{border-color:#ee8a5b77}.status[data-alert=true] .detail{color:#eeae76}
+#caption{position:absolute;left:64px;right:64px;bottom:112px;max-width:1430px}
+#phase{font:13px 'DM Mono',monospace;color:var(--copper);letter-spacing:2.3px;text-transform:uppercase;margin-bottom:16px}
+h1{font-size:44px;line-height:1.16;letter-spacing:-1.5px;font-weight:550;margin:0 0 12px}
+#description{font-size:20px;color:#c2afa1;line-height:1.5;margin:0}
+footer{position:absolute;left:64px;right:64px;bottom:31px}
+#steps{display:flex;gap:7px;margin-bottom:18px}#steps i{height:2px;flex:1;background:#39271d}#steps i.done{background:var(--copper)}
+.disclosure{font:12px 'DM Mono',monospace;letter-spacing:.1px;color:#b6a093}
+#terrain-error{display:none}
+</style>
+<canvas id="terrain" width="1920" height="1080" aria-label="Actual LAB rover models on NASA archive terrain"></canvas>
+<div class="veil"></div>
+<header>
+  <div><div class="brand"><i></i>Arescope <span>LAB</span></div><div class="strap">COOPERATIVE ROVER RECOVERY</div></div>
+  <div id="statuses"></div>
+</header>
+<section id="caption"><div id="phase"></div><h1 id="headline"></h1><p id="description"></p></section>
+<footer><div id="steps"><i></i><i></i><i></i><i></i><i></i><i></i></div><div class="disclosure">AI-assisted software · Simulated recovery · NASA HiRISE archive</div></footer>
+<div id="terrain-error"></div>
+<script>
+'use strict';
+// Everything that affects the picture is indexed by the story frame, including
+// seeking directly to a preview. There are no autonomous animation callbacks.
+let demoTime = 0, demo;
+Object.defineProperty(performance, 'now', {configurable: true, value: () => demoTime});
+Date.now = () => 1800000000000 + demoTime;
+window.requestAnimationFrame = () => 0;
+window.cancelAnimationFrame = () => {};
+window.ResizeObserver = class { observe() {} unobserve() {} disconnect() {} };
+const clamp = (x, a, b) => Math.max(a, Math.min(b, x));
+const smooth = x => { x = clamp(x, 0, 1); return x * x * x * (x * (x * 6 - 15) + 10); };
+const mix = (a, b, t) => a + (b - a) * t;
+const radians = d => d * Math.PI / 180;
+const round = n => Number.isFinite(n) ? Math.round(n * 1e6) / 1e6 : null;
+const vector = p => p && p.map(round);
+
+window.initializeDemo = async ({story, terrain: data, fps}) => {
+  const {Terrain, terrainDimensions, fleetColors} = window.LabDemo;
+  const metadata = {...(story.metadata || {}), ...story};
+  const frames = story.frames, timeline = story.timeline, count = frames.length;
+  const ids = frames[0].rovers.map(r => r.carrierId);
+  const targetId = metadata.targetId || frames.flatMap(s => s.rovers).find(r => r.fault && r.fault !== 'nominal')?.carrierId;
+  const helperId = metadata.helperId || frames.flatMap(s => s.rovers).find(r => r.targetId === targetId)?.carrierId || frames.flatMap(s => s.rovers).find(r => r.carrierId === targetId && r.recovery?.helperId)?.recovery.helperId;
+  if (!ids.includes(targetId) || !ids.includes(helperId) || targetId === helperId) throw new Error('Cannot identify target/helper; provide story.targetId and story.helperId.');
+  const roverAt = (i, id) => frames[i].rovers.find(r => r.carrierId === id);
+  class CaptureTerrain extends Terrain { schedule() {} draw() {} }
+  const terrain = new CaptureTerrain(document.getElementById('terrain'));
+  terrain.now = () => demoTime;
+  terrain.motionPreference = {matches: false};
+  terrain.needsInitialFocus = false;
+  terrain.scale = clamp(metadata.camera?.elevation ?? 1.5, .5, 2);
+  terrain.mode = 'minimal';
+  terrain.load(data);
+  // Keep the original triangle fill, depth test, grid and rover render passes.
+  // Do not invoke the preceding automatic focus/interpolation/camera logic.
+  const originalDraw = Terrain.prototype.draw.toString();
+  const glStart = originalDraw.indexOf('const gl = this.gl, canvas = this.canvas, dpr =');
+  if (glStart < 0) throw new Error('LAB draw GL boundary changed.');
+  terrain.draw = new Function('const cameraAnimating = false;\n' + originalDraw.slice(glStart, originalDraw.lastIndexOf('}')));
+  terrain.inspectionCamera = true;
+  terrain.focusedRover = null;
+  terrain.fleetFocused = false;
+  terrain.zoom = 1;
+  const serviceIndex = Math.min(count - 1, Math.round((timeline.repair + 1) * fps));
+  const a = roverAt(serviceIndex, targetId).position, b = roverAt(serviceIndex, helperId).position;
+  // A constant oblique side view exposes the gap and the original service arm.
+  terrain.yaw = metadata.camera?.yaw ?? Math.atan2(b[2] - a[2], b[0] - a[0]) + .18;
+  terrain.pitch = clamp(metadata.camera?.pitch ?? .74, .55, .95);
+  const cy = Math.cos(terrain.yaw), sy = Math.sin(terrain.yaw), cp = Math.cos(terrain.pitch), sp = Math.sin(terrain.pitch);
+  const rotated = p => [cy * p[0] + sy * p[2], cp * p[1] * terrain.scale - sp * (-sy * p[0] + cy * p[2])];
+  const focal = 1080 * 2.2 / 7.6;
+
+  function framing(rovers) {
+    const bounds = [Infinity, Infinity, -Infinity, -Infinity];
+    let y = 0;
+    for (const r of rovers) {
+      y += terrain.normalize(r.position)[1] / rovers.length;
+      // Conservative fixed-size model/suspension envelope; terrain relief is
+      // sampled at every corner so hills do not invalidate a close framing.
+      for (const dx of [-12, 0, 12]) for (const dz of [-12, 0, 12]) for (const lift of [-2, 15 / terrain.scale]) {
+        const x = r.position[0] + dx, z = r.position[2] + dz;
+        const p = rotated(terrain.normalize([x, terrain.surface(x, z).height + lift, z]));
+        bounds[0] = Math.min(bounds[0], p[0]); bounds[1] = Math.min(bounds[1], p[1]);
+        bounds[2] = Math.max(bounds[2], p[0]); bounds[3] = Math.max(bounds[3], p[1]);
+      }
+    }
+    return {...fitBounds(bounds, y), bounds, y};
+  }
+  function fitBounds(bounds, y) {
+    // The lower caption and upper instruments have their own breathing room.
+    const scale = Math.min(1610 / (focal * (bounds[2] - bounds[0])), 550 / (focal * (bounds[3] - bounds[1])));
+    const rx = (bounds[0] + bounds[2]) / 2;
+    const ry = (bounds[1] + bounds[3]) / 2 - 45 / (focal * scale);
+    const rz = (cp * y * terrain.scale - ry) / sp;
+    return {center: [cy * rx - sy * rz, y, sy * rx + cy * rz], logScale: Math.log(scale)};
+  }
+
+  const rawCameras = frames.map((state, i) => {
+    const t = i / fps;
+    const fleet = framing(state.rovers), pair = framing(state.rovers.filter(r => [targetId, helperId].includes(r.carrierId)));
+    const closeIn = smooth((t - timeline.fault) / (timeline.repair - timeline.fault));
+    // Stay with the recovered rover and helper as they drive away. Pulling back
+    // to the distant third surveyor would make the resumed motion unreadable.
+    const weight = closeIn;
+    // Blend enclosing bounds, not independently fitted camera centres and zoom.
+    // Every intermediate frame still contains the service pair during pullback.
+    const bounds = fleet.bounds.map((v, k) => mix(v, pair.bounds[k], weight));
+    return {...fitBounds(bounds, mix(fleet.y, pair.y, weight)), weight};
+  });
+  // Symmetric offline smoothing cannot accumulate camera lag or jump when a
+  // status changes. All 900 samples exist before any screenshot is requested.
+  const cameraWindow = Math.ceil(.8 * fps), sigma = .32 * fps;
+  const cameras = rawCameras.map((raw, i) => {
+    const center = [0, 0, 0]; let logScale = 0, sum = 0;
+    for (let d = -cameraWindow; d <= cameraWindow; d++) {
+      const w = Math.exp(-d * d / (2 * sigma * sigma)), c = rawCameras[clamp(i + d, 0, count - 1)];
+      c.center.forEach((v, k) => center[k] += v * w); logScale += c.logScale * w; sum += w;
+    }
+    return {center: center.map(v => v / sum), scale: Math.exp(logScale / sum), weight: raw.weight};
+  });
+
+  const animation = new Map(ids.map(id => [id, []]));
+  for (const id of ids) {
+    let wheelAngle = 0, toolTime = 0, heading = radians(roverAt(0, id).headingDeg || 0);
+    for (let i = 0; i < count; i++) {
+      const rover = roverAt(i, id), prior = i ? roverAt(i - 1, id) : rover;
+      const dx = rover.position[0] - prior.position[0], dz = rover.position[2] - prior.position[2];
+      const dy = terrain.surface(rover.position[0], rover.position[2]).height - terrain.surface(prior.position[0], prior.position[2]).height;
+      if (Number.isFinite(rover.headingDeg)) heading = radians(rover.headingDeg);
+      else if (Math.hypot(dx, dz) > 1e-8) heading = Math.atan2(dx, dz);
+      wheelAngle += Math.hypot(dx, dy, dz) / (4.2 * terrain.roverScale(rover.position));
+      const target = rover.targetId && roverAt(i, rover.targetId);
+      const previousTarget = i && rover.targetId && roverAt(i - 1, rover.targetId);
+      const separation = target ? Math.hypot(target.position[0] - rover.position[0], target.position[2] - rover.position[2]) : Infinity;
+      const targetStill = !previousTarget || Math.hypot(target.position[0] - previousTarget.position[0], target.position[2] - previousTarget.position[2]) < 1e-7;
+      const requested = rover.status === 'repairing' || rover.recovery?.phase === 'repairing';
+      if (i && frames[i].running === true && requested && target && separation >= 21.99 && separation <= 26.01 && Math.hypot(dx, dz) < 1e-7 && targetStill) toolTime += 1000 / fps;
+      animation.get(id).push({wheelAngle, toolTime, heading, moved: Math.hypot(dx, dy, dz)});
+    }
+  }
+  const boundsById = new Map();
+  const roverMesh = terrain.roverMesh;
+  terrain.roverMesh = function(motion, sample, now) {
+    const result = roverMesh.call(this, motion, sample, now);
+    const bounds = [Infinity, Infinity, -Infinity, -Infinity];
+    for (const batch of result.batches) for (let n = 0; n < batch.vertices.length; n += 3) {
+      const p = this.project(batch.vertices.slice(n, n + 3));
+      bounds[0] = Math.min(bounds[0], p.x); bounds[1] = Math.min(bounds[1], p.y);
+      bounds[2] = Math.max(bounds[2], p.x); bounds[3] = Math.max(bounds[3], p.y);
+    }
+    boundsById.set(motion.rover.carrierId, bounds);
+    return result;
+  };
+  // Subdue the sparse grid, including its large near-foreground cells. The
+  // original triangle mesh still writes depth everywhere, with no wire edits.
+  // Only the existing shader's grid color uniform changes.
+  const uniform3f = terrain.gl.uniform3f.bind(terrain.gl);
+  terrain.gl.uniform3f = function(location, r, g, b) {
+    if (location === terrain.uniforms.color && Math.abs(r - .35) < 1e-6 && Math.abs(g - .18) < 1e-6 && Math.abs(b - .10) < 1e-6) return uniform3f(location, .18, .105, .07);
+    return uniform3f(location, r, g, b);
+  };
+  const names = metadata.roverNames || {};
+  const statusElements = new Map();
+  ids.forEach((id, i) => {
+    const el = document.createElement('div'); el.className = 'status';
+    const name = document.createElement('div'); name.className = 'name';
+    const dot = document.createElement('span'); dot.className = 'dot'; dot.style.background = fleetColors[i];
+    const label = document.createElement('span'); label.textContent = names[id] || `Rover ${String(i + 1).padStart(2, '0')}`;
+    name.append(dot, label);
+    const detail = document.createElement('div'); detail.className = 'detail'; el.append(name, detail);
+    document.getElementById('statuses').append(el); statusElements.set(id, {el, detail});
+  });
+  await document.fonts.ready;
+  await Promise.all([document.fonts.load('550 44px Manrope'), document.fonts.load('13px "DM Mono"')]);
+  if (!document.fonts.check('550 44px Manrope') || !document.fonts.check('13px "DM Mono"')) throw new Error('Local LAB fonts did not load.');
+  demo = {story, terrain, fps, ids, targetId, helperId, animation, cameras, boundsById, statusElements, observations: new Map()};
+  return {targetId, helperId, terrainSource: data.source, grid: data.grid, dimensions: terrainDimensions(data), yaw: terrain.yaw, pitch: terrain.pitch, elevation: terrain.scale, modelScale: terrain.roverScale(a), camera: 'continuous orthographic; no automatic focus', fonts: ['Manrope', 'DM Mono']};
+};
+
+function caption(t, timeline) {
+  if (t < timeline.fault) return [0, 'Cooperative survey', 'Three rovers. One shared mission.', 'A simulated fleet surveys terrain from the NASA HiRISE archive.'];
+  if (t < timeline.approach) return [1, 'Wheel obstruction', 'A wheel is obstructed. Guardian stops the rover.', 'Rover 01 requests help while the remaining fleet continues its survey.'];
+  if (t < timeline.repair) return [2, 'Helper approaching', 'Help is already on its way.', 'The helper follows the planned route while the third rover keeps surveying.'];
+  if (t < timeline.validate) return [3, 'Simulated repair', 'Close enough to lend a hand.', 'The helper works at the stopped rover while the fleet continues its survey.'];
+  if (t < timeline.recovered) return [4, 'Recovery validation', 'Verify recovery before moving on.', 'The simulated repair is checked before the rover returns to its mission.'];
+  return [5, 'Survey resumed', 'Back to work. Together.', 'The recovered rover rejoins the survey; the shared mission continues.'];
+}
+
+window.renderDemoFrame = index => {
+  const {story, terrain, fps, ids, targetId, helperId, animation, cameras, boundsById, statusElements} = demo;
+  if (!Number.isInteger(index) || index < 0 || index >= story.frames.length) throw new Error('Invalid frame index.');
+  demoTime = index * 1000 / fps;
+  const t = index / fps, state = story.frames[index], camera = cameras[index];
+  terrain.viewCenter = camera.center.slice(); terrain.viewScale = camera.scale;
+  terrain.fleetState = state; terrain.fleetReceivedAt = demoTime;
+  terrain.roverMotion.clear(); terrain.fleetStatic = []; boundsById.clear();
+  // Preserve actual acknowledged survey coverage and trails from the LAB story.
+  const coverage = [], rows = terrain.data.grid.rows, cols = terrain.data.grid.cols;
+  for (const [r, c] of state.coverage.cells || []) {
+    if (r < 0 || c < 0 || r >= rows - 1 || c >= cols - 1) continue;
+    const a = r * cols + c, b = a + 1, d = a + cols, e = d + 1;
+    const m = rows * cols + r * (cols - 1) + c;
+    for (const n of [a,b,m,b,e,m,e,d,m,d,a,m]) coverage.push(terrain.normalized[n*3],terrain.normalized[n*3+1]+.00001,terrain.normalized[n*3+2]);
+  }
+  if (coverage.length) terrain.fleetStatic.push({vertices:coverage,mode:terrain.gl.TRIANGLES,color:'#253f35',kind:'coverage'});
+  state.rovers.forEach((r, n) => {
+    if (r.trail?.length > 1) terrain.fleetStatic.push({vertices:r.trail.flatMap(p=>terrain.normalize([p[0],terrain.surface(p[0],p[2]).height,p[2]],1.2)),mode:terrain.gl.LINE_STRIP,color:LabDemo.fleetColors[n]});
+  });
+  for (const [colorIndex, id] of ids.entries()) {
+    const rover = state.rovers.find(r => r.carrierId === id), anim = animation.get(id)[index];
+    terrain.roverMotion.set(id, {rover, color: LabDemo.fleetColors[colorIndex], path: [rover.position.slice()], length: 0, duration: 1, started: demoTime,
+      angle: anim.wheelAngle, spinAngle: anim.wheelAngle, spinDistance: 0, heading: anim.heading, toolTime: anim.toolTime, toolUpdatedAt: demoTime});
+  }
+  terrain.updateRovers(demoTime, true);
+  terrain.roverAnimating = false; // Offline clock owns every geometry update.
+  terrain.draw();
+  const phase = caption(t, story.timeline);
+  document.getElementById('phase').textContent = `${String(phase[0] + 1).padStart(2, '0')} / 06  ·  ${phase[1]}`;
+  document.getElementById('headline').textContent = phase[2];
+  document.getElementById('description').textContent = phase[3];
+  [...document.querySelectorAll('#steps i')].forEach((el, i) => el.className = i <= phase[0] ? 'done' : '');
+  for (const r of state.rovers) {
+    const {el, detail} = statusElements.get(r.carrierId);
+    const fault = r.fault && r.fault !== 'nominal';
+    const statuses = {surveying: 'Surveying', responding: 'En route to assist', en_route: 'En route to assist', approaching: 'Approaching rover', assisting: 'Assisting teammate', repairing: 'Repair in progress', validating: 'Checking recovery', halted: 'Stopped', idle: 'Standing by', recovered: 'Survey resumed', paused: 'Standing by'};
+    let text = statuses[r.status] || 'Standing by';
+    if (r.carrierId === targetId && fault) {
+      text = ({repairing: 'Receiving assistance', validating: 'Checking recovery', awaiting_approval: 'Recovery awaiting OK'})[r.recovery?.phase] || 'Fault · stopped';
+    }
+    detail.textContent = text; el.dataset.alert = String(Boolean(fault));
+  }
+  // Finish the original WebGL depth/model passes before browser screenshot.
+  terrain.gl.finish();
+  const error = terrain.gl.getError();
+  if (error !== terrain.gl.NO_ERROR || terrain.gl.isContextLost()) throw new Error(`WebGL failure at frame ${index}: ${error}`);
+  const rovers = terrain.fleetAnchors.map(anchor => {
+    const projected = terrain.project(anchor.position), anim = animation.get(anchor.carrierId)[index];
+    const authoritative = state.rovers.find(r => r.carrierId === anchor.carrierId);
+    return {id: anchor.carrierId, role: anchor.carrierId === targetId ? 'target' : anchor.carrierId === helperId ? 'helper' : 'surveyor', status: authoritative.status, fault: authoritative.fault,
+      position: vector(anchor.worldPosition), authoritativePosition: vector(authoritative.position), projected: [round(projected.x), round(projected.y)], inViewport: projected.inViewport,
+      screenBounds: vector(boundsById.get(anchor.carrierId)), heading: round(anim.heading), wheelAngle: round(anchor.wheelAngle), wheelCount: anchor.wheelCount, grounded: anchor.grounded, modelScale: anchor.visualScale,
+      arm: {repairing: anchor.repairing, reachable: anchor.serviceReachable, serviceDistance: round(anchor.serviceDistance), toolTime: round(anim.toolTime), swivel: round(anchor.jointSwivel),
+        joints: Object.fromEntries(Object.entries(anchor.armJoints).map(([key, p]) => [key, vector(p)])), toolTip: vector(anchor.toolTip), contact: vector(anchor.serviceContact)}};
+  });
+  const report = {index, time: round(t), phase: phase[1], camera: {center: vector(camera.center), scale: round(camera.scale), yaw: round(terrain.yaw), pitch: round(terrain.pitch), pairWeight: round(camera.weight)}, rovers};
+  demo.observations.set(index, report);
+  return report;
+};
+
+window.demoSummary = () => {
+  const frames = [...demo.observations.values()].sort((a, b) => a.index - b.index);
+  const warnings = [], contacts = frames.filter(f => f.rovers.some(r => r.arm.repairing));
+  const badGround = frames.filter(f => f.rovers.some(r => !r.grounded));
+  const close = frames.filter(f => f.time >= demo.story.timeline.repair && f.time < demo.story.timeline.validate);
+  const unreadablePair = close.filter(f => f.rovers.some(r => r.role !== 'surveyor' && (!r.inViewport || r.screenBounds[2] - r.screenBounds[0] < 100)));
+  const noContact = close.filter(f => !f.rovers.some(r => r.role === 'helper' && r.arm.repairing && r.arm.reachable));
+  const openingOutside = frames.filter(f => f.time < demo.story.timeline.fault && f.rovers.some(r => !r.inViewport));
+  const endingOutside = frames.filter(f => f.time >= demo.story.timeline.recovered && f.rovers.some(r => r.role !== 'surveyor' && !r.inViewport));
+  for (const [label, affected] of [['Ungrounded rover', badGround], ['Service pair too small or outside viewport', unreadablePair], ['Repair caption without reachable model contact', noContact], ['Opening rover outside viewport', openingOutside], ['Recovered rover or helper outside viewport', endingOutside]]) {
+    if (affected.length) warnings.push({message: label, count: affected.length, frames: affected.slice(0, 12).map(f => f.index)});
+  }
+  let maxCameraCenterStep = 0, maxScaleRatio = 1, maxPoseStepM = 0;
+  for (let i = 1; i < demo.cameras.length; i++) {
+    const c = demo.cameras[i], p = demo.cameras[i - 1];
+    maxCameraCenterStep = Math.max(maxCameraCenterStep, Math.hypot(...c.center.map((v, k) => v - p.center[k])));
+    maxScaleRatio = Math.max(maxScaleRatio, c.scale / p.scale, p.scale / c.scale);
+  }
+  for (const values of demo.animation.values()) for (const value of values) maxPoseStepM = Math.max(maxPoseStepM, value.moved);
+  return {evaluatedFrames: frames.length, reachableContactFrames: contacts.length, maxPoseStepM: round(maxPoseStepM), maxCameraCenterStepNormalized: round(maxCameraCenterStep), maxScaleRatioPerFrame: round(maxScaleRatio), warnings};
+};
+</script>
+</html>
