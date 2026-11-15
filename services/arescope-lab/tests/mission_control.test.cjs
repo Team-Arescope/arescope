@@ -157,7 +157,7 @@ test('terrain labels and fleet description use both physical axes and source nat
   assert.match(labels.notes, /129 × 53 \(rows × columns\)/);
   assert.match(labels.notes, /Native spacing: 1\.0117 m/);
   assert.match(labels.fleet, /4\.05 × 9\.97 km \(east × south\), 40\.4 km²/);
-  assert.match(labels.fleet, /symbols are enlarged/);
+  assert.match(labels.fleet, /models are enlarged/);
   data.metadata.extent_m = 999999; delete data.metadata.extent_m_axes;
   data.metadata.effective_spacing_m = 1;
   assert.deepEqual(labelsFor(data), labels, 'legacy scalar metadata cannot square or stretch the actual grid');
@@ -302,7 +302,8 @@ test('fleet coverage, trails and markers share source normalization, camera unif
   const [row, col] = state.coverage.cells[0], {rows, cols} = data.grid;
   const corner = terrain.normalize(data.points[row * cols + col]);
   for (const k of [0, 2]) assert.ok(Math.abs(upload[k] - corner[k]) < 1e-6, 'coverage uses archive x/z without a second projection');
-  assert.ok(Math.abs(upload[1] - corner[1] - .0015) < 1e-6);
+  const coverageLiftM = (upload[1] - corner[1]) * terrain.extent / 2;
+  assert.ok(coverageLiftM > 0 && coverageLiftM < .1, 'coverage tint stays on the surface beneath rover wheels');
   assert.equal(terrain.fleetGeometry[0].count, 12, 'cell uses the same four centre triangles as the depth pass');
   assert.ok([...upload].every(Number.isFinite));
   const originalProjection = JSON.parse(terrain.canvas.dataset.fleetMarkers);
@@ -334,6 +335,7 @@ function fleetHarness() {
     get value() { return this._value || (this.tagName === 'select' ? this.children[0]?.value || '' : ''); }
     set value(value) { this._value = String(value); }
     addEventListener(name, handler) { this.listeners[name] = handler; }
+    click() { this.listeners.click?.(); }
     reportValidity() { return Number.isInteger(Number(this.value)) && Number(this.value) >= 1 && Number(this.value) <= 120; }
   }
   const elements = new Map([...html.matchAll(/<([\w-]+)\b[^>]*\bid="([^"]+)"/g)].map(m => [m[2], new Element(m[1])]));
@@ -391,7 +393,7 @@ test('fleet commands use existing producer access, explicit target/cause and ack
     await h.scope.fleetAction(action);
     const request = h.requests.at(-1);
     assert.equal(request.path, '/api/sim/fleet'); assert.equal(request.options.method, 'POST'); assert.equal(request.options.headers.Authorization, 'Bearer test-producer');
-    assert.deepEqual(JSON.parse(request.options.body), {action, ...(['start', 'reset'].includes(action) ? {count: 3, speedMultiplier: 60} : {})});
+    assert.deepEqual(JSON.parse(request.options.body), {action, ...(['start', 'reset'].includes(action) ? {count: 3, speedMultiplier: 60, autoRepair: true} : {})});
   }
   h.elements.get('fleet-target').value = 'fleet-rover-2'; h.elements.get('fleet-fault').value = 'wheel_slip';
   await h.scope.fleetAction('fault');
@@ -443,6 +445,41 @@ test('fleet access distinguishes loading, an in-flight command and an unavailabl
   assert.match(access.textContent, /Fleet service unavailable.*Refresh fleet/);
   assert.ok(h.actions.every(b => b.disabled));
   assert.equal(h.elements.get('refresh-fleet').disabled, false);
+});
+
+test('Mission Control decisions bind to the current recovery request and require producer access', async () => {
+  const h = fleetHarness(), state = fleetFixture();
+  state.rovers[0].fault = 'sensor_drop';
+  state.rovers[0].recovery = {phase: 'awaiting_approval', requestId: 71, requiresApproval: true, approved: false, held: false, progress: 0};
+  h.scope.renderFleet(state);
+  assert.equal(h.elements.get('fleet-approvals').hidden, false);
+  assert.equal(h.elements.get('fleet-approval-list').children.length, 1);
+  assert.match(h.elements.get('fleet-map-recovery').textContent, /1 decision in Guardian/);
+  await h.scope.fleetAction('approve_recovery', {roverId: state.rovers[0].carrierId, requestId: 71});
+  assert.equal(h.requests.length, 0, 'viewer alone cannot send a recovery decision');
+  h.elements.get('producer-token').value = 'test-producer';
+  await h.scope.fleetAction('approve_recovery', {roverId: state.rovers[0].carrierId, requestId: 70});
+  assert.equal(h.requests.length, 0, 'a stale UI request cannot authorize newer work');
+  const next = structuredClone(state); next.rovers[0].recovery.phase = 'en_route'; next.rovers[0].recovery.approved = true;
+  h.transport(() => h.response({ok: true, fleetState: next}));
+  await h.scope.fleetAction('approve_recovery', {roverId: state.rovers[0].carrierId, requestId: 71});
+  assert.deepEqual(JSON.parse(h.requests.at(-1).options.body), {action: 'approve_recovery', roverId: state.rovers[0].carrierId, requestId: 71});
+  assert.equal(h.requests.at(-1).options.headers.Authorization, 'Bearer test-producer');
+  assert.equal(h.elements.get('fleet-approvals').hidden, true);
+});
+
+test('minor recovery mode uses acknowledged server state and rolls back a rejected change', async () => {
+  const h = fleetHarness(), state = fleetFixture(); state.autoRepair = true;
+  h.scope.renderFleet(state); h.elements.get('producer-token').value = 'test-producer';
+  h.elements.get('fleet-auto-repair').checked = false;
+  h.transport(() => h.response({ok: true, fleetState: {...state, autoRepair: false}}));
+  await h.scope.fleetAction('configure');
+  assert.deepEqual(JSON.parse(h.requests.at(-1).options.body), {action: 'configure', autoRepair: false});
+  assert.equal(h.scope.state().autoRepair, false);
+  h.elements.get('fleet-auto-repair').checked = true;
+  h.transport(() => h.response({}, 401)); await h.scope.fleetAction('configure');
+  assert.equal(h.elements.get('fleet-auto-repair').checked, false);
+  assert.equal(h.scope.state().autoRepair, false);
 });
 
 test('late fleet GETs cannot replace acknowledged commands or restore a disconnected map', async () => {

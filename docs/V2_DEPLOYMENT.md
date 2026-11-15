@@ -195,3 +195,41 @@ workflow, including authorized fleet Start/Stop and wrong-role rejection.
 desktop/mobile drawer bounds. This public check issued no simulator mutations.
 Static files were replaced without restarting LAB or resetting its mission.
 Previous files are backed up in `/var/backups/arescope/v2-fleet-access-20261115/`.
+
+## Animated rovers and recovery policy
+
+LAB now runs from `/opt/arescope-releases/v2-recovery-20261115/services/arescope-lab`.
+The prior unit, an online SQLite backup and the previous simulation snapshot are
+in `/var/backups/arescope/v2-recovery-20261115/`. Restarting the process begins a
+new fleet mission; stored scan history and incident records are retained.
+Restore the backed-up unit, reload systemd and restart LAB to roll back code.
+The virtual environment still resolves to the original LAB release.
+
+The map uses six-wheel rover geometry with terrain contacts, suspension, camera
+mast and an articulated service tool. Acknowledged route corners drive motion
+interpolation and wheel rotation. No movement is extrapolated beyond a received
+snapshot. Pause, stale updates and reduced-motion preference stop animation.
+Models are enlarged for visibility and shrink at archive edges. Follow, fleet
+and region camera modes use the same projection and depth test as the terrain.
+
+Minor dust, wheel slip and wheel obstruction can receive a timed synthetic
+procedure from a healthy helper when Auto-repair is enabled. Sensor dropout,
+HQ link loss, glare and low texture require a producer-authenticated Mission
+Control decision tied to the current recovery request. Stale decisions fail
+without mutation. A procedure never resumes movement until three consecutive
+fresh nominal Guardian observations confirm recovery. The coarse archive
+assistance zone and tool animation do not model a physical mechanical repair.
+
+The isolated target release passed **281 Python tests**, including **57 recovery
+tests**. **32 Node/Chromium checks** passed with the real geometry browser test
+enabled. The integrated browser workflow also exercised real fleet recovery,
+operator hold/approval, access roles and all ten desktop/mobile drawer bounds.
+
+The deployed HTTPS browser run passed **41 checks** with caching disabled:
+automatic wheel-obstruction service, sensor-drop approval/hold, stale-request
+rejection, validated recovery, rolling/pause, camera modes, all assets and ten
+drawer bounds. The fleet is paused after QA with Auto-repair enabled.
+[Production check report](qa/rover-recovery-production-checks.json),
+[survey view](qa/rover-survey-production.png),
+[helper service](qa/rover-repair-production.png) and
+[operator decision](qa/rover-approval-production.png).

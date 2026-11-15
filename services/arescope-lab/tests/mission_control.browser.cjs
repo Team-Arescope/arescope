@@ -153,6 +153,70 @@ async function request(url, {method = 'GET', body, producer = false, json = fals
     await page.waitForFunction(() => document.querySelector('#fleet-status').textContent.startsWith('Running') && !document.querySelector('[data-fleet-action="stop"]').disabled);
     await page.locator('[data-fleet-action="stop"]').click();
     await page.waitForFunction(() => document.querySelector('#fleet-status').textContent.startsWith('Stopped') && !document.querySelector('[data-fleet-action="start"]').disabled);
+    // Exercise real recovery decisions and terrain-grounded rover geometry.
+    const fleetCommand = async body => (await (await request('/api/sim/fleet', {method: 'POST', producer: true, json: true, body})).json()).fleetState;
+    const refreshFleetView = async () => {
+      const response = page.waitForResponse(r => new URL(r.url()).pathname === '/api/sim/fleet' && r.request().method() === 'GET');
+      await page.locator('#refresh-fleet').click(); await response;
+      await page.waitForFunction(() => !document.querySelector('#refresh-fleet').disabled);
+    };
+    await fleetCommand({action: 'reset', count: 3, speedMultiplier: 120, autoRepair: true});
+    for (let n = 0; n < 5; n++) await fleetCommand({action: 'step'});
+    await refreshFleetView();
+    await page.locator('[data-fleet-action="start"]').click();
+    await page.waitForFunction(() => document.querySelector('#fleet-status').textContent.startsWith('Running'));
+    const startMarkers = JSON.parse(await page.locator('#terrain').getAttribute('data-fleet-markers'));
+    await page.waitForFunction(previous => {
+      const markers = JSON.parse(document.querySelector('#terrain').dataset.fleetMarkers || '[]');
+      return markers.some((r, i) => Math.abs(r.wheelAngle - previous[i]?.wheelAngle) > .03);
+    }, startMarkers, {timeout: 10000});
+    await page.locator('[data-fleet-action="stop"]').click();
+    await page.waitForFunction(() => document.querySelector('#fleet-status').textContent.startsWith('Stopped'));
+    const stoppedMarkers = JSON.parse(await page.locator('#terrain').getAttribute('data-fleet-markers'));
+    assert.equal(stoppedMarkers.length, 3);
+    assert.ok(stoppedMarkers.every(r => r.wheelCount === 6 && r.grounded === true), 'six wheels stay on the sampled sloped terrain');
+    await page.evaluate(() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve))));
+    assert.deepEqual(JSON.parse(await page.locator('#terrain').getAttribute('data-fleet-markers')).map(r => r.wheelAngle), stoppedMarkers.map(r => r.wheelAngle), 'paused wheels stop');
+    await page.locator('#fleet-fault').selectOption('wheel_jam'); await page.locator('#fleet-inject').click();
+    await page.waitForFunction(() => !document.querySelector('#fleet-inject').disabled);
+    let fleet;
+    for (let n = 0; n < 110; n++) {
+      fleet = await fleetCommand({action: 'step'});
+      if (fleet.rovers[0].recovery.phase === 'repairing') break;
+    }
+    assert.equal(fleet.rovers[0].recovery.phase, 'repairing', 'a healthy helper reaches the bounded service zone');
+    await refreshFleetView();
+    await page.waitForFunction(() => document.querySelector('#fleet-summary-rovers').textContent.includes('Receiving service'));
+    assert.ok(JSON.parse(await page.locator('#terrain').getAttribute('data-fleet-markers')).some(r => r.repairing === true));
+    await page.screenshot({path: path.join(artifacts, 'fleet-repair-1440.png')});
+    for (let n = 0; n < 20; n++) {
+      fleet = await fleetCommand({action: 'step'});
+      if (fleet.rovers[0].recovery.phase === 'recovered') break;
+    }
+    assert.equal(fleet.rovers[0].status, 'surveying'); assert.equal(fleet.rovers[0].fault, 'nominal');
+    await refreshFleetView();
+    await page.locator('#fleet-fault').selectOption('hq_link_broken'); await page.locator('#fleet-inject').click();
+    await page.waitForSelector('#fleet-approvals:not([hidden])');
+    await page.locator('#fleet-approval-list button[data-fleet-decision="hold_recovery"]').click();
+    await page.waitForFunction(() => document.querySelector('#fleet-approval-list').textContent.includes('Kept halted'));
+    for (let n = 0; n < 8; n++) fleet = await fleetCommand({action: 'step'});
+    assert.equal(fleet.rovers[0].fault, 'hq_link_broken'); assert.equal(fleet.rovers[0].status, 'halted');
+    await refreshFleetView();
+    await page.screenshot({path: path.join(artifacts, 'fleet-approval-1440.png')});
+    await page.locator('#fleet-approval-list button[data-fleet-decision="approve_recovery"]').click();
+    await page.waitForFunction(() => document.querySelector('#fleet-approvals').hidden);
+    for (let n = 0; n < 110; n++) {
+      fleet = await fleetCommand({action: 'step'});
+      if (fleet.rovers[0].recovery.phase === 'recovered') break;
+    }
+    assert.equal(fleet.rovers[0].recovery.phase, 'recovered');
+    assert.equal(fleet.rovers[0].status, 'surveying');
+    await refreshFleetView();
+    await page.locator('#fleet-auto-repair').uncheck();
+    await page.waitForFunction(() => !document.querySelector('#fleet-auto-repair').disabled);
+    assert.equal((await (await request('/api/sim/fleet')).json()).autoRepair, false);
+    assert.equal(await page.locator('#terrain').evaluate(c => c.getContext('webgl').getError()), 0);
+    console.log('Fleet recovery QA passed: six grounded wheels, rolling, pause, minor repair, serious hold/approval, mode acknowledgement.');
     await page.locator('[data-sim-action="step"]').click();
     await page.waitForFunction(() => !document.querySelector('#guardian-retrain').disabled && document.querySelector('#sim-status').textContent.includes('1 steps'));
     await page.locator('[data-sim-fault="sensor_drop"]').click();
@@ -230,7 +294,7 @@ async function request(url, {method = 'GET', body, producer = false, json = fals
     assert.ok(await page.locator('.carrier-card[data-low-confidence="true"]').count() === 1);
     assert.equal(await page.locator('#overlay-title').innerText(), 'Rover simulation');
     assert.match(await page.locator('#scan-telemetry').innerText(), /Slip 65%/);
-    assert.match(await page.locator('#scan-guardian').innerText(), /Critical.*Dust or occlusion/);
+    assert.match(await page.locator('#scan-guardian').innerText(), /Critical.*Dust on camera/);
     assert.ok(await page.locator('#guardian-retrain').isDisabled());
     await page.locator('#producer-token').fill('test-producer');
     assert.ok(await page.locator('#guardian-deploy').isDisabled());

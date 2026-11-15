@@ -414,7 +414,7 @@ def test_each_explicit_fault_is_inferred_and_latches_halt(rig, fault):
     control(client, "step", count=1, speedMultiplier=120)
     state = control(client, "fault", roverId="fleet-rover-01", fault=fault)
     for _ in range(6):
-        if state["rovers"][0]["status"] == "halted":
+        if state["rovers"][0]["status"] == "halted" and state["rovers"][0]["guardian"]["riskLevel"] in ("warning", "critical"):
             break
         state = control(client, "step")
     rover = state["rovers"][0]
@@ -432,6 +432,7 @@ def test_each_explicit_fault_is_inferred_and_latches_halt(rig, fault):
 
 def test_nearest_healthy_helper_moves_on_terrain_to_standoff_without_healing(rig):
     client, application, cfg, now = rig
+    control(client, "configure", autoRepair=False)
     initial = control(client, "step", count=3, speedMultiplier=120)
     target_id = initial["rovers"][0]["carrierId"]
     target_position = initial["rovers"][0]["position"]
@@ -467,7 +468,7 @@ def test_nearest_healthy_helper_moves_on_terrain_to_standoff_without_healing(rig
     assert any(r["status"] == "surveying" for r in state["rovers"])
     assert state["coverage"]["scannedCells"] > initial_coverage
     explanation = " ".join(e["message"] for e in state["events"])
-    assert "Guardian" in explanation and "nearest" in explanation and "A*" in explanation and "no automatic repair" in explanation
+    assert "Guardian" in explanation and "nearest" in explanation and "A*" in explanation and "minor simulated recovery" in explanation
 
 
 def test_faulted_helper_is_not_reused_and_no_duplicate_assignments(rig):
@@ -642,6 +643,7 @@ def test_bounded_trails_events_coverage_and_no_route_fallback():
         async def ingest(frame):
             return {**frame, "guardian": {"riskLevel": "nominal", "predictedCause": "nominal", "riskScore": .05}}
         fleet = FleetSimManager(ingest, terrain_path=BENCHMARK_TERRAIN_PATH)
+        await fleet.control({"action": "configure", "autoRepair": False})
         await fleet.control({"action": "step", "count": 3, "speedMultiplier": 120})
         target = fleet.rovers[0]
         target.status, target.fault = "halted", "dust"

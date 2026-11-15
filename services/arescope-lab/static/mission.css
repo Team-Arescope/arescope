@@ -128,6 +128,23 @@ button:disabled { cursor: default; }
 .fleet-legend, .fleet-map-rovers { display: flex; flex-wrap: wrap; gap: 5px 12px; font-size: 10px; color: var(--muted); }
 .fleet-legend span, .fleet-map-rovers span { display: inline-flex; align-items: center; gap: 5px; max-width: 100%; overflow-wrap: anywhere; }
 .fleet-map-rovers { margin-top: 8px; color: var(--text); }
+.fleet-auto-repair { padding: 10px 0 3px; font-size: 12px; color: var(--text); }
+.fleet-approvals { margin: 18px 0; padding: 14px 0; border-block: 1px solid var(--copper, #b8794c); }
+.fleet-approvals h4 { margin: 0; font-size: 12px; font-weight: 600; }
+.fleet-decision { padding: 12px 0 4px; }
+.fleet-decision + .fleet-decision { margin-top: 12px; border-top: 1px solid var(--line); }
+.fleet-decision h5 { margin: 0; font-size: 12px; }
+.fleet-decision p { margin: 5px 0 10px; font-size: 11px; color: var(--muted); }
+.fleet-decision .fleet-controls button:first-child { border-color: #a7734d; }
+.fleet-map .fleet-recovery-line { padding-top: 8px; margin-top: 9px; border-top: 1px solid var(--line); color: #eeae76; }
+.fleet-map #fleet-map-frame { margin-top: 10px; font-size: 9px; color: var(--muted); }
+.fleet-map-rovers { display: grid; gap: 6px; }
+.fleet-map-rovers > span { display: flex; align-items: center; font-size: 11px; }
+.fleet-map-rovers > button { display: flex; align-items: center; gap: 6px; justify-content: flex-start; width: 100%; padding: 3px 0; border: 0; border-radius: 2px; background: transparent; font-size: 11px; font-weight: 400; text-align: left; pointer-events: auto; }
+.fleet-map-rovers > button:hover, .fleet-map-rovers > button:focus-visible { color: var(--rover-color); }
+.stage-toolbar .follow-rover { display: inline-flex; align-items: center; gap: 7px; padding: 9px 11px; font-size: 11px; white-space: nowrap; }
+.stage-toolbar .follow-rover[hidden] { display: none; }
+.fleet-map-rovers .rover-swatch { width: 5px; height: 5px; border-radius: 50%; }
 #terrain:focus-visible { outline-offset: -3px; }
 #stage[data-fleet='true'] .carrier-stage { display: none; }
 @media(max-width:760px) {

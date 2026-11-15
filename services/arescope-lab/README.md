@@ -39,6 +39,28 @@ stays disabled until both fields are supplied; the message beside it shows the
 missing step. These roles require distinct credentials. To change the rover
 count after a mission has begun, use **Reset fleet**, then **Start fleet**.
 
+Fleet rovers render as six-wheel terrain-following models. The first connected
+view follows a rover; click a rover in the map roster or **Follow rover** to
+inspect one, **Fleet view** to frame all carriers, or **Full terrain view** / `R`
+to see the whole archive. The models are enlarged for visibility and shrink near
+archive edges so wheel contacts remain on terrain. Wheel rotation follows
+interpolated, acknowledged movement; pause freezes wheels and tool animation.
+
+**Auto-repair minor faults** permits a healthy helper to perform a timed synthetic
+procedure for `dust`, `wheel_slip` or `wheel_jam`. Serious faults (`sensor_drop`,
+`hq_link_broken`, `low_texture`, `glare`) create **Mission Control decisions**.
+Use **Approve recovery** or **Keep halted**. Approval authorizes an attempt;
+safe helper arrival, procedure completion and three consecutive fresh nominal
+Guardian observations are still required. HQ link loss is a simulated fault;
+the LAB operator channel remains available for the demonstration. The service
+zone uses the coarse archive grid and does not model physical contact or repair.
+
+The existing producer-only `POST /api/sim/fleet` accepts `configure` with
+`autoRepair: boolean`; `start`, `reset` and `step` also accept that setting.
+`approve_recovery` and `hold_recovery` require the affected `roverId` and current
+`requestId` from its `recovery` object. A stale or invalid decision fails without
+mutating the mission. Viewer access remains read-only.
+
 `python app.py --check-config` validates exported environment variables without
 printing token values. Startup performs the same validation; missing, blank or
 identical tokens fail startup. Auth handlers also fail closed independently.
