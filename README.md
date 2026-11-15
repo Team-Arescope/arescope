@@ -7,6 +7,12 @@ Guardian risk warnings with an operator-reviewed learning loop. Quest 3S is the
 sensor-mast testbed. [Production LAB](https://arescope.mrfenek.eu.cc) and
 [deployment evidence and rollback](docs/V2_DEPLOYMENT.md).
 
+The [seven-slide presentation](https://arescope.mrfenek.eu.cc/presentation/)
+includes the thirty-second fleet demonstration. It is also available as a
+[single offline HTML download](https://arescope.mrfenek.eu.cc/presentation/download.html).
+[Submission text, source-import script and PDF](docs/SUBMISSION_MATERIALS_RU.md)
+are public alongside the source code.
+
 The fleet demo coordinates 1–6 simulated rovers surveying an approximately 40 km²
 HiRISE tile. Guardian risk can trigger a safety halt and an available rover's
 inspection approach. Coverage and trails share the terrain's freely rotating

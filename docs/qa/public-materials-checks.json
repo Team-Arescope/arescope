@@ -1,0 +1,73 @@
+{
+  "base": "https://arescope.mrfenek.eu.cc",
+  "passed": true,
+  "checks": [
+    {
+      "name": "public_html_exactly_seven_slides",
+      "passed": true
+    },
+    {
+      "name": "explicit_mars_home_base",
+      "passed": true
+    },
+    {
+      "name": "hosted_embedded_video_plays_under_csp",
+      "passed": true,
+      "duration": 30,
+      "width": 1920,
+      "height": 1080,
+      "embedded": true,
+      "playing": true
+    },
+    {
+      "name": "astronaut_internet_vision",
+      "passed": true
+    },
+    {
+      "name": "one_html_download",
+      "passed": true
+    },
+    {
+      "name": "public_material_PROJECT_DETAILS_5000_EN.txt",
+      "passed": true
+    },
+    {
+      "name": "public_material_PROJECT_SUMMARY_1500_EN.txt",
+      "passed": true
+    },
+    {
+      "name": "public_material_PROJECT_SUBMISSION_EN.md",
+      "passed": true
+    },
+    {
+      "name": "public_material_fill_spaceapps_other_data.js",
+      "passed": true
+    },
+    {
+      "name": "public_material_IMPORT_OTHER_SOURCES_RU.md",
+      "passed": true
+    },
+    {
+      "name": "public_material_Arescope-7-Slides.pdf",
+      "passed": true
+    },
+    {
+      "name": "public_material_Arescope-Submission-Materials.zip",
+      "passed": true
+    },
+    {
+      "name": "details_below_5000",
+      "passed": true,
+      "characters": 4607
+    },
+    {
+      "name": "lab_still_public",
+      "passed": true
+    },
+    {
+      "name": "no_browser_or_csp_errors",
+      "passed": true,
+      "errors": []
+    }
+  ]
+}

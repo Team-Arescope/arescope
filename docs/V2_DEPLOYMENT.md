@@ -326,3 +326,22 @@ selected all six camera targets without changing the shared mission and found
 no overflow or browser errors.
 [Production report](qa/rover-camera-buttons-production.json),
 [roster appearance](qa/rover-camera-buttons-production.png).
+
+## Public presentation and submission materials
+
+nginx serves the standalone seven-slide HTML at `/presentation/index.html`,
+with `/presentation/` redirecting there, from
+`/var/www/arescope-public/Arescope-Standalone.html`. `/presentation/download.html`
+returns the same file as an attachment. `/materials/` exposes only the copied
+public submission text, source importer, instructions, PDF and archive. No
+directory listing is enabled. Authenticated page snapshots are not published.
+
+The managed routes are in `/etc/nginx/snippets/arescope-presentation.conf`,
+included by the existing TLS site. The presentation has a CSP hash for its own
+inline script and permits its embedded fonts, images and video. LAB's CSP and
+API proxying remain unchanged. nginx configuration validation passed before
+reload; LAB and Copilot were not restarted. The previous site configuration is
+in `/var/backups/arescope/public-materials-20261115-170026/`.
+
+[Public materials](SUBMISSION_MATERIALS_RU.md) and
+[browser verification](qa/public-materials-checks.json).
