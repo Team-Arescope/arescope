@@ -205,7 +205,8 @@ async function main() {
       copper: getComputedStyle(document.documentElement).getPropertyValue('--copper').trim()
     }));
     check(content.count === 7, 'Expected seven slides', content.count);
-    check(!/astronaut|helmet|\bEVA\b|humanoid/i.test(content.text), 'Legacy crew framing remains');
+    check(!/astronaut|helmet|\bEVA\b|humanoid/i.test(content.slides[0] || ''), 'The current product must remain rover focused');
+    check(/future astronaut/i.test(content.slides[6] || '') && /internet/i.test(content.slides[6] || ''), 'Future astronaut integration must be explicit in the unified Mars network vision');
     check(content.troy && content.bg === '#0d0907' && content.copper === '#ee8a5b', 'Artwork or design system missing');
     check(content.fonts.every(font => font.loaded), 'Embedded fonts did not load offline', content.fonts);
     check(content.notesSeconds === 180, 'Speaker notes must cover three minutes', content.notesSeconds);
@@ -214,11 +215,11 @@ async function main() {
     const levels = architecture?.levels || [];
     const levelText = level => levels.find(item => item.level === String(level))?.text || '';
     check(content.architecture.length === 1 && architecture.number === 5 && levels.length === 3 && /protect/i.test(levelText(1)) && /mission/i.test(levelText(2)) && /coordinat/i.test(levelText(2)) && /analys/i.test(levelText(3)) && /learn/i.test(levelText(3)), 'Explicit three-level target AI architecture is missing', content.architecture);
-    check(/\b(?:station|base|hub)\b/i.test(architectureText) && /\boptional\b/i.test(architectureText) && /\b(?:uncrewed|unmanned)\b/i.test(architectureText) && /comput/i.test(architectureText) && /\b(?:future|planned|next)\b/i.test(content.deployment.text), 'Local station must be an optional future uncrewed compute hub');
+    check(/home base on Mars|Mars home base/i.test(architectureText) && !/\boptional\b/i.test(architectureText) && /\b(?:uncrewed|unmanned)\b/i.test(architectureText) && /\b(?:future|planned|next)\b/i.test(content.deployment.text), 'The uncrewed Mars home base must be explicit in the target architecture');
     check(content.deployment.scope === 'lab' && /Guardian/i.test(content.deployment.text) && /\bLAB\b/i.test(content.deployment.text) && /\b(?:now|today|current(?:ly)?)\b/i.test(content.deployment.text), 'Current Guardian deployment must be scoped to LAB', content.deployment);
     check(/\b(?:on[ -]?board|on[ -]rover)\b/i.test(content.deployment.text) && /inferenc|deploy|Guardian/i.test(content.deployment.text) && /\b(?:next|future|planned)\b/i.test(content.deployment.text), 'Onboard Guardian inference must remain a next step');
     // Simulated fleet coordination may be demonstrated now; physical deployment is future work.
-    check(/\b(?:field|physical|real[ -]world)\b/i.test(levelText(2)) && /\b(?:planned|future|next|pending)\b/i.test(levelText(2)), 'Field fleet coordination must remain planned');
+    check(/Mars/i.test(levelText(2)) && /base/i.test(levelText(2)) && /\b(?:planned|future|next|pending)\b/i.test(levelText(2)), 'Physical Mars home-base deployment must remain planned');
     check(content.blocks.some(text => /\b(?:hardware|device|headset|Quest|physical)\b/i.test(text) && /validat|test|check|trial/i.test(text) && /pending|not yet|unvalidated|await|to be/i.test(text)), 'Hardware validation must remain pending');
     check(/architectur/i.test(content.slides[4] || '') && /illustrat|diagram|concept/i.test(content.slides[4] || ''), 'Slide five link controls must be identified as an architecture illustration');
     const metricKeys = ['GUARDIAN_CAUGHT', 'GUARDIAN_LEAD', 'GUARDIAN_FALSE_ALARMS', 'GUARDIAN_BEFORE_F1', 'GUARDIAN_AFTER_F1'];

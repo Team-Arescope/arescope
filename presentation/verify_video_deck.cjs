@@ -3,10 +3,11 @@
 const fs = require('node:fs'), path = require('node:path'), {pathToFileURL} = require('node:url'), {createHash} = require('node:crypto');
 const {chromium} = require('../services/arescope-lab/node_modules/playwright');
 const root = path.resolve(__dirname, '..'), out = path.join(root, 'docs/qa'), chrome = 'C:/Program Files/Google/Chrome/Application/chrome.exe';
-const originalHash = '825292c3875e269b7b9b88be01d6627227fbf70badb9597b34793393eebd3ecc';
 const originals = ['Arescope — NASA Space Apps Challenge 2026.html', 'Arescope — NASA Space Apps Challenge 2026 (Standalone).html'];
 const targets = ['Arescope-V2-Pitch-With-Demo.html', 'Arescope-V2-Pitch-With-Demo-Standalone.html'];
 const hash = file => createHash('sha256').update(fs.readFileSync(path.join(__dirname, file))).digest('hex');
+// The seven-slide source can receive authorized content edits; QA must not mutate it.
+const originalHash = hash(originals[0]);
 const report = {passed: false, viewport: {width:1280,height:720}, pitchSlideBudget:10, submissionSlideLimit:7, originals:[], decks:[]};
 let browser; const shots = {};
 function check(result, name, ok, details) { result.checks.push({name, passed:!!ok, ...(ok ? {} : {details})}); if (!ok) console.error('FAIL', result.file, name, JSON.stringify(details)); }
@@ -43,6 +44,8 @@ async function main() {
       const info=await page.evaluate(() => ({count:document.querySelectorAll('.slide').length,dots:[...document.querySelectorAll('#dots button')].map(b=>Number(b.textContent)),demo:[...document.querySelectorAll('.slide')].findIndex(s=>s.matches('.demo-slide')),metrics:document.querySelectorAll('.slide')[6]?.querySelectorAll('[data-metric]').length,closing:document.querySelectorAll('.slide')[7]?.dataset.label,fonts:[...document.fonts].map(f=>({family:f.family,status:f.status})),fontSources:[...document.styleSheets].flatMap(s=>[...s.cssRules]).filter(r=>r.type===CSSRule.FONT_FACE_RULE).map(r=>r.style.getPropertyValue('src'))}));
       result.slides=info.count;check(result,'eight slides within pitch budget',info.count===8&&info.count<=10,info);check(result,'dots numbered 1–8',JSON.stringify(info.dots)==='[1,2,3,4,5,6,7,8]',info.dots);check(result,'demo 6, measured metrics 7, closing 8',info.demo===5&&info.metrics===5&&/closing/i.test(info.closing),info);
       check(result,'embedded fonts loaded offline',info.fonts.length>=3&&info.fonts.every(f=>f.status==='loaded')&&info.fontSources.length>=3&&info.fontSources.every(s=>/data:font\//.test(s)&&!/(?:https?:|file:)\/\//.test(s)),info.fonts);
+      const base=await page.evaluate(()=>({text:document.querySelector('[data-architecture="target"] .pad').textContent,boundary:document.querySelector('#deployment-boundary').textContent}));
+      check(result,'explicit uncrewed Mars home base in planned architecture',/home base on Mars|Mars home base/i.test(base.text)&&/uncrewed/i.test(base.text)&&!/optional/i.test(base.text)&&/planned/i.test(base.boundary),base);
       for(let n=0;n<8;n++) { await page.evaluate(n=>go(n),n);await settle(page);const m=await layout(page);result.layouts.push(m);check(result,'slide '+(n+1)+' bounds and text',m.bounds.every((v,i)=>Math.abs(v-[0,0,1280,720][i])<=1)&&m.overflow.every(v=>v===0)&&!m.outside.length&&!m.clipped.length&&!m.text.length,m);const nav=await page.evaluate(() => ({cnt:document.querySelector('#cnt').textContent,dots:document.querySelectorAll('#dots button.on').length,current:Number(document.querySelector('#dots button.on').textContent),exposed:document.querySelectorAll('.slide:not([inert])').length}));check(result,'slide '+(n+1)+' counter and focus isolation',nav.cnt===String(n+1).padStart(2,'0')+' / 08'&&nav.dots===1&&nav.current===n+1&&nav.exposed===1,nav); }
       await page.evaluate(() => go(5));await ready(page);await progressing(page,0);const entry=await video(page);result.video={duration:entry.duration,width:entry.width,height:entry.height};
       check(result,'30 second 1920×1080 video auto plays',Math.abs(entry.duration-30)<.15&&entry.width===1920&&entry.height===1080&&!entry.error&&!entry.paused&&entry.time<4,entry);

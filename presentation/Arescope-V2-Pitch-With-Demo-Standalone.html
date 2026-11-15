@@ -433,11 +433,11 @@ body.video-slide-active .hud,body.video-slide-active #dots,body.video-slide-acti
       <div class="r kick">NASA Space Apps Challenge 2026</div>
       <h1 class="r">ARESCOPE</h1>
       <p class="r sub">Unified mission control<br>for Mars rovers.</p>
-      <div class="r tag">Shared terrain context and early risk warnings</div>
-      <div class="r mission-role mono">CENTRAL OVERSIGHT · DISTRIBUTED AUTONOMY BY DESIGN</div>
+      <div class="r tag">Rovers, a Mars home base and Earth Mission Control</div>
+      <div class="r mission-role mono">ROVER PROTECTION · MARS HOME BASE · EARTH MISSION CONTROL</div>
       <div class="r who">Team Arescope<br>Margarita G. · Timur I. · Ziyoda A. · Amir A. · Kausar A. · Dinakhmed S.</div>
     </div>
-    <aside class="speaker-notes" hidden data-seconds="15">0:00–0:15. Arescope is a prototype for unified rover mission control. It brings terrain context, rover status and Guardian warnings into one operator view. The target architecture combines central oversight with distributed autonomy. Our current demonstration runs on Earth.</aside>
+    <aside class="speaker-notes" hidden data-seconds="15">0:00–0:15. Arescope is a prototype for unified rover mission control. Its target architecture connects rovers, their uncrewed home base on Mars and Earth Mission Control. Shared maps and Guardian warnings support the operator. Our current software demonstration runs on Earth.</aside>
   </section>
 
   <!-- SLIDE 02: BACKSTORY -->
@@ -863,14 +863,14 @@ body.video-slide-active .hud,body.video-slide-active #dots,body.video-slide-acti
       <div class="f3 pipeline">
         <div class="r c pulse-local" id="sub1" data-ai-level="1"><div class="ch"><div class="ring">1</div><span class="lab">Rover · target onboard</span></div><b>Protection<br>Guardian</b><p>Estimate risk from recent telemetry and recommend recovery within checked safety rules.</p><div class="tg" id="tg1">Today: LAB inference<br>Next: onboard deployment</div></div>
         <div class="r ar" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M5 12h14M15 16l4 -4M15 8l4 4"/></svg></div>
-        <div class="r c" id="sub2" data-ai-level="2"><div class="ch"><div class="ring">2</div><span class="lab">Rover / optional local station</span></div><b>Mission<br>coordination</b><p>Use terrain and rover status to propose survey tasks and assistance across a fleet.</p><div class="tg" id="tg2">Simulation now / field deployment next</div></div>
+        <div class="r c" id="sub2" data-ai-level="2"><div class="ch"><div class="ring">2</div><span class="lab">Home base on Mars</span></div><b>Mission<br>coordination</b><p>The Mars home base shares maps, assigns survey areas and coordinates rover assistance.</p><div class="tg" id="tg2">LAB coordination now / Mars base planned</div></div>
         <div class="r ar" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M5 12h14M15 16l4 -4M15 8l4 4"/></svg></div>
         <div class="r c warm" id="sub3" data-ai-level="3"><div class="ch"><div class="ring">3</div><span class="lab">Earth · Mission Control</span></div><b>Analysis<br>&amp; learning</b><p>Operators review incidents and validate model updates. Voice Copilot explains supplied telemetry.</p><div class="tg" id="tg3">Today: review + learning in LAB</div></div>
       </div>
-      <div class="r link-bar" id="linkBar"><div class="link-pills"><button type="button" class="link-pill on" data-link="live" aria-pressed="true">Earth link available</button><button type="button" class="link-pill" data-link="delay" aria-pressed="false">Earth link interrupted</button></div><p class="link-desc" id="linkDesc" aria-live="polite"><strong>Architecture illustration:</strong> telemetry and reviewed updates cross the Earth link. An uncrewed local station is optional.</p></div>
-      <p class="r foot" id="deployment-boundary" data-deployment="lab">Today Guardian runs in LAB. Onboard inference and a local compute station are planned.</p>
+      <div class="r link-bar" id="linkBar"><div class="link-pills"><button type="button" class="link-pill on" data-link="live" aria-pressed="true">Earth link available</button><button type="button" class="link-pill" data-link="delay" aria-pressed="false">Earth link interrupted</button></div><p class="link-desc" id="linkDesc" aria-live="polite"><strong>Architecture illustration:</strong> the uncrewed home base on Mars coordinates the fleet and relays data to Earth.</p></div>
+      <p class="r foot" id="deployment-boundary" data-deployment="lab">Today Guardian and fleet coordination run in LAB. Onboard inference and the Mars home base are planned.</p>
     </div>
-    <aside class="speaker-notes" hidden data-seconds="30">1:35–2:05. Describe protection, mission coordination and analysis with learning. Their deployment is the target architecture. A local station is an optional uncrewed compute hub. Click the Earth-link buttons as an architecture illustration only. Current Guardian inference runs in LAB. Onboard deployment, field coordination and interplanetary store-and-forward behavior require further implementation and tests. LLM suggestions require checked constraints and operator review.</aside>
+    <aside class="speaker-notes" hidden data-seconds="30">1:35–2:05. Describe three levels: protection on each rover, mission coordination at an uncrewed home base on Mars, and Earth Mission Control for oversight and reviewed learning. The Mars home base is the fleet's local compute and communications hub. Click the Earth-link buttons as an architecture illustration only. Current Guardian inference and coordination run in LAB. Physical base deployment, onboard inference and interplanetary store-and-forward behavior require further implementation and tests.</aside>
   </section>
 
 
@@ -913,16 +913,16 @@ body.video-slide-active .hud,body.video-slide-active #dots,body.video-slide-acti
       <div class="r kick">Impact &amp; roadmap</div>
       <h2 class="r">Rover operations today, fleet autonomy next</h2>
       <div class="r hl"></div>
-      <p class="r lead impact-lead">A coordinated fleet runs in simulation today. Physical rover trials and an optional local station are the next deployment steps.</p>
+      <p class="r lead impact-lead">Rovers and their Mars home base come first. Future astronaut teams join the same map and data network.</p>
       <div class="roadmap">
         <div class="r c"><div class="lab">Now · Earth prototype</div><b>Mission Control + Guardian</b><p>Fleet survey, simulated recovery and reviewed model updates.</p></div>
         <div class="r c"><div class="lab">Next · physical validation</div><b>Rover chassis trials</b><p>Deploy Guardian onboard and test sensing and recovery procedures.</p></div>
-        <div class="r c warm"><div class="lab">Future deployment</div><b>Fleet + optional station</b><p>Coordinate rover tasks through a common mission view and local compute hub.</p></div>
+        <div class="r c warm"><div class="lab">Future unified network</div><b>Mars home base</b><p>Connect rovers, the base and future astronaut teams through one map and a Mars surface “internet”.</p></div>
       </div>
       <div class="r closing-row"><a class="demo-link" href="https://arescope.mrfenek.eu.cc" target="_blank" rel="noopener">arescope.mrfenek.eu.cc ↗</a><div class="team"><strong>Team Arescope</strong><br>Margarita G. · Timur I. · Ziyoda A.<br>Amir A. · Kausar A. · Dinakhmed S.</div></div>
       <p class="r ai-note"><strong>AI use:</strong> AI assisted code and pitch drafting. Guardian uses ML. Voice Copilot uses an LLM with supplied telemetry. Operators review outputs and approve model activation. Field deployment remains future work.</p>
     </div>
-    <aside class="speaker-notes" hidden data-seconds="15">2:45–3:00. Close on the Earth prototype and the next physical rover trial. Field fleet autonomy and an optional local station are development goals. Minor-fault service is simulated. Serious failures require operator approval. Physical repair remains unvalidated. Terrestrial analog and field robotics are candidate test settings. Disclose AI-assisted development, Guardian ML and operator Copilot. People remain responsible for deployment approval.</aside>
+    <aside class="speaker-notes" hidden data-seconds="15">2:45–3:00. Close on the Earth prototype and the next physical rover trial. The uncrewed Mars home base is the planned hub for rover coordination and Earth data relay. Future astronaut teams would join the same map and data network, toward a Mars surface internet shared by robots, bases and people. This is the long-term unification vision, not a deployed communications system. Minor-fault service is simulated; physical repair remains unvalidated. Disclose AI-assisted development, Guardian ML and operator Copilot.</aside>
   </section>
 </div>
 
@@ -1074,11 +1074,11 @@ if(linkBar){
     document.getElementById('sub2').classList.remove('awaiting');
     document.getElementById('sub3').classList.toggle('awaiting',interrupted);
     document.getElementById('tg1').innerHTML=interrupted?'Design: onboard warning stays local':'Today: LAB inference<br>Next: onboard deployment';
-    document.getElementById('tg2').textContent=interrupted?'Design: local coordination continues':'Simulation now / field deployment next';
+    document.getElementById('tg2').textContent=interrupted?'Design: Mars base coordinates locally':'LAB coordination now / Mars base planned';
     document.getElementById('tg3').textContent=interrupted?'Design: Earth transfer waits':'Today: review + learning in LAB';
     linkDesc.innerHTML=interrupted
-      ?'<strong>Architecture illustration:</strong> onboard protection would continue. Earth-bound logs and updates would wait.'
-      :'<strong>Architecture illustration:</strong> telemetry and reviewed updates cross the Earth link. An uncrewed local station is optional.';
+      ?'<strong>Architecture illustration:</strong> rovers and their Mars home base keep local operations running. Earth-bound logs and updates wait.'
+      :'<strong>Architecture illustration:</strong> the uncrewed home base on Mars coordinates the fleet and relays data to Earth.';
   }));
 }
 
