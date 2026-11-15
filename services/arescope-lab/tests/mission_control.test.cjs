@@ -578,7 +578,8 @@ test('private, unavailable and malformed config never open unauthenticated servi
 });
 
 test('public assets are cache-versioned and initial Guardian copy has no auth instruction', () => {
-  for (const asset of ['app.js', 'shell.js', 'mission.css']) assert.ok(html.includes(`/static/${asset}?v=public-20261115`));
+  for (const asset of ['app.js', 'shell.js']) assert.ok(html.includes(`/static/${asset}?v=public-20261115`));
+  assert.ok(html.includes('/static/mission.css?v=rover-buttons-20261115'));
   assert.match(html, /id="guardian-carrier">No current Guardian telemetry\./);
   assert.match(js, /document\.body\.dataset\.publicAccess = String\(publicAccess\)/);
   assert.match(js, /if \(!publicAccess\) url\.searchParams\.set\('token', token\)/);

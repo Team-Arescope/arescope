@@ -161,3 +161,9 @@ button:disabled { cursor: default; }
 @media(max-width:380px) {
   .fleet-settings, .fleet-controls { grid-template-columns: minmax(0, 1fr); }
 }
+
+/* Make rover camera targets recognizable as buttons before interaction. */
+.fleet-map #fleet-camera-help { margin: 9px 0 8px; font-size: 11px; line-height: 1.45; color: #c2afa1; }
+.fleet-map-rovers > button { min-height: 36px; padding: 8px 10px; border: 1px solid rgba(238,226,217,.28); border-radius: 5px; background: rgba(238,226,217,.035); cursor: pointer; transition: border-color .12s, background-color .12s; }
+.fleet-map-rovers > button:hover { border-color: var(--rover-color); background: rgba(238,226,217,.08); }
+.fleet-map-rovers > button:focus-visible { outline: 2px solid var(--rover-color); outline-offset: 2px; border-color: var(--rover-color); background: rgba(238,226,217,.08); }

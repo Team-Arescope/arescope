@@ -311,3 +311,18 @@ the shared mission paused with three healthy rovers and auto-repair enabled.
 
 [Public production check report](qa/public-access-production-checks.json),
 [default simulation controls](qa/public-access-production.png).
+
+## Visible rover camera controls
+
+The map roster now explains that selecting a rover changes camera tracking.
+Each rover has a bordered button, with hover and keyboard focus feedback. The
+stylesheet URL is versioned to refresh existing browsers. Only HTML and CSS
+were replaced, with backups in
+`/var/backups/arescope/rover-buttons-20261115-162319/`; LAB was not restarted.
+
+Validation passed 318 cloud Python tests and 40 Node tests. Local Chromium
+checked six-button interaction and desktop/mobile bounds. The deployed check
+selected all six camera targets without changing the shared mission and found
+no overflow or browser errors.
+[Production report](qa/rover-camera-buttons-production.json),
+[roster appearance](qa/rover-camera-buttons-production.png).

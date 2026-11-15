@@ -53,25 +53,13 @@ https://github.com/Team-Arescope/arescope
 
 ## Project Details
 
-Arescope is a prototype for resilient Mars rover teamwork. A rover can lose useful camera detail, struggle to move or become disconnected while Earth cannot respond immediately. We explore how local risk detection, coordination at an uncrewed Mars home base and human oversight on Earth could help a fleet continue its mission.
+Arescope is a prototype for rover teamwork when sensors, motion or links fail and Earth cannot respond immediately. Its target architecture links onboard Guardian risk monitoring, an uncrewed Mars home base for shared maps, task allocation, assistance and Earth relay, and Earth Mission Control for oversight and reviewed learning.
 
-The intended system has three levels. First, Guardian is the planned onboard risk monitor for each rover. Second, a home base on Mars is the core local coordination layer: a planned physical hub that maintains the fleet's shared map, allocates survey work, coordinates incident handling and relays data to Earth. Third, Earth Mission Control provides mission oversight, reviews serious incidents and approves learning updates.
+Today, public Arescope LAB simulates 1-6 rovers on ~40 km² of archived NASA HiRISE DTM DTEEC_001488_1750_001752_1750_U02, with MOLA MEGDR regional context. Guardian runs in LAB. The dashboard shows positions, trails, coverage and warnings, supports fault injection and adjustable speed. Healthy neighbours handle minor simulated faults; serious incidents require operator approval. Movement resumes only after fresh nominal Guardian data. Incidents are labelled, models retrained and validated before human-approved activation. Rules and route search coordinate movement.
 
-The working product today is Arescope LAB, a public browser application that simulates fleet coordination. It places one to six simulated rovers on archived NASA terrain and shows positions, survey trails, coverage, warnings and events. Users can change simulation speed and inject faults. Guardian currently evaluates simulated telemetry in LAB, including sensing quality, connectivity and commanded versus observed movement. For minor simulated faults, a healthy neighbour can approach and run a timed recovery procedure. Serious faults require an operator decision. A halted rover resumes only after fresh nominal Guardian observations.
+Built with Python/FastAPI, SQLite, WebSockets and JavaScript/WebGL/HTML/CSS. A Unity/C#/OpenXR Quest 3S sensor testbed awaits runtime verification; Voice Copilot uses language models through OmniRoute.
 
-LAB records incidents and operator labels, trains a candidate model and validates it before human-approved activation. This is a reviewed learning workflow, without a guarantee that AI can diagnose or correct every failure. Mission rules and route search coordinate simulated movement.
-
-NASA's HiRISE DTM DTEEC_001488_1750_001752_1750_U02 supplies a Gale crater terrain strip of approximately 40 square kilometres; MOLA MEGDR provides regional elevation context. Archived measurements remain separate from simulated routes and telemetry. Orbital terrain does not resolve wheel-scale obstacles.
-
-LAB uses Python, FastAPI, SQLite, WebSockets, JavaScript, WebGL, HTML and CSS. A separate Unity/C# and OpenXR prototype targets Meta Quest 3S as a future sensor testbed; runtime verification remains outstanding. An optional Voice Copilot prototype explores telemetry-aware language models through OmniRoute.
-
-Our contribution connects shared terrain awareness, risk monitoring, assistance, operator decisions and reviewed learning. Current evidence comes from software simulation: there is no physical Mars home base or tested onboard Guardian deployment. Terrestrial rover testing is the next milestone, with potential benefits for remote exploration and field robotics. AI tools assisted development and presentation preparation; the team reviews and tests their outputs.
-
-Our longer-term vision connects future astronauts, rovers and the Mars home base through a common map and data exchange network, unifying surface operations toward a Mars surface "internet". The required communication protocols and physical infrastructure remain future work; current LAB demonstrates rover coordination in software.
-
-Public LAB: https://arescope.mrfenek.eu.cc
-
-Source code and technical evidence: https://github.com/Team-Arescope/arescope
+NASA measurements remain separate from synthetic telemetry. Orbital terrain cannot resolve wheel-scale obstacles. Physical rover integration, onboard Guardian and the Mars base remain planned; terrestrial rover testing comes next. Future astronauts could join the same map and data network, toward a Mars surface "internet"; protocols and infrastructure require development.
 
 ## Use of Super Intelligence (SI)
 

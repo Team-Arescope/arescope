@@ -9,7 +9,7 @@
   <link rel="preload" href="/static/fonts/manrope.woff2" as="font" type="font/woff2" crossorigin>
   <link rel="preload" href="/static/fonts/dm-mono.woff2" as="font" type="font/woff2" crossorigin>
   <link rel="stylesheet" href="/static/style.css">
-  <link rel="stylesheet" href="/static/mission.css?v=public-20261115">
+  <link rel="stylesheet" href="/static/mission.css?v=rover-buttons-20261115">
   <script src="/static/shell.js?v=public-20261115" defer></script>
   <script src="/static/app.js?v=public-20261115" defer></script>
 </head>
@@ -35,7 +35,8 @@
     <div class="stage-toolbar" aria-label="Terrain controls"><button id="follow-rover" class="follow-rover" hidden><i data-icon="truck"></i><span>Follow rover</span></button><button id="view-fleet" class="follow-rover" hidden><i data-icon="layers"></i><span>Fleet view</span></button><button id="reset-view" class="icon-button" title="Full terrain view"><i data-icon="rotate-ccw"></i><span class="sr-only">Full terrain view</span></button><span class="mono" id="grid-count">Terrain loading</span></div>
     <section id="fleet-map" class="fleet-map" aria-label="Synthetic fleet on archived terrain" hidden>
       <h2>Fleet mission</h2><p id="fleet-map-status" class="mono"></p>
-      <div id="fleet-map-rovers" class="fleet-map-rovers"></div>
+      <p id="fleet-camera-help">Select a rover to follow with the camera.</p>
+      <div id="fleet-map-rovers" class="fleet-map-rovers" role="group" aria-label="Rover camera tracking" aria-describedby="fleet-camera-help"></div>
       <p id="fleet-map-recovery" class="fleet-recovery-line" hidden></p>
       <p id="fleet-map-frame">Simulation · NASA HiRISE terrain · Rovers enlarged</p>
     </section>

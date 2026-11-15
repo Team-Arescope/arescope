@@ -1,0 +1,7 @@
+Arescope is a prototype for rover teamwork when sensors, motion or links fail and Earth cannot respond immediately. Its target architecture links onboard Guardian risk monitoring, an uncrewed Mars home base for shared maps, task allocation, assistance and Earth relay, and Earth Mission Control for oversight and reviewed learning.
+
+Today, public Arescope LAB simulates 1-6 rovers on ~40 km² of archived NASA HiRISE DTM DTEEC_001488_1750_001752_1750_U02, with MOLA MEGDR regional context. Guardian runs in LAB. The dashboard shows positions, trails, coverage and warnings, supports fault injection and adjustable speed. Healthy neighbours handle minor simulated faults; serious incidents require operator approval. Movement resumes only after fresh nominal Guardian data. Incidents are labelled, models retrained and validated before human-approved activation. Rules and route search coordinate movement.
+
+Built with Python/FastAPI, SQLite, WebSockets and JavaScript/WebGL/HTML/CSS. A Unity/C#/OpenXR Quest 3S sensor testbed awaits runtime verification; Voice Copilot uses language models through OmniRoute.
+
+NASA measurements remain separate from synthetic telemetry. Orbital terrain cannot resolve wheel-scale obstacles. Physical rover integration, onboard Guardian and the Mars base remain planned; terrestrial rover testing comes next. Future astronauts could join the same map and data network, toward a Mars surface "internet"; protocols and infrastructure require development.

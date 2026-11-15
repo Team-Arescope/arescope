@@ -1,0 +1,80 @@
+{
+  "cameraSelections": 6,
+  "public": true,
+  "productionMutations": 0,
+  "errors": [],
+  "views": [
+    {
+      "width": 1440,
+      "overflow": 0,
+      "buttons": [
+        {
+          "border": 1,
+          "height": 36,
+          "color": "rgba(238, 226, 217, 0.28)"
+        },
+        {
+          "border": 1,
+          "height": 36,
+          "color": "rgba(238, 226, 217, 0.28)"
+        },
+        {
+          "border": 1,
+          "height": 36,
+          "color": "rgba(238, 226, 217, 0.28)"
+        },
+        {
+          "border": 1,
+          "height": 36,
+          "color": "rgba(238, 226, 217, 0.28)"
+        },
+        {
+          "border": 1,
+          "height": 36,
+          "color": "rgba(238, 226, 217, 0.28)"
+        },
+        {
+          "border": 1,
+          "height": 36,
+          "color": "rgba(238, 226, 217, 0.28)"
+        }
+      ]
+    },
+    {
+      "width": 390,
+      "overflow": 0,
+      "buttons": [
+        {
+          "border": 1,
+          "height": 36,
+          "color": "rgba(238, 226, 217, 0.28)"
+        },
+        {
+          "border": 1,
+          "height": 36,
+          "color": "rgba(238, 226, 217, 0.28)"
+        },
+        {
+          "border": 1,
+          "height": 36,
+          "color": "rgba(238, 226, 217, 0.28)"
+        },
+        {
+          "border": 1,
+          "height": 36,
+          "color": "rgba(238, 226, 217, 0.28)"
+        },
+        {
+          "border": 1,
+          "height": 36,
+          "color": "rgba(238, 226, 217, 0.28)"
+        },
+        {
+          "border": 1,
+          "height": 36,
+          "color": "rgba(238, 226, 217, 0.28)"
+        }
+      ]
+    }
+  ]
+}
