@@ -1,4 +1,4 @@
-"""Create an eight-slide pitch copy with a playable demo, keeping submission originals."""
+"""Create a strict seven-slide pitch, including the playable demo and closing."""
 import base64
 from pathlib import Path
 import re
@@ -20,11 +20,22 @@ body.video-slide-active .hud,body.video-slide-active #dots,body.video-slide-acti
 .demo-action:focus-visible{outline:2px solid #f2b28e;outline-offset:4px}
 .demo-error{position:absolute;left:48px;right:48px;top:44px;padding:14px 20px;background:#160e0bf0;border:1px solid #ee8a5b;border-radius:6px;font:16px Manrope,sans-serif;color:#eee2d9}
 .demo-error a{color:#f2b28e}
+.merged-problem .story-grid{grid-template-columns:5fr 5.7fr;gap:34px}
+.merged-problem .story-copy h2{font-size:32px;line-height:1.2;margin:8px 0 14px}
+.merged-problem .story-lines p{font-size:17px;line-height:1.5;margin:0 0 10px}
+.merged-problem .delay-signal{padding:10px 0;margin:4px 0 14px}
+.merged-problem .delay-signal strong{font-size:34px}
+.merged-risk-list{display:grid;gap:12px;margin:0}
+.merged-risk-list div{padding-left:12px;border-left:2px solid var(--copper)}
+.merged-risk-list dt{font-size:16px;font-weight:600;color:var(--paper);line-height:1.4}
+.merged-risk-list dd{font-size:14px;line-height:1.45;color:var(--muted);margin:3px 0 0}
+.merged-problem .bridge{font-size:13px;line-height:1.5;margin:14px 0 10px}
+.merged-problem .source-note{font-size:11px;line-height:1.5;margin:0}
 """
 
 slide = """
-  <!-- PITCH SLIDE 06: EMBEDDED THIRTY-SECOND DEMONSTRATION -->
-  <section class="slide demo-slide" data-p="855,-380,.66,0" data-label="Fleet Recovery Demo" aria-label="Slide 6: Thirty-second simulated fleet recovery demonstration">
+  <!-- PITCH SLIDE 05: EMBEDDED THIRTY-SECOND DEMONSTRATION -->
+  <section class="slide demo-slide" data-p="855,-380,.66,0" data-label="Fleet Recovery Demo" aria-label="Slide 5: Thirty-second simulated fleet recovery demonstration">
     <video id="fleet-demo-video" class="demo-video" controls muted playsinline preload="metadata" poster="__POSTER__" aria-label="Arescope fleet survey, wheel obstruction, neighbour assistance and validated recovery. Thirty seconds.">
       <source src="__MOVIE__" type="video/mp4">
       Your browser cannot play this video. <a href="https://arescope.mrfenek.eu.cc/static/demo/Arescope-Fleet-Demo-30s.mp4">Open the public demo</a>.
@@ -75,11 +86,32 @@ def replace_once(text, before, after):
     return text.replace(before, after, 1)
 
 pitch = original
+merged_copy = """<div class="story-copy">
+          <div class="r kick">The problem · Mars rover operations</div>
+          <h2 class="r">Rover risks and delayed help</h2>
+          <div class="story-lines"><p class="r">In 2009, Spirit broke through a thin crust into soft sand at Troy.</p></div>
+          <div class="r delay-signal"><strong>3–22 min</strong><span class="mono">Earth signal delay · one way</span></div>
+          <dl class="merged-risk-list">
+            <div class="r"><dt>Dust, glare &amp; low texture</dt><dd>Cameras lose reliable visual landmarks.</dd></div>
+            <div class="r"><dt>Wheel slip &amp; obstruction</dt><dd>Motion can stall in soft terrain.</dd></div>
+            <div class="r"><dt>Sensor &amp; link dropout</dt><dd>Missing data interrupts the mission view.</dd></div>
+          </dl>
+          <p class="r bridge">Arescope connects risk warnings, coordinated help and operator review.</p>
+          <p class="r source-note"><a href="https://science.nasa.gov/photojournal/spirits-view-from-troy/" target="_blank" rel="noopener">NASA/JPL · Spirit at Troy</a><br><a href="https://science.nasa.gov/blog/speaking-percys-language-how-to-talk-so-perseverance-will-listen/" target="_blank" rel="noopener">NASA · Mars communication delay</a></p>
+        </div>
+        """
+start=pitch.index('<div class="story-copy">')
+end=pitch.index('<div class="r c troy-card"',start)
+pitch=pitch[:start]+merged_copy+pitch[end:]
+pitch=replace_once(pitch,'class="slide" data-p="940,390,.88,12" data-label="Backstory · 2009"',
+                   'class="slide merged-problem" data-p="940,390,.88,12" data-label="Rover Risks"')
+start=pitch.index('  <!-- SLIDE 03: THE PROBLEM -->')
+end=pitch.index('<!-- SLIDE 04: MISSION CONTROL AND SENSOR TESTBED -->',start)
+pitch=pitch[:start]+pitch[end:]
+pitch=re.sub(r'<aside class="speaker-notes" hidden data-seconds="25">0:15–0:40\..*?</aside>',
+    '<aside class="speaker-notes" hidden data-seconds="35">Spirit broke through a thin crust at Troy in 2009. A signal takes 3–22 minutes one way between Earth and Mars. Dust, glare, low texture, wheel slip, obstructions, and sensor or link dropout can degrade mission awareness. Arescope joins risk warnings, coordinated assistance and reviewed learning. The Troy drawing is illustrative and does not claim hidden-soil detection or that Arescope would have saved Spirit. Sources: NASA/JPL Spirit’s View from Troy; NASA Speaking Percy’s Language; NASA Self-Driving Perseverance Takes the Wheel.</aside>',pitch,count=1)
 pitch = replace_once(pitch, '</head>', '<style>\n' + css + '\n</style>\n</head>')
-pitch = replace_once(pitch, '  <!-- SLIDE 06: WHAT WORKS TODAY -->', slide + '  <!-- PITCH SLIDE 07: WHAT WORKS TODAY -->')
-pitch = pitch.replace('aria-label="Slide 6: Prototype evidence', 'aria-label="Slide 7: Prototype evidence')
-pitch = pitch.replace('aria-label="Slide 7: Impact, roadmap', 'aria-label="Slide 8: Impact, roadmap')
-pitch = pitch.replace('Keys 1–7', 'Keys 1–8').replace('01 / 07', '01 / 08')
+pitch = replace_once(pitch, '  <!-- SLIDE 06: WHAT WORKS TODAY -->', slide + '  <!-- PITCH SLIDE 06: WHAT WORKS TODAY -->')
 pitch = pitch.replace('Survey about 40 km² with 1–6 simulated rovers and coordinate inspection assistance.',
                       'Survey about 40 km² with 1–6 simulated rovers and coordinate simulated recovery.')
 pitch = pitch.replace('Simulated rovers share coverage. Guardian flags risk and a coordinator dispatches an inspection rover.',
@@ -107,7 +139,11 @@ key_patch = """document.addEventListener('keydown',e=>{
 pitch = replace_once(pitch, key_anchor, key_patch)
 pitch = replace_once(pitch, "button,a,[role=\"button\"],#linkBar", "button,a,video,[data-video-ui],[role=\"button\"],#linkBar")
 pitch = replace_once(pitch, "(function f(t){\n  cx.clearRect", "(function f(t){\n  if(document.body.classList.contains('video-slide-active')){requestAnimationFrame(f);return;}\n  cx.clearRect")
-assert len(re.findall(r'<section class="slide', pitch)) == 8
+assert len(re.findall(r'<section class="slide', pitch)) == 7
+slide_number=iter(range(1,8))
+pitch=re.sub(r'(<section class="slide[^>]*aria-label=")Slide \d+:',
+             lambda match:match[1]+f'Slide {next(slide_number)}:',pitch)
+assert len(re.findall(r'aria-label="Slide [1-7]:',pitch))==7
 
 for standalone in (False, True):
     html = pitch

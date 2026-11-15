@@ -401,6 +401,17 @@ body.video-slide-active .hud,body.video-slide-active #dots,body.video-slide-acti
 .demo-action:focus-visible{outline:2px solid #f2b28e;outline-offset:4px}
 .demo-error{position:absolute;left:48px;right:48px;top:44px;padding:14px 20px;background:#160e0bf0;border:1px solid #ee8a5b;border-radius:6px;font:16px Manrope,sans-serif;color:#eee2d9}
 .demo-error a{color:#f2b28e}
+.merged-problem .story-grid{grid-template-columns:5fr 5.7fr;gap:34px}
+.merged-problem .story-copy h2{font-size:32px;line-height:1.2;margin:8px 0 14px}
+.merged-problem .story-lines p{font-size:17px;line-height:1.5;margin:0 0 10px}
+.merged-problem .delay-signal{padding:10px 0;margin:4px 0 14px}
+.merged-problem .delay-signal strong{font-size:34px}
+.merged-risk-list{display:grid;gap:12px;margin:0}
+.merged-risk-list div{padding-left:12px;border-left:2px solid var(--copper)}
+.merged-risk-list dt{font-size:16px;font-weight:600;color:var(--paper);line-height:1.4}
+.merged-risk-list dd{font-size:14px;line-height:1.45;color:var(--muted);margin:3px 0 0}
+.merged-problem .bridge{font-size:13px;line-height:1.5;margin:14px 0 10px}
+.merged-problem .source-note{font-size:11px;line-height:1.5;margin:0}
 
 </style>
 </head>
@@ -441,20 +452,21 @@ body.video-slide-active .hud,body.video-slide-active #dots,body.video-slide-acti
   </section>
 
   <!-- SLIDE 02: BACKSTORY -->
-  <section class="slide" data-p="940,390,.88,12" data-label="Backstory · 2009" aria-label="Slide 2: Spirit at Troy">
+  <section class="slide merged-problem" data-p="940,390,.88,12" data-label="Rover Risks" aria-label="Slide 2: Spirit at Troy">
     <div class="pad">
       <div class="story-grid">
         <div class="story-copy">
-          <div class="r kick">Backstory · April 2009 · Mars</div>
-          <div class="r yr2009">2009</div>
-          <h2 class="r">Spirit stuck at Troy</h2>
-          <div class="story-lines">
-            <p class="r">A thin crust looked solid. Spirit’s wheels broke through into soft sand.</p>
-            <p class="r muted-line">The wheels began sinking on April 23. Engineers suspended driving to study recovery options.</p>
-          </div>
+          <div class="r kick">The problem · Mars rover operations</div>
+          <h2 class="r">Rover risks and delayed help</h2>
+          <div class="story-lines"><p class="r">In 2009, Spirit broke through a thin crust into soft sand at Troy.</p></div>
           <div class="r delay-signal"><strong>3–22 min</strong><span class="mono">Earth signal delay · one way</span></div>
-          <div class="r bridge">Local risk awareness and Earth oversight<br>operate on different timescales.</div>
-          <p class="r source-note"><a href="https://science.nasa.gov/photojournal/spirits-view-from-troy/" target="_blank" rel="noopener">NASA/JPL · Spirit at Troy, April 2009</a><br><a href="https://science.nasa.gov/blog/speaking-percys-language-how-to-talk-so-perseverance-will-listen/" target="_blank" rel="noopener">NASA · Mars communication delay</a></p>
+          <dl class="merged-risk-list">
+            <div class="r"><dt>Dust, glare &amp; low texture</dt><dd>Cameras lose reliable visual landmarks.</dd></div>
+            <div class="r"><dt>Wheel slip &amp; obstruction</dt><dd>Motion can stall in soft terrain.</dd></div>
+            <div class="r"><dt>Sensor &amp; link dropout</dt><dd>Missing data interrupts the mission view.</dd></div>
+          </dl>
+          <p class="r bridge">Arescope connects risk warnings, coordinated help and operator review.</p>
+          <p class="r source-note"><a href="https://science.nasa.gov/photojournal/spirits-view-from-troy/" target="_blank" rel="noopener">NASA/JPL · Spirit at Troy</a><br><a href="https://science.nasa.gov/blog/speaking-percys-language-how-to-talk-so-perseverance-will-listen/" target="_blank" rel="noopener">NASA · Mars communication delay</a></p>
         </div>
         <div class="r c troy-card" id="troyCard" role="button" tabindex="0" aria-pressed="false" aria-label="Toggle Troy diagram between historical trap and illustrative rover surface scan">
           <div class="troy-head"><span class="lab">MER Spirit · Troy</span><span class="mode-pill" id="troyModePill">2009 · Hidden Trap</span></div>
@@ -811,31 +823,11 @@ body.video-slide-active .hud,body.video-slide-active #dots,body.video-slide-acti
         </div>
       </div>
     </div>
-    <aside class="speaker-notes" hidden data-seconds="25">0:15–0:40. Tell the Spirit story. Click the diagram once to show the illustrative rover-mast scan. This is a surface-awareness concept, not a claim that Arescope sees hidden soil or would have saved Spirit. Sources: NASA/JPL Spirit’s View from Troy and NASA Speaking Percy’s Language, linked on the slide.</aside>
-  </section>
-
-  <!-- SLIDE 03: THE PROBLEM -->
-  <section class="slide" data-p="-215,355,.82,180" data-label="The Problem" aria-label="Slide 3: Real Mars hazards">
-    <div class="pad">
-      <div class="r kick">The problem</div>
-      <h2 class="r">Rover risks and the operator’s view</h2>
-      <div class="r hl"></div>
-      <p class="r lead">Mission decisions depend on reliable sensing and a clear view of each rover’s condition.</p>
-      <div class="hazards">
-        <div class="r c hazard"><div class="ch"><div class="ic"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 12m-2 0a2 2 0 1 0 4 0a2 2 0 1 0 -4 0"/><path d="M5 7h1a2 2 0 0 0 2 -2a1 1 0 0 1 1 -1h6a1 1 0 0 1 1 1a2 2 0 0 0 2 2h1a2 2 0 0 1 2 2v9a2 2 0 0 1 -2 2h-14a2 2 0 0 1 -2 -2v-9a2 2 0 0 1 2 -2"/></svg></div><b>Raised dust on optics</b></div><p>Coated lenses lose contrast and reliable surface points.</p></div>
-        <div class="r c hazard"><div class="ch"><div class="ic"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M3 12h1M12 3v1M20 12h1M12 20v1M5.6 5.6l.7 .7M17.7 17.7l.7 .7M5.6 18.4l.7 -.7M17.7 6.3l.7 -.7"/></svg></div><b>Glare &amp; deep shadow</b></div><p>Lighting extremes hide the features used for tracking.</p></div>
-        <div class="r c hazard"><div class="ch"><div class="ic"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 4h16v16h-16zM8 8h.01M16 8h.01M12 12h.01M8 16h.01M16 16h.01"/></svg></div><b>Low-texture terrain</b></div><p>Uniform sand offers few stable visual landmarks.</p></div>
-        <div class="r c hazard"><div class="ch"><div class="ic"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="2"/><path d="M12 4v6M12 14v6M4 12h6M14 12h6"/></svg></div><b>Soft-sand wheel slip</b></div><p>Wheels turn while actual movement falls behind.</p></div>
-        <div class="r c hazard"><div class="ch"><div class="ic"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 15l6 -6M7 10l-2 2a4 4 0 0 0 6 6l2 -2M11 8l2 -2a4 4 0 0 1 6 6l-2 2"/></svg></div><b>Sensor &amp; link drops</b></div><p>Missing frames or communications interrupt context.</p></div>
-        <div class="r c hazard warm"><div class="ch"><div class="ic"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l8 4v5c0 5 -4 8 -8 9c-4 -1 -8 -4 -8 -9v-5l8 -4"/><path d="M9 12l2 2l4 -4"/></svg></div><b>One incident workflow</b></div><p>Inspect degraded data, review Guardian warnings and validate each model update.</p></div>
-      </div>
-      <p class="r foot">NASA terrain supplies context. Local captures and simulated faults remain distinct data sources.</p>
-    </div>
-    <aside class="speaker-notes" hidden data-seconds="25">0:40–1:05. Explain realistic optical, tracking and traction failures. NASA rovers already have autonomous navigation. Arescope connects terrain context, degraded sensing, warnings and reviewed learning. Current Guardian inference runs in LAB. Source: NASA, Self-Driving Perseverance Takes the Wheel, https://www.nasa.gov/missions/mars-2020-perseverance/perseverance-rover/nasas-self-driving-perseverance-mars-rover-takes-the-wheel/ .</aside>
+    <aside class="speaker-notes" hidden data-seconds="35">Spirit broke through a thin crust at Troy in 2009. A signal takes 3–22 minutes one way between Earth and Mars. Dust, glare, low texture, wheel slip, obstructions, and sensor or link dropout can degrade mission awareness. Arescope joins risk warnings, coordinated assistance and reviewed learning. The Troy drawing is illustrative and does not claim hidden-soil detection or that Arescope would have saved Spirit. Sources: NASA/JPL Spirit’s View from Troy; NASA Speaking Percy’s Language; NASA Self-Driving Perseverance Takes the Wheel.</aside>
   </section>
 
 <!-- SLIDE 04: MISSION CONTROL AND SENSOR TESTBED -->
-  <section class="slide" data-p="930,400,.75,0" data-label="Mission Control & Testbed" aria-label="Slide 4: Mission Control and sensor-mast testbed">
+  <section class="slide" data-p="930,400,.75,0" data-label="Mission Control & Testbed" aria-label="Slide 3: Mission Control and sensor-mast testbed">
     <div class="pad">
       <div class="r kick">The system &amp; sensor testbed</div>
       <h2 class="r">One mission view, from sensor to operator</h2>
@@ -855,7 +847,7 @@ body.video-slide-active .hud,body.video-slide-active #dots,body.video-slide-acti
   </section>
 
 <!-- SLIDE 05: THREE AI LEVELS -->
-  <section class="slide" data-p="855,-380,.66,0" data-label="Three AI Levels" aria-label="Slide 5: Target architecture with three AI levels" data-architecture="target">
+  <section class="slide" data-p="855,-380,.66,0" data-label="Three AI Levels" aria-label="Slide 4: Target architecture with three AI levels" data-architecture="target">
     <div class="pad">
       <div class="r kick">Target architecture · three AI levels</div>
       <h2 class="r">Three AI levels across the mission</h2>
@@ -874,8 +866,8 @@ body.video-slide-active .hud,body.video-slide-active #dots,body.video-slide-acti
   </section>
 
 
-  <!-- PITCH SLIDE 06: EMBEDDED THIRTY-SECOND DEMONSTRATION -->
-  <section class="slide demo-slide" data-p="855,-380,.66,0" data-label="Fleet Recovery Demo" aria-label="Slide 6: Thirty-second simulated fleet recovery demonstration">
+  <!-- PITCH SLIDE 05: EMBEDDED THIRTY-SECOND DEMONSTRATION -->
+  <section class="slide demo-slide" data-p="855,-380,.66,0" data-label="Fleet Recovery Demo" aria-label="Slide 5: Thirty-second simulated fleet recovery demonstration">
     <video id="fleet-demo-video" class="demo-video" controls muted playsinline preload="metadata" poster="demo/Arescope-Fleet-Demo-30s.png" aria-label="Arescope fleet survey, wheel obstruction, neighbour assistance and validated recovery. Thirty seconds.">
       <source src="demo/Arescope-Fleet-Demo-30s.mp4" type="video/mp4">
       Your browser cannot play this video. <a href="https://arescope.mrfenek.eu.cc/static/demo/Arescope-Fleet-Demo-30s.mp4">Open the public demo</a>.
@@ -886,8 +878,8 @@ body.video-slide-active .hud,body.video-slide-active #dots,body.video-slide-acti
     <aside class="speaker-notes" hidden data-seconds="30">Let the thirty-second clip play. Three simulated rovers survey archived HiRISE terrain. A wheel obstruction halts Rover 01, a healthy neighbour performs simulated service, Guardian checks fresh data, and the pair resumes surveying. Time and initial formation are staged for this software demonstration. Physical rover repair has not been validated. Continue to the evidence slide when the clip ends. Space pauses or resumes; leaving the slide stops playback.</aside>
   </section>
 
-  <!-- PITCH SLIDE 07: WHAT WORKS TODAY -->
-  <section class="slide" data-p="880,-400,.75,0" data-label="What Works Today" aria-label="Slide 7: Prototype evidence and hold-out metrics">
+  <!-- PITCH SLIDE 06: WHAT WORKS TODAY -->
+  <section class="slide" data-p="880,-400,.75,0" data-label="What Works Today" aria-label="Slide 6: Prototype evidence and hold-out metrics">
     <div class="pad">
       <div class="r kick">What works today · prototype evidence</div>
       <h2 class="r">Demonstrated today</h2>
@@ -908,7 +900,7 @@ body.video-slide-active .hud,body.video-slide-active #dots,body.video-slide-acti
   </section>
 
   <!-- SLIDE 07: IMPACT, ROADMAP AND CLOSING -->
-  <section class="slide" data-p="835,345,1.02,0" data-label="Impact & Closing" aria-label="Slide 8: Impact, roadmap and AI use">
+  <section class="slide" data-p="835,345,1.02,0" data-label="Impact & Closing" aria-label="Slide 7: Impact, roadmap and AI use">
     <div class="pad">
       <div class="r kick">Impact &amp; roadmap</div>
       <h2 class="r">Rover operations today, fleet autonomy next</h2>
@@ -933,11 +925,11 @@ body.video-slide-active .hud,body.video-slide-active #dots,body.video-slide-acti
 </div>
 
 <div id="dots" aria-label="Slide jump navigation"></div>
-<div id="hint">Click or press → to continue · Keys 1–8 · F fullscreen</div>
+<div id="hint">Click or press → to continue · Keys 1–7 · F fullscreen</div>
 <div id="bar"></div>
 <div id="nav">
   <button id="pv" type="button" aria-label="Previous slide"><svg viewBox="0 0 24 24"><path d="M15 6l-6 6l6 6"/></svg></button>
-  <span id="cnt">01 / 08</span>
+  <span id="cnt">01 / 07</span>
   <button id="nx" type="button" aria-label="Next slide"><svg viewBox="0 0 24 24"><path d="M9 6l6 6l-6 6"/></svg></button>
   <button id="fs" type="button" aria-label="Fullscreen"><svg viewBox="0 0 24 24"><path d="M4 8v-2a2 2 0 0 1 2 -2h2"/><path d="M4 16v2a2 2 0 0 0 2 2h2"/><path d="M16 4h2a2 2 0 0 1 2 2v2"/><path d="M16 20h2a2 2 0 0 0 2 -2v-2"/></svg></button>
 </div>

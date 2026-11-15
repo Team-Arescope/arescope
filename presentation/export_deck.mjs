@@ -4,12 +4,13 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 
-// Export the main V2 deck through CDP without changing either interactive HTML.
+// Export a seven-slide deck through CDP without changing its interactive HTML.
 // All generated files and the disposable Chrome profile stay in presentation/.
 const baseDir = path.dirname(fileURLToPath(import.meta.url));
-const source = path.join(baseDir, 'Arescope — NASA Space Apps Challenge 2026.html');
-const screenshotDir = path.join(baseDir, 'screenshots');
-const pdfPath = path.join(baseDir, 'Arescope-V2-Deck.pdf');
+const pitchExport = process.argv.includes('--pitch');
+const source = path.join(baseDir, pitchExport ? 'Arescope-V2-Pitch-With-Demo-Standalone.html' : 'Arescope — NASA Space Apps Challenge 2026.html');
+const screenshotDir = path.join(baseDir, pitchExport ? 'pitch-screenshots' : 'screenshots');
+const pdfPath = path.join(baseDir, pitchExport ? 'Arescope-V2-Pitch-With-Demo.pdf' : 'Arescope-V2-Deck.pdf');
 const sleep = ms => new Promise(resolve => setTimeout(resolve, ms));
 let proc, ws, cdp, profile;
 
@@ -118,6 +119,14 @@ async function main() {
     await evaluate(n => go(n), slide);
     await sleep(1900);
     await evaluate(async () => {
+      const video=document.querySelector('#stage > .slide.on video');
+      if(video){
+        video.pause();
+        if(video.readyState<2)await new Promise(resolve=>video.addEventListener('loadeddata',resolve,{once:true}));
+        await new Promise(resolve=>{video.addEventListener('seeked',resolve,{once:true});video.currentTime=17;});
+      }
+    });
+    await evaluate(async () => {
       await Promise.all(document.querySelector('#stage > .slide.on').getAnimations({ subtree: true })
         .filter(animation => Number.isFinite(animation.effect.getComputedTiming().iterations))
         .map(animation => animation.finished.catch(() => {})));
@@ -177,7 +186,18 @@ async function main() {
       active.inert = false;
       active.setAttribute('aria-hidden', 'false');
       for (const note of stage.querySelectorAll('.speaker-notes')) note.remove();
-      page.append(stage, document.querySelector('.hud').cloneNode(true));
+      // PDF readers do not play HTML media. Preserve the demo as a poster with
+      // a clickable link to the exact thirty-second public MP4.
+      for(const video of stage.querySelectorAll('video')){
+        const link=document.createElement('a');link.href='https://arescope.mrfenek.eu.cc/static/demo/Arescope-Fleet-Demo-30s.mp4';
+        link.style.cssText='position:absolute;inset:0;display:block';
+        const image=document.createElement('img');image.src=video.poster;image.alt='Thirty-second simulated fleet recovery demonstration';image.style.cssText='width:1280px;height:720px;display:block';
+        const label=document.createElement('span');label.textContent='Play the 30-second demo';label.style.cssText='position:absolute;right:28px;bottom:84px;padding:10px 16px;color:#eee2d9;background:#160e0b;border:1px solid #ee8a5b;border-radius:5px;font:16px Manrope,sans-serif';
+        link.append(image,label);video.replaceWith(link);
+      }
+      for(const control of stage.querySelectorAll('[data-video-ui]'))control.remove();
+      page.append(stage);
+      if(!active.classList.contains('demo-slide'))page.append(document.querySelector('.hud').cloneNode(true));
       document.getElementById('arescope-print-root').append(page);
     }, { n: slide, background: background.data });
     console.log('CAPTURE:', JSON.stringify({ ...state, bytes: png.length }));

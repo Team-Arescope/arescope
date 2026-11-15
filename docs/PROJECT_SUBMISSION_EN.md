@@ -34,13 +34,13 @@ GitHub repository.
 
 Slide alternative:
 
-https://github.com/Team-Arescope/arescope/blob/main/presentation/Arescope-V2-Deck.pdf
+https://github.com/Team-Arescope/arescope/blob/main/presentation/Arescope-V2-Pitch-With-Demo.pdf
 
-The form permits one demonstration link: a video of at most 30 seconds or a deck
-of at most seven slides, including the title and introduction. The PDF above is
-the seven-slide form option. The separate pitch with embedded video uses eight
-slides within a ten-slide budget; that pitch exceeds the form's seven-slide
-limit. The 30-second MP4 is the recommended form submission.
+The strict limit is seven slides including the greeting, video and closing.
+The current pitch with embedded video meets it by combining the Spirit story,
+communication delay and rover risks into one slide. Its standalone HTML works
+offline; its PDF shows a linked video poster. The 30-second MP4 remains a direct
+demonstration option for the form.
 
 ## Project
 
