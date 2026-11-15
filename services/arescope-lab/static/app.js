@@ -49,14 +49,17 @@
       };
       const vs = compile(gl.VERTEX_SHADER, `
         attribute vec3 position; uniform float yaw; uniform float pitch; uniform float zoom;
-        uniform float aspect; uniform float elevation; uniform vec3 viewCenter; uniform float viewScale; varying float height; varying float depth;
+        uniform float aspect; uniform float elevation; uniform vec3 viewCenter; uniform float viewScale; uniform float orthographic; varying float height; varying float depth;
         void main(){
           vec3 q=(position-viewCenter)*viewScale;
           vec3 p=vec3(q.x,q.y*elevation,q.z);
           vec3 r=vec3(cos(yaw)*p.x+sin(yaw)*p.z,p.y,-sin(yaw)*p.x+cos(yaw)*p.z);
           r=vec3(r.x,cos(pitch)*r.y-sin(pitch)*r.z,sin(pitch)*r.y+cos(pitch)*r.z);
           float d=3.8/zoom-r.z;
-          gl_Position=vec4(r.x*2.2/aspect,r.y*2.2,1.002*d-.2002,d);
+          // The inspection camera uses a parallel lens: a passing rover cannot
+          // explode in size as it crosses the eye plane of a low-angle orbit.
+          gl_Position=mix(vec4(r.x*2.2/aspect,r.y*2.2,1.002*d-.2002,d),
+            vec4(r.x*2.2*zoom/(3.8*aspect),r.y*2.2*zoom/3.8,-r.z/256.0,1.0),orthographic);
           height=position.y;depth=d;
         }`);
       const fs = compile(gl.FRAGMENT_SHADER, `
@@ -65,7 +68,7 @@
           gl_FragColor=vec4(mix(color*mix(light,1.0,line),vec3(.051,.035,.027),fog),1.0);}`);
       this.program = gl.createProgram(); gl.attachShader(this.program, vs); gl.attachShader(this.program, fs); gl.linkProgram(this.program);
       if (!gl.getProgramParameter(this.program, gl.LINK_STATUS)) throw new Error('Terrain renderer could not start.');
-      this.uniforms = Object.fromEntries(['yaw', 'pitch', 'zoom', 'aspect', 'elevation', 'color', 'line', 'viewCenter', 'viewScale'].map(k => [k, gl.getUniformLocation(this.program, k)]));
+      this.uniforms = Object.fromEntries(['yaw', 'pitch', 'zoom', 'aspect', 'elevation', 'color', 'line', 'viewCenter', 'viewScale', 'orthographic'].map(k => [k, gl.getUniformLocation(this.program, k)]));
       this.buffers = Object.fromEntries(['points', 'triangles', 'minimal', 'polygonal', 'fleet'].map(k => [k, gl.createBuffer()]));
       new ResizeObserver(() => this.draw()).observe(canvas);
       let drag = null;
@@ -84,7 +87,7 @@
           .sort((a, b) => Math.hypot(a.p.x - x, a.p.y - y) - Math.hypot(b.p.x - x, b.p.y - y))[0];
         if (nearest && Math.hypot(nearest.p.x - x, nearest.p.y - y) < 45) this.focusRover(nearest.id);
       });
-      canvas.addEventListener('wheel', e => { e.preventDefault(); this.zoom = Math.max(.55, Math.min(this.focusedRover || this.fleetFocused ? 12 : 2.3, this.zoom * Math.exp(-e.deltaY * .001))); this.schedule(); }, {passive: false});
+      canvas.addEventListener('wheel', e => { e.preventDefault(); this.zoom = Math.max(.55, Math.min(this.focusedRover || this.fleetFocused ? 1.6 : 2.3, this.zoom * Math.exp(-e.deltaY * .001))); this.schedule(); }, {passive: false});
       canvas.addEventListener('keydown', e => {
         if (e.key.toLowerCase() === 'r') this.reset();
         else if (e.key.toLowerCase() === 'f') this.focusRover(this.focusedRover || this.roverMotion.keys().next().value);
@@ -92,7 +95,7 @@
         else if (e.key === 'ArrowRight') this.yaw = wrapAngle(this.yaw + .1);
         else if (e.key === 'ArrowUp') this.pitch = wrapAngle(this.pitch - .1);
         else if (e.key === 'ArrowDown') this.pitch = wrapAngle(this.pitch + .1);
-        else if (e.key === '+' || e.key === '=') this.zoom = Math.min(this.focusedRover || this.fleetFocused ? 12 : 2.3, this.zoom * 1.1);
+        else if (e.key === '+' || e.key === '=') this.zoom = Math.min(this.focusedRover || this.fleetFocused ? 1.6 : 2.3, this.zoom * 1.1);
         else if (e.key === '-' || e.key === '_') this.zoom = Math.max(.55, this.zoom / 1.1);
         else return;
         e.preventDefault(); this.schedule();
@@ -103,11 +106,11 @@
     reset() { this.yaw = -.5; this.pitch = .8; this.zoom = 1; this.focusedRover = null; this.fleetFocused = false; this.needsInitialFocus = false; this.viewCenter = [0, 0, 0]; this.viewScale = 1; this.draw(); }
     focusRover(carrierId) {
       if (!this.roverMotion.has(carrierId)) return false;
-      this.focusedRover = carrierId; this.fleetFocused = false; this.zoom = 1; this.schedule(); return true;
+      this.focusedRover = carrierId; this.fleetFocused = false; this.cameraFrameKey = null; this.zoom = 1; this.schedule(); return true;
     }
     focusFleet() {
       if (!this.roverMotion.size) return false;
-      this.focusedRover = null; this.fleetFocused = true; this.zoom = 1; this.schedule(); return true;
+      this.focusedRover = null; this.fleetFocused = true; this.cameraFrameKey = null; this.zoom = 1; this.schedule(); return true;
     }
     schedule() { if (!this.pending && !(typeof document !== 'undefined' && document.hidden)) this.pending = requestAnimationFrame(() => { this.pending = 0; this.draw(); }); }
     now() { return typeof performance !== 'undefined' ? performance.now() : Date.now(); }
@@ -156,12 +159,7 @@
         dz: ((h01 - h00) * (1 - dx) + (h11 - h10) * dx) / sz};
     }
     validPoint(p) { return Array.isArray(p) && p.length === 3 && p.every(Number.isFinite); }
-    roverScale(position) {
-      const points = this.data.points, last = points.at(-1), margin = Math.min(position[0] - points[0][0], last[0] - position[0], position[2] - points[0][2], last[2] - position[2]);
-      // Keep even an enlarged wheel's outer edge on the archive. Never move the
-      // authoritative rover centre inward to make a diagram fit at the boundary.
-      return Math.max(0, Math.min(Math.max(1, this.extent / 700), margin / 30));
-    }
+    roverScale() { return .5; } // Fixed map metres per model unit, including at archive edges.
     sampleMotion(motion, now) {
       const t = this.motionPreference?.matches ? 1 : Math.max(0, Math.min(1, (now - motion.started) / motion.duration));
       const distance = motion.length * t;
@@ -183,6 +181,9 @@
     }
     setFleet(state) {
       const now = this.now(), previousElapsed = this.fleetElapsed;
+      if (Number.isFinite(previousElapsed) && state?.elapsedS > previousElapsed && now > this.fleetReceivedAt) {
+        this.snapshotCadence = Math.min(2000, Math.max(now - this.fleetReceivedAt, (this.snapshotCadence || 1000) * .9));
+      }
       this.fleetState = state; this.fleetElapsed = state?.elapsedS; this.fleetGeometry = []; this.fleetAnchors = []; this.fleetStatic = [];
       // Fleet coordinates belong to the archived HiRISE frame, never MOLA or Quest local space.
       if (this.data?.source !== 'nasa-pds-hirise' || state?.terrainSource !== this.data.source || state?.simulation !== true) { this.roverMotion.clear(); this.roverAnimating = false; this.schedule(); return; }
@@ -207,8 +208,10 @@
         if (!this.validPoint(rover.position)) continue;
         retained.add(rover.carrierId);
         const old = this.roverMotion.get(rover.carrierId), last = old && this.sampleMotion(old, now);
-        const moving = state.running === true && ['surveying', 'responding', 'en_route'].includes(rover.status) && (!rover.fault || rover.fault === 'nominal');
         const same = (a, b) => a && b && Math.hypot(a[0] - b[0], a[2] - b[2]) < 1e-5;
+        const travelStates = ['surveying', 'responding', 'en_route', 'approaching'];
+        const finishingApproach = old && (travelStates.includes(old.rover.status) || old.length > 0) && ['assisting', 'repairing'].includes(rover.status);
+        const moving = state.running === true && (travelStates.includes(rover.status) || finishingApproach) && (!rover.fault || rover.fault === 'nominal');
         if (moving && old && same(old.path.at(-1), rover.position)) { old.rover = rover; old.color = fleetColors[i]; continue; }
         let path = [rover.position.slice()];
         if (moving && old && last && !this.motionPreference?.matches) {
@@ -221,9 +224,12 @@
         }
         path = path.filter((p, n) => n === 0 || !same(p, path[n - 1]));
         const length = path.slice(1).reduce((sum, p, n) => sum + Math.hypot(...p.map((v, k) => v - path[n][k])), 0);
-        const duration = Number.isFinite(previousElapsed) && state.elapsedS > previousElapsed && state.speedMultiplier > 0 ? Math.max(120, Math.min(1000, (state.elapsedS - previousElapsed) / state.speedMultiplier * 1000)) : 1000;
+        // Keep a small acknowledged-route buffer for variable request latency.
+        // Every new route starts at the rendered position and retains its corners;
+        // no position is ever extrapolated beyond the latest server endpoint.
+        const duration = Math.min(2500, Math.max(1000, this.snapshotCadence || 1000) * 1.25 + 250);
         this.roverMotion.set(rover.carrierId, {rover, color: fleetColors[i], path, length, duration, started: now,
-          angle: last?.angle || 0, toolPhase: old?.toolPhase || 0, heading: Number.isFinite(rover.headingDeg) ? rover.headingDeg * Math.PI / 180 : 0});
+          angle: last?.angle || 0, toolTime: old?.toolTime || 0, toolUpdatedAt: now, heading: Number.isFinite(rover.headingDeg) ? rover.headingDeg * Math.PI / 180 : 0});
       }
       for (const id of this.roverMotion.keys()) if (!retained.has(id)) this.roverMotion.delete(id);
       this.updateRovers(now, true);
@@ -303,22 +309,68 @@
       box(-5, 6.5, 19, 5, 10.5, 22.7, motion.color);
       box(-4, 10.55, 19.6, -1, 10.85, 22, '#202b31'); box(1, 10.55, 19.6, 4, 10.85, 22, '#202b31');
       const recovery = motion.rover.recovery || {}, target = this.roverMotion.get(motion.rover.targetId);
-      const repairing = motion.rover.status === 'repairing' || (recovery.phase === 'repairing' && Boolean(motion.rover.targetId));
+      const requestedRepair = motion.rover.status === 'repairing' || (recovery.phase === 'repairing' && Boolean(target));
       const live = this.fleetState.running === true && !this.motionPreference?.matches && now - this.fleetReceivedAt < 1600;
-      if (live) motion.toolPhase = Math.sin(now * .0035);
-      const phase = this.motionPreference?.matches ? 0 : (motion.toolPhase || 0);
-      let shoulder = local(7, 12, 10.8), elbow = local(11, 15, 14), wrist = local(8, 18, 11);
-      if (repairing && target) {
-        const other = target.sample?.position || target.rover.position;
-        const direction = unit([other[0] - sample.position[0], 0, other[2] - sample.position[2]]);
-        const reach = Math.min(28 * markerScale, Math.hypot(other[0] - sample.position[0], other[2] - sample.position[2]) * .65);
-        elbow = add(shoulder, add(mul(direction, reach * .45), mul(up, (6 + phase * .5) * markerScale)));
-        wrist = add(shoulder, add(mul(direction, reach), mul(up, (phase * .7 - 1) * markerScale)));
+      const other = target?.sample?.position || target?.rover.position;
+      const separation = other ? Math.hypot(other[0] - sample.position[0], other[2] - sample.position[2]) : Infinity;
+      const inServiceZone = separation >= 22 - .01 && separation <= 26 + .01;
+      const stationary = !sample.active && !target?.sample?.active;
+      let repairing = Boolean(requestedRepair && target && inServiceZone && stationary), serviceContact = null, serviceReachable = false;
+      // Time accumulates only while receiving fresh, running service snapshots.
+      // Paused, stale and reduced-motion frames retain the exact last joint pose.
+      if (repairing && live) motion.toolTime = (motion.toolTime || 0) + Math.max(0, Math.min(80, now - (motion.toolUpdatedAt ?? now)));
+      motion.toolUpdatedAt = now;
+      const phase = (motion.toolTime || 0) * .0038;
+      let shoulder = local(0, 16, 10.8), elbow = local(2, 3, 18), wrist = local(5, 10, 12);
+      let tool = add(wrist, mul(up, -1)), serviceNormal = up, jointSwivel = 0;
+      if (repairing) {
+        // Reconstruct the target's actual suspension frame. Tool coordinates use
+        // the same exaggerated terrain / unexaggerated body convention as its mesh.
+        const th = target.sample?.heading ?? (target.rover.headingDeg || 0) * Math.PI / 180, tc = [];
+        for (const side of [-12.5, 12.5]) for (const forward of [-13, 0, 13]) {
+          const x = other[0] + (Math.cos(th) * side + Math.sin(th) * forward) * markerScale;
+          const z = other[2] + (-Math.sin(th) * side + Math.cos(th) * forward) * markerScale;
+          const s = this.surface(x, z); tc.push({p: [x, s.height * elevation, z], up: unit([-s.dx * elevation, 1, -s.dz * elevation])});
+        }
+        const tu = unit(tc.reduce((sum, c) => add(sum, c.up), [0, 0, 0])), tr = unit(cross(tu, [Math.sin(th), 0, Math.cos(th)])), tf = unit(cross(tr, tu));
+        const centre = mul(tc.reduce((sum, c) => add(sum, c.p), [0, 0, 0]), 1 / 6);
+        const clearance = Math.max(0, ...tc.map(c => dot(sub(c.p, centre), tu)));
+        const targetLocal = (x, z, y) => add(centre, add(add(mul(tr, x), mul(tf, z)), mul(tu, y + clearance)));
+        const towardHelper = sub(shoulder, centre), dx = dot(towardHelper, tr), dz = dot(towardHelper, tf);
+        const sweep = Math.sin(phase) * 1.25;
+        // Service the nearest deck panel; wheel faults use the exposed wheel rim.
+        const wheelFault = ['wheel_slip', 'wheel_jam', 'wheel_stuck', 'stuck_wheel'].includes(target.rover.fault);
+        let sx, sz, sy;
+        if (wheelFault) {
+          sx = Math.sign(dx || 1) * 7.37; sz = Math.abs(dz) > 3 ? Math.sign(dz) * 6.5 : 0; sy = 2.1 + Math.sin(phase) * .7;
+          serviceNormal = mul(tr, Math.sign(dx || 1));
+        } else if (Math.abs(dx) / 4.5 > Math.abs(dz) / 6.5) {
+          sx = Math.sign(dx || 1) * 4.5; sz = Math.max(-5.8, Math.min(5.8, dz * 4.5 / Math.abs(dx) + sweep)); sy = 4.3 + .75 * Math.cos(phase);
+          serviceNormal = mul(tr, Math.sign(dx || 1));
+        } else {
+          sz = Math.sign(dz || 1) * (dz < 0 ? 7 : 6.5); sx = Math.max(-3.7, Math.min(3.7, dx * Math.abs(sz) / Math.abs(dz) + sweep)); sy = 4.3 + .75 * Math.cos(phase);
+          serviceNormal = mul(tf, Math.sign(dz || 1));
+        }
+        serviceContact = targetLocal(sx, sz, sy); tool = serviceContact;
+        // Two fixed-length links and a short tool: solve the elbow instead of
+        // stretching an arbitrary beam toward a remote carrier.
+        const desiredWrist = add(tool, mul(serviceNormal, .65)), delta = sub(desiredWrist, shoulder), distance = Math.hypot(...delta);
+        const upper = 7.2, forearm = 6.15;
+        serviceReachable = distance <= upper + forearm && distance >= Math.abs(upper - forearm);
+        if (serviceReachable) {
+          wrist = desiredWrist;
+          const axis = unit(delta), bend = unit(sub(up, mul(axis, dot(up, axis)))), tangent = cross(axis, bend);
+          const along = (upper * upper - forearm * forearm + distance * distance) / (2 * distance);
+          const rise = Math.sqrt(Math.max(0, upper * upper - along * along));
+          jointSwivel = Math.sin(phase * .83) * .3;
+          elbow = add(shoulder, add(mul(axis, along), mul(add(mul(bend, Math.cos(jointSwivel)), mul(tangent, Math.sin(jointSwivel))), rise)));
+        } else { repairing = false; serviceContact = null; tool = add(wrist, mul(up, -1)); }
       }
+      rod(local(0, 12, 10.8), shoulder, 1.2 * markerScale, '#9caaa9');
       rod(shoulder, elbow, .95 * markerScale, '#d4ddd7'); rod(elbow, wrist, .7 * markerScale, motion.color);
-      const grip = mul(right, 1.7 * markerScale);
-      rod(sub(wrist, grip), add(wrist, grip), .6 * markerScale, '#d4ddd7');
-      for (const sign of [-1, 1]) rod(add(wrist, mul(grip, sign)), add(add(wrist, mul(grip, sign)), mul(up, -2 * markerScale)), .42 * markerScale, '#d4ddd7');
+      rod(wrist, tool, .65 * markerScale, '#d4ddd7');
+      const grip = mul(unit(cross(serviceNormal, Math.abs(serviceNormal[1]) < .9 ? up : right)), .7);
+      rod(sub(tool, grip), add(tool, grip), .5 * markerScale, '#d4ddd7');
       if (motion.rover.fault && motion.rover.fault !== 'nominal') box(-5.2, 6.3, 23, 5.2, 9.8, 23.7, recovery.requiresApproval ? '#e8aa62' : '#e2a58d');
       // A small, steady deck strip reports acknowledged recovery progress; the
       // animation never advances this value or clears a simulated fault itself.
@@ -328,10 +380,12 @@
         if (progress > 0) box(-7.5, -15.6, 12.05, -7.5 + 15 * progress, -13.4, 12.7, '#a7d9c1');
       }
       for (const [color, vertices] of byColor) batches.push({color, vertices, mode: this.gl.TRIANGLES});
-      const p0 = this.data.points[0], pn = this.data.points.at(-1);
-      const grounded = contacts.every(w => w.contact[0] >= p0[0] && w.contact[0] <= pn[0] && w.contact[2] >= p0[2] && w.contact[2] <= pn[2] && Math.abs(w.contact[1] / elevation - this.surface(w.contact[0], w.contact[2]).height) < 1e-7);
+      const grounded = contacts.every(w => Math.abs(w.contact[1] / elevation - this.surface(w.contact[0], w.contact[2]).height) < 1e-7);
       this.fleetAnchors.push({carrierId: motion.rover.carrierId, position: pack(local(0, 8, 23)), wheelAngle: sample.angle, wheelCount: contacts.length,
         groundContacts: contacts.map(w => [w.contact[0], w.contact[1] / elevation, w.contact[2]]), grounded, repairing,
+        armJoints: Object.fromEntries(Object.entries({shoulder, elbow, wrist}).map(([k, p]) => [k, [p[0], p[1] / elevation, p[2]]])),
+        toolTip: [tool[0], tool[1] / elevation, tool[2]], serviceContact: serviceContact && [serviceContact[0], serviceContact[1] / elevation, serviceContact[2]],
+        serviceReachable, jointSwivel, serviceDistance: Number.isFinite(separation) ? separation : null,
         worldPosition: sample.position.slice(), visualScale: markerScale, recoveryPhase: recovery.phase || 'none'});
       return {batches, active: sample.active || (repairing && live)};
     }
@@ -353,31 +407,47 @@
       const [x, y, z] = point.map((v, k) => (v - this.viewCenter[k]) * this.viewScale), cy = Math.cos(this.yaw), sy = Math.sin(this.yaw), cp = Math.cos(this.pitch), sp = Math.sin(this.pitch);
       const rx = cy * x + sy * z, rz = -sy * x + cy * z;
       const ry = cp * y * this.scale - sp * rz, depth = 3.8 / this.zoom - (sp * y * this.scale + cp * rz);
-      const nx = rx * 2.2 / (this.canvas.width / this.canvas.height) / depth, ny = ry * 2.2 / depth;
-      return {x: (nx + 1) * this.canvas.clientWidth / 2, y: (1 - ny) * this.canvas.clientHeight / 2, depth, inViewport: depth > .1 && depth < 100.1 && Math.abs(nx) <= 1 && Math.abs(ny) <= 1};
+      const divisor = this.inspectionCamera ? 3.8 / this.zoom : depth;
+      const nx = rx * 2.2 / (this.canvas.width / this.canvas.height) / divisor, ny = ry * 2.2 / divisor;
+      const depthVisible = this.inspectionCamera ? Math.abs(3.8 / this.zoom - depth) < 256 : depth > .1 && depth < 100.1;
+      return {x: (nx + 1) * this.canvas.clientWidth / 2, y: (1 - ny) * this.canvas.clientHeight / 2, depth, inViewport: depthVisible && Math.abs(nx) <= 1 && Math.abs(ny) <= 1};
     }
     draw() {
       this.canvas.dataset.pitch = String(this.pitch); this.canvas.dataset.yaw = String(this.yaw); this.canvas.dataset.zoom = String(this.zoom);
       if (!this.counts) return;
       if (this.roverMotion.size && (this.roverAnimating || this.roverGeometryScale !== this.scale)) this.updateRovers(this.now());
       const focused = this.roverMotion.get(this.focusedRover);
+      const previousCenter = this.viewCenter.slice(), previousScale = this.viewScale;
+      this.inspectionCamera = Boolean(focused || this.fleetFocused);
+      this.zoom = Math.max(.55, Math.min(this.inspectionCamera ? 1.6 : 2.3, this.zoom));
       if (focused) {
         const position = focused.sample?.position || focused.rover.position;
         const partnerId = focused.rover.targetId || focused.rover.recovery?.helperId;
-        const partner = ['repairing', 'validating'].includes(focused.rover.recovery?.phase) || focused.rover.status === 'repairing' ? this.roverMotion.get(partnerId) : null;
+        const partner = ['approaching', 'repairing', 'validating'].includes(focused.rover.recovery?.phase) || ['approaching', 'assisting', 'repairing'].includes(focused.rover.status) ? this.roverMotion.get(partnerId) : null;
         if (partner) {
-          const other = partner.sample?.position || partner.rover.position, margin = Math.max(this.roverScale(position), this.roverScale(other)) * 42;
-          const span = Math.max(Math.abs(position[0] - other[0]), Math.abs(position[2] - other[2]), Math.abs(position[1] - other[1]) * this.scale) + margin * 2;
-          this.viewCenter = this.normalize(position.map((v, k) => (v + other[k]) / 2)); this.viewScale = Math.min(64, this.extent / (span * 1.2));
-        } else { this.viewCenter = this.normalize(position); this.viewScale = Math.min(64, this.extent / (Math.max(.5, this.roverScale(position)) * 120)); }
+          const other = partner.sample?.position || partner.rover.position;
+          const span = Math.max(75, Math.hypot(position[0] - other[0], position[2] - other[2], (position[1] - other[1]) * this.scale) + 40);
+          this.viewCenter = this.normalize(position.map((v, k) => (v + other[k]) / 2), 5 / this.scale); this.viewScale = this.extent / span;
+        } else { this.viewCenter = this.normalize(position, 5 / this.scale); this.viewScale = this.extent / 75; }
       } else if (this.fleetFocused && this.roverMotion.size) {
         const positions = [...this.roverMotion.values()].map(m => m.sample?.position || m.rover.position);
         const lo = [Infinity, Infinity, Infinity], hi = [-Infinity, -Infinity, -Infinity];
         for (const p of positions) { const padding = this.roverScale(p) * 32; p.forEach((v, k) => { lo[k] = Math.min(lo[k], v - padding); hi[k] = Math.max(hi[k], v + padding); }); }
-        this.viewCenter = this.normalize(lo.map((v, k) => (v + hi[k]) / 2));
-        const span = Math.max(hi[0] - lo[0], hi[2] - lo[2], (hi[1] - lo[1]) * this.scale, 50);
-        this.viewScale = Math.min(64, this.extent / (span * 1.35));
+        this.viewCenter = this.normalize(lo.map((v, k) => (v + hi[k]) / 2), 5 / this.scale);
+        const span = Math.max(Math.hypot(hi[0] - lo[0], hi[2] - lo[2], (hi[1] - lo[1]) * this.scale), 75);
+        this.viewScale = this.extent / span;
       } else { this.focusedRover = null; this.fleetFocused = false; this.viewCenter = [0, 0, 0]; this.viewScale = 1; }
+      const now = this.now(), cameraKey = this.focusedRover || (this.fleetFocused ? 'fleet' : 'region');
+      let cameraAnimating = false;
+      if (this.inspectionCamera && this.cameraFrameKey === cameraKey && !this.motionPreference?.matches && this.fleetState?.running) {
+        const alpha = 1 - Math.exp(-Math.max(0, now - (this.cameraFrameAt ?? now)) / 140);
+        const targetCenter = this.viewCenter, targetScale = this.viewScale;
+        this.viewCenter = previousCenter.map((v, k) => v + (targetCenter[k] - v) * alpha);
+        this.viewScale = previousScale + (targetScale - previousScale) * alpha;
+        cameraAnimating = Math.hypot(...targetCenter.map((v, k) => (v - this.viewCenter[k]) * this.viewScale)) > .0005 || Math.abs(this.viewScale / targetScale - 1) > .001;
+        if (!cameraAnimating) { this.viewCenter = targetCenter; this.viewScale = targetScale; }
+      }
+      this.cameraFrameKey = cameraKey; this.cameraFrameAt = now;
       this.canvas.dataset.focusedRover = this.focusedRover || '';
       this.canvas.dataset.cameraMode = focused ? 'rover' : this.fleetFocused ? 'fleet' : 'region';
       const gl = this.gl, canvas = this.canvas, dpr = Math.min(devicePixelRatio || 1, 2);
@@ -387,7 +457,7 @@
       gl.viewport(0, 0, canvas.width, canvas.height); gl.clearColor(0, 0, 0, 0); gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
       gl.useProgram(this.program); gl.enable(gl.DEPTH_TEST); gl.depthFunc(gl.LEQUAL);
       const u = this.uniforms;
-      for (const [key, value] of Object.entries({yaw: this.yaw, pitch: this.pitch, zoom: this.zoom, aspect: canvas.width / canvas.height, elevation: this.scale, viewScale: this.viewScale})) gl.uniform1f(u[key], value);
+      for (const [key, value] of Object.entries({yaw: this.yaw, pitch: this.pitch, zoom: this.zoom, aspect: canvas.width / canvas.height, elevation: this.scale, viewScale: this.viewScale, orthographic: this.inspectionCamera ? 1 : 0})) gl.uniform1f(u[key], value);
       gl.uniform3f(u.viewCenter, ...this.viewCenter);
       gl.bindBuffer(gl.ARRAY_BUFFER, this.buffers.points);
       const attr = gl.getAttribLocation(this.program, 'position'); gl.enableVertexAttribArray(attr); gl.vertexAttribPointer(attr, 3, gl.FLOAT, false, 0, 0);
@@ -416,7 +486,7 @@
         }
       }
       canvas.dataset.ready = 'true';
-      if (this.roverAnimating) this.schedule();
+      if (this.roverAnimating || cameraAnimating) this.schedule();
     }
   }
   function terrainDimensions(data) {
@@ -498,7 +568,9 @@
     if (phase === 'awaiting_approval') return rover.recovery.held ? 'Kept halted' : 'Approval needed';
     if (phase === 'repairing') return `Receiving service · ${Math.round((rover.recovery.progress || 0) * 100)}%`;
     if (phase === 'validating') return 'Checking recovery';
-    return {surveying: 'Surveying', responding: 'On the way', assisting: 'Inspecting', repairing: 'Servicing', halted: 'Halted', waiting: 'Standing by'}[rover.status] || 'Standing by';
+    if (phase === 'approaching') return 'Helper approaching';
+    if (phase === 'failed') return 'Service approach blocked';
+    return {surveying: 'Surveying', responding: 'On the way', approaching: 'Approaching for service', assisting: 'Inspecting', repairing: 'Servicing', halted: 'Halted', waiting: 'Standing by'}[rover.status] || 'Standing by';
   }
   const causeName = value => causeNames[value] || value || '—';
   const carrierName = frame => frame.carrierType === 'rover' ? 'Rover' : 'Mast testbed';
@@ -637,8 +709,9 @@
     clearTimeout(fleetPoll); const generation = epoch;
     const tick = async () => {
       if (!token || generation !== epoch) return;
+      const started = Date.now();
       await refreshFleet();
-      if (token && generation === epoch) fleetPoll = setTimeout(tick, 1000);
+      if (token && generation === epoch) fleetPoll = setTimeout(tick, Math.max(50, 1000 - (Date.now() - started)));
     };
     tick();
   }

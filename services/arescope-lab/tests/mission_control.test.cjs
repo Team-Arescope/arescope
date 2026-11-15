@@ -249,8 +249,11 @@ test('rectangular meshes preserve world proportions, cover edge cells and stay w
     const corner = terrain.normalize(data.points[(rows - 2) * cols + cols - 2]);
     for (const k of [0, 2]) assert.ok(Math.abs(upload[k] - corner[k]) < 1e-6);
     assert.ok([...upload].every(Number.isFinite));
-    const tipZ = upload[terrain.fleetGeometry[1].first * 3 + 2] - terrain.normalize(position)[2];
-    assert.ok(tipZ > .03 && tipZ < .04, 'heading symbol stays legible at a 10 km extent');
+    assert.equal(terrain.fleetAnchors[0].visualScale, .5);
+    const origin = terrain.normalize(position), model = upload.slice(terrain.fleetGeometry[1].first * 3);
+    let radiusM = 0;
+    for (let i = 0; i < model.length; i += 3) radiusM = Math.max(radiusM, Math.hypot(model[i] - origin[0], model[i + 2] - origin[2]) * terrain.extent / 2);
+    assert.ok(radiusM > 5 && radiusM < 25, 'model dimensions stay fixed in map metres on every rectangular terrain');
     assert.equal(terrain.pitch, .8);
   }
   const {terrain} = terrainHarness();

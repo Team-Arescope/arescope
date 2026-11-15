@@ -561,7 +561,9 @@ def test_real_astar_respects_new_exclusions_and_completely_blocked_route():
         target.status, target.fault = "halted", "dust"
         fleet._assign_helpers()
         assert helper.status == "responding"
-        blocker.position = fleet._position(*list(helper.inspection)[4])
+        blocked_cell = next(cell for cell in helper.inspection
+                            if distance(helper.position, fleet._position(*cell)) > fleet.standoff_min_m + fleet.spacing_east)
+        blocker.position = fleet._position(*blocked_cell)
         blocker.status, blocker.fault = "halted", "sensor_drop"
         before = helper.position[:]
         fleet._move(helper, 120)
@@ -580,7 +582,7 @@ def test_real_astar_respects_new_exclusions_and_completely_blocked_route():
         target, helper, *blockers = fleet.rovers
         target.position, helper.position = fleet._position(60, 60), fleet._position(60, 75)
         target.status = "halted"
-        for blocker, cell in zip(blockers, [(60, 72), (60, 78), (57, 75), (63, 75)]):
+        for blocker, cell in zip(blockers, [(60, 69), (60, 81), (54, 75), (66, 75)]):
             blocker.position, blocker.status = fleet._position(*cell), "halted"
         # Real A* exhausts a small enclosed region; it cannot teleport through it.
         assert fleet._inspection_path(helper, target) is None

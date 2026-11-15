@@ -42,9 +42,13 @@ count after a mission has begun, use **Reset fleet**, then **Start fleet**.
 Fleet rovers render as six-wheel terrain-following models. The first connected
 view follows a rover; click a rover in the map roster or **Follow rover** to
 inspect one, **Fleet view** to frame all carriers, or **Full terrain view** / `R`
-to see the whole archive. The models are enlarged for visibility and shrink near
-archive edges so wheel contacts remain on terrain. Wheel rotation follows
+to see the whole archive. All models use the same fixed display scale, independent
+of position, terrain extent or camera distance. Wheel rotation follows
 interpolated, acknowledged movement; pause freezes wheels and tool animation.
+Interpolation keeps a short adaptive reserve for irregular snapshot delivery;
+polling accounts for request duration instead of adding another full second.
+Follow and fleet inspection cameras use parallel projection to avoid a nearby
+rover growing across the eye plane during a low orbit.
 
 **Auto-repair minor faults** permits a healthy helper to perform a timed synthetic
 procedure for `dust`, `wheel_slip` or `wheel_jam`. Serious faults (`sensor_drop`,
@@ -53,7 +57,11 @@ Use **Approve recovery** or **Keep halted**. Approval authorizes an attempt;
 safe helper arrival, procedure completion and three consecutive fresh nominal
 Guardian observations are still required. HQ link loss is a simulated fault;
 the LAB operator channel remains available for the demonstration. The service
-zone uses the coarse archive grid and does not model physical contact or repair.
+inspection route uses the coarse archive grid. After authorization, the helper
+makes a checked continuous approach to 24 m centre separation between the fixed
+display models. Slope, archive bounds and vehicle clearances can block this
+approach; a distant helper cannot start service. The height field is interpolated
+for movement and does not supply new sensor detail or model physical repair.
 
 The existing producer-only `POST /api/sim/fleet` accepts `configure` with
 `autoRepair: boolean`; `start`, `reset` and `step` also accept that setting.

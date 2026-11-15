@@ -27,6 +27,13 @@ MINOR_FAULTS = frozenset(("dust", "wheel_slip", "wheel_jam"))
 FLEET_CAUSES = (*CAUSES, "wheel_jam", "hq_link_broken")
 REPAIR_DURATION_S = 600.0
 VALIDATION_STEPS = 3
+# Fixed-size display vehicles use a bounded final service approach. This is a
+# continuous interpolation of the archived height field, not new terrain detail.
+SERVICE_MIN_M = 22.0
+SERVICE_DISTANCE_M = 24.0
+SERVICE_MAX_M = 26.0
+SERVICE_FOOTPRINT_M = 12.0
+APPROACH_SAMPLE_M = 4.0
 
 
 @dataclass
@@ -66,6 +73,7 @@ class FleetRover:
     clearance_requested: bool = False
     target_id: str | None = None
     inspection: deque = field(default_factory=deque)
+    approach: deque = field(default_factory=deque)
     trail: deque = field(default_factory=lambda: deque(maxlen=MAX_TRAIL))
     recovery: Recovery = field(default_factory=Recovery)
 
@@ -82,8 +90,8 @@ class FleetSimManager:
         self.spacing = data["metadata"]["effective_spacing_m"]
         self.cell_area_m2 = self.spacing_east * self.spacing_south
         # Conservative physical clearance on either axis, expressed in metres.
-        self.standoff_min_m = 2 * max(self.spacing_east, self.spacing_south)
-        self.standoff_max_m = 3 * max(self.spacing_east, self.spacing_south)
+        self.standoff_min_m = max(2 * max(self.spacing_east, self.spacing_south), SERVICE_DISTANCE_M * 1.5)
+        self.standoff_max_m = max(3 * max(self.spacing_east, self.spacing_south), SERVICE_DISTANCE_M * 2)
         self.ingest, self.interval, self.clock = ingest, interval, clock
         self.clear_windows = clear_windows
         self.lock, self.control_lock = asyncio.Lock(), asyncio.Lock()
@@ -148,6 +156,7 @@ class FleetSimManager:
                 "terrainSource": "nasa-pds-hirise", "simulation": True,
                 "synthetic": True, "acceleratedTime": True,
                 "timeBasis": "elapsedS is simulated seconds; speedMultiplier accelerates mission time",
+                "serviceZone": {"minimumM": SERVICE_MIN_M, "distanceM": SERVICE_DISTANCE_M, "maximumM": SERVICE_MAX_M},
                 "coverage": {"scannedCells": len(self.covered), "totalCells": total,
                              "percent": 100 * len(self.covered) / total,
                              "areaM2": len(self.covered) * self.cell_area_m2,
@@ -220,7 +229,7 @@ class FleetSimManager:
             count, fps, jump, link = 12, .58, .912, False
         elif rover.fault == "hq_link_broken":
             link = False
-        commanded = DRIVE_SPEED_MPS if rover.status in ("surveying", "responding") else 0.0
+        commanded = DRIVE_SPEED_MPS if rover.status in ("surveying", "responding", "approaching") else 0.0
         return {"pointCount": count, "fps": fps, "poseJumpM": jump, "lumaContrast": contrast,
                 "commandedSpeedMps": commanded, "observedSpeedMps": commanded * (1 - slip),
                 "slipRatio": slip, "linkOk": link, "position": rover.position[:],
@@ -252,6 +261,7 @@ class FleetSimManager:
             self._release_helper(rover)
             rover.status, rover.target_id = "halted", None
             rover.inspection.clear()
+            rover.approach.clear()
             if rover.recovery.phase in ("none", "recovered"):
                 self._new_recovery(rover)
             detected = rover.guardian["riskLevel"] in ("warning", "critical")
@@ -278,7 +288,8 @@ class FleetSimManager:
         target = next((r for r in self.rovers if r.carrier_id == helper.target_id), None)
         helper.target_id = None
         helper.inspection.clear()
-        if helper.status in ("responding", "assisting", "repairing"):
+        helper.approach.clear()
+        if helper.status in ("responding", "approaching", "assisting", "repairing"):
             helper.status = "surveying" if helper.fault == "nominal" else "halted"
         if target and target.recovery.helper_id == helper.carrier_id:
             target.recovery.helper_id = None
@@ -290,31 +301,100 @@ class FleetSimManager:
     def _repair_permitted(self, target):
         return target.recovery.approved if target.recovery.requires_approval else self.auto_repair
 
+    def _service_segment(self, a, b, helper, target):
+        """Validate the swept final approach against footprint, slopes and rovers."""
+        obstacles = [r for r in self.rovers if r is not helper]
+        # Apply a physical display-footprint exclusion, rather than the coarse
+        # inspection disc, only on this explicitly authorized service approach.
+        dx, dz = b[0] - a[0], b[2] - a[2]
+        norm = dx * dx + dz * dz
+        for other in obstacles:
+            obstacle = other.position
+            t = max(0.0, min(1.0, ((obstacle[0] - a[0]) * dx + (obstacle[2] - a[2]) * dz) / norm)) if norm else 0.0
+            clearance = SERVICE_MIN_M if other is target else 2 * SERVICE_FOOTPRINT_M
+            if math.hypot(a[0] + t * dx - obstacle[0], a[2] + t * dz - obstacle[2]) + 1e-7 < clearance:
+                return False
+        samples = max(1, math.ceil(distance(a, b) / APPROACH_SAMPLE_M))
+        previous = a
+        first, last = self.points[0], self.points[-1]
+        for index in range(1, samples + 1):
+            f = index / samples
+            x, z = a[0] + dx * f, a[2] + dz * f
+            if not (first[0] + SERVICE_FOOTPRINT_M <= x <= last[0] - SERVICE_FOOTPRINT_M
+                    and first[2] + SERVICE_FOOTPRINT_M <= z <= last[2] - SERVICE_FOOTPRINT_M):
+                return False
+            point = self._surface((z - first[2]) / self.spacing_south, (x - first[0]) / self.spacing_east)
+            length = distance(previous, point)
+            if length and abs(point[1] - previous[1]) / length > MAX_HELPER_SLOPE:
+                return False
+            previous = point
+        return True
+
+    def _service_path(self, helper, target):
+        bearing = math.atan2(helper.position[0] - target.position[0], helper.position[2] - target.position[2])
+        for offset in (0, .392699, -.392699, .785398, -.785398, 1.178097, -1.178097, 1.570796, -1.570796):
+            angle = bearing + offset
+            x = target.position[0] + math.sin(angle) * SERVICE_DISTANCE_M
+            z = target.position[2] + math.cos(angle) * SERVICE_DISTANCE_M
+            goal = self._surface((z - self.points[0][2]) / self.spacing_south,
+                                 (x - self.points[0][0]) / self.spacing_east)
+            if (not SERVICE_MIN_M <= distance(goal, target.position) <= SERVICE_MAX_M
+                    or abs(goal[1] - target.position[1]) > 8 or not self._service_segment(helper.position, goal, helper, target)):
+                continue
+            count = max(1, math.ceil(distance(helper.position, goal) / APPROACH_SAMPLE_M))
+            return [self._surface((helper.position[2] + (goal[2] - helper.position[2]) * i / count - self.points[0][2]) / self.spacing_south,
+                                  (helper.position[0] + (goal[0] - helper.position[0]) * i / count - self.points[0][0]) / self.spacing_east)
+                    for i in range(1, count + 1)]
+        return None
+
     def _advance_repairs(self, dt):
         by_id = {r.carrier_id: r for r in self.rovers}
         for helper in self.rovers:
             target = by_id.get(helper.target_id)
-            if target is None or helper.status not in ("assisting", "repairing"):
+            if target is None or helper.status not in ("approaching", "assisting", "repairing"):
                 continue
             recovery = target.recovery
             healthy = helper.fault == "nominal" and helper.guardian and helper.guardian["riskLevel"] == "nominal"
-            near = self.standoff_min_m - 1e-7 <= distance(helper.position, target.position) <= self.standoff_max_m + 1e-7
-            if not healthy or not near or target.status != "halted":
+            near = SERVICE_MIN_M - 1e-7 <= distance(helper.position, target.position) <= SERVICE_MAX_M + 1e-7
+            if not healthy or target.status != "halted":
                 self._release_helper(helper)
                 continue
             if recovery.phase in ("validating", "recovered") or not self._repair_permitted(target):
-                if helper.status == "repairing":
+                if helper.status in ("repairing", "approaching"):
                     helper.status = "assisting"
+                    helper.approach.clear()
                     recovery.elapsed, recovery.progress = 0.0, 0.0
                     recovery.phase = "awaiting_approval" if recovery.requires_approval and not recovery.approved else "waiting_helper"
                     self._event("repair_cancelled", helper.carrier_id, target.carrier_id,
                                 "Recovery authorization removed; simulated procedure cancelled, fault and safety halt retained.")
                 continue
+            if helper.status == "approaching":
+                continue
+            if near and (not self._service_segment(helper.position, helper.position, helper, target)
+                         or abs(helper.position[1] - target.position[1]) > 8):
+                helper.status, recovery.phase = "assisting", "failed"
+                recovery.elapsed, recovery.progress = 0.0, 0.0
+                continue
+            if not near:
+                path = self._service_path(helper, target)
+                if path is None:
+                    if recovery.phase != "failed":
+                        self._event("service_approach_blocked", helper.carrier_id, target.carrier_id,
+                                    "No safe close approach: slope, boundary or vehicle clearance blocks service. Target remains halted.")
+                    recovery.phase, recovery.progress, recovery.elapsed = "failed", 0.0, 0.0
+                    continue
+                helper.approach = deque(path)
+                helper.status, recovery.phase = "approaching", "approaching"
+                self._event("service_approach", helper.carrier_id, target.carrier_id,
+                            f"Authorized final approach to {SERVICE_DISTANCE_M:.0f} m centre separation on the interpolated archive surface.")
+                continue
             if helper.status != "repairing":
+                helper.heading = math.degrees(math.atan2(target.position[0] - helper.position[0],
+                                                        target.position[2] - helper.position[2])) % 360
                 helper.status = "repairing"
                 recovery.phase, recovery.elapsed, recovery.progress = "repairing", 0.0, 0.0
                 self._event("repair_started", helper.carrier_id, target.carrier_id,
-                            "Starting a timed synthetic service procedure in the coarse-grid assistance zone. "
+                            "Starting a timed synthetic service procedure after a checked close approach. "
                             "This is a simulation, not physical contact or a verified hardware repair.")
                 continue
             recovery.elapsed = min(REPAIR_DURATION_S, recovery.elapsed + dt)
@@ -333,9 +413,10 @@ class FleetSimManager:
                             for c in range(max(rover.columns[0], col - 1), min(rover.columns[1], col + 2)))
 
     def _move(self, rover, dt):
-        if rover.status not in ("surveying", "responding"):
+        if rover.status not in ("surveying", "responding", "approaching"):
             return
         surveying = rover.status == "surveying"
+        approaching = rover.status == "approaching"
         budget = DRIVE_SPEED_MPS * dt * (1 - self._telemetry(rover)["slipRatio"])
         if surveying:
             self._scan(rover)
@@ -346,6 +427,27 @@ class FleetSimManager:
                     self._event("sector_complete", rover.carrier_id, None, "Assigned survey sector complete.")
                     break
                 destination = self._position(*rover.survey[rover.cursor])
+            elif approaching:
+                target = next((r for r in self.rovers if r.carrier_id == rover.target_id), None)
+                if target is None or target.status != "halted" or not self._repair_permitted(target):
+                    rover.status = "assisting"
+                    rover.approach.clear()
+                    break
+                if not rover.approach:
+                    rover.status = "assisting"
+                    rover.heading = math.degrees(math.atan2(target.position[0] - rover.position[0],
+                                                           target.position[2] - rover.position[2])) % 360
+                    self._event("service_arrived", rover.carrier_id, rover.target_id,
+                                "Close approach complete; both vehicles remain stationary during service.")
+                    break
+                destination = rover.approach[0]
+                if not self._service_segment(rover.position, destination, rover, target):
+                    rover.status = "assisting"
+                    rover.approach.clear()
+                    target.recovery.phase = "failed"
+                    self._event("service_approach_blocked", rover.carrier_id, rover.target_id,
+                                "A new obstacle blocks the close approach. Stop; service remains incomplete.")
+                    break
             else:
                 if not rover.inspection:
                     rover.status = "assisting"
@@ -377,6 +479,8 @@ class FleetSimManager:
                     break
             if surveying:
                 rover.cursor += 1
+            elif approaching:
+                rover.approach.popleft()
             else:
                 rover.inspection.popleft()
 
@@ -436,7 +540,7 @@ class FleetSimManager:
             if helper.target_id:
                 target = by_id.get(helper.target_id)
                 if (target is None or target.status != "halted" or helper.fault != "nominal"
-                        or helper.status not in ("responding", "assisting", "repairing")
+                        or helper.status not in ("responding", "approaching", "assisting", "repairing")
                         or not helper.guardian or helper.guardian["riskLevel"] != "nominal"):
                     self._release_helper(helper)
         assigned = {r.target_id for r in self.rovers if r.target_id}

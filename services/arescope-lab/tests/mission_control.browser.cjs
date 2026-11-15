@@ -174,17 +174,23 @@ async function request(url, {method = 'GET', body, producer = false, json = fals
     await page.waitForFunction(() => document.querySelector('#fleet-status').textContent.startsWith('Stopped'));
     const stoppedMarkers = JSON.parse(await page.locator('#terrain').getAttribute('data-fleet-markers'));
     assert.equal(stoppedMarkers.length, 3);
+    assert.ok(stoppedMarkers.every(r => r.visualScale === .5), 'each rover has the same fixed display size');
     assert.ok(stoppedMarkers.every(r => r.wheelCount === 6 && r.grounded === true), 'six wheels stay on the sampled sloped terrain');
     await page.evaluate(() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve))));
     assert.deepEqual(JSON.parse(await page.locator('#terrain').getAttribute('data-fleet-markers')).map(r => r.wheelAngle), stoppedMarkers.map(r => r.wheelAngle), 'paused wheels stop');
     await page.locator('#fleet-fault').selectOption('wheel_jam'); await page.locator('#fleet-inject').click();
     await page.waitForFunction(() => !document.querySelector('#fleet-inject').disabled);
-    let fleet;
+    let fleet, sawCloseApproach = false;
     for (let n = 0; n < 110; n++) {
       fleet = await fleetCommand({action: 'step'});
+      if (fleet.rovers.some(r => r.status === 'approaching')) sawCloseApproach = true;
       if (fleet.rovers[0].recovery.phase === 'repairing') break;
     }
+    assert.ok(sawCloseApproach, 'the helper must physically drive the final approach');
     assert.equal(fleet.rovers[0].recovery.phase, 'repairing', 'a healthy helper reaches the bounded service zone');
+    const serviced = fleet.rovers[0], servicing = fleet.rovers.find(r => r.status === 'repairing');
+    const separation = Math.hypot(serviced.position[0] - servicing.position[0], serviced.position[2] - servicing.position[2]);
+    assert.ok(separation >= 22 && separation <= 26, 'repair begins near the target, not at the coarse inspection standoff');
     await refreshFleetView();
     await page.waitForFunction(() => document.querySelector('#fleet-summary-rovers').textContent.includes('Receiving service'));
     assert.ok(JSON.parse(await page.locator('#terrain').getAttribute('data-fleet-markers')).some(r => r.repairing === true));

@@ -233,3 +233,42 @@ drawer bounds. The fleet is paused after QA with Auto-repair enabled.
 [survey view](qa/rover-survey-production.png),
 [helper service](qa/rover-repair-production.png) and
 [operator decision](qa/rover-approval-production.png).
+
+## Fixed rover scale, close service and continuous movement
+
+The active release is now
+`/opt/arescope-releases/v2-rover-motion-20261115/services/arescope-lab`.
+The previous unit, online SQLite backup and mission snapshot are in
+`/var/backups/arescope/v2-rover-motion-20261115/`. Restore the unit, reload systemd
+and restart LAB for a code rollback. Scan and incident history remain in the same
+database; process-local simulation state starts a fresh mission on restart.
+
+Rover models have one fixed scale instead of growing with distance from a raster
+edge. Inspection views use parallel projection and bounded zoom, which also
+prevents foreground magnification at low orbit angles. A short adaptive
+interpolation reserve bridges irregular snapshot delivery; polling no longer
+adds the entire response time to every one-second interval. All movement remains
+within acknowledged route segments, and pause or a safety halt stops it.
+
+The coarse A* inspection route is followed by a separately authorized continuous
+approach to **24 m centre separation** between the enlarged models. Four-metre
+samples check the interpolated surface slope, raster bounds and all vehicle
+clearances. Service cannot start at the old 155–234 m inspection standoff or on
+a blocked approach. The articulated tool uses fixed link lengths, touches the
+target model and sweeps while both vehicles are stationary. Pause, stale updates
+and reduced motion freeze its pose. These are synthetic service mechanics.
+
+The isolated cloud release passed **291 Python tests**, including **67 recovery
+tests**. All **36 Node/Chromium tests** passed, including fixed dimensions across
+terrain extents and low orbit angles, irregular receipt cadence, final approach
+interpolation, tool reach and joint motion. The integrated browser workflow
+also passed real Guardian recovery and all desktop/mobile drawer checks.
+
+The public HTTPS run passed **46 checks** with caching disabled. It observed
+movement in all 20 samples spanning real snapshot updates, a checked close
+service distance, a reachable tool contact and a visible tip sweep. It also
+verified serious hold/approval, recovery validation, camera modes, all assets
+and drawer bounds. The fleet is left paused with Auto-repair enabled.
+[Check report](qa/rover-motion-production-checks.json),
+[close service](qa/rover-motion-repair-production.png) and
+[survey view](qa/rover-motion-survey-production.png).

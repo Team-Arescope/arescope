@@ -15,7 +15,8 @@ from fastapi.testclient import TestClient
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 import app as lab
 import fleet_sim
-from fleet_sim import DRIVE_SPEED_MPS, FleetSimManager, distance
+from fleet_sim import (DRIVE_SPEED_MPS, SERVICE_DISTANCE_M, SERVICE_MAX_M,
+                       SERVICE_MIN_M, FleetSimManager, distance)
 from rover_sim import CAUSES
 
 
@@ -25,15 +26,16 @@ URL = "/api/sim/fleet"
 TARGET = "fleet-rover-01"
 MINOR = ("dust", "wheel_slip", "wheel_jam")
 SERIOUS = ("sensor_drop", "hq_link_broken", "low_texture", "glare")
-PHASES = {"none", "waiting_helper", "en_route", "repairing", "validating",
+PHASES = {"none", "waiting_helper", "en_route", "approaching", "repairing", "validating",
           "awaiting_approval", "recovered", "failed"}
-MAX_TICKS = 100  # 3,000 simulated seconds at 30x; no wall-clock waits.
+MAX_TICKS = 200  # 6,000 simulated seconds at 30x; no wall-clock waits.
+EAST, SOUTH = 10.0, 12.0
 
 
 @pytest.fixture
 def terrain(tmp_path):
-    """A small rectangular lattice with unequal axes and an affine gentle slope."""
-    rows, cols, east, south = 21, 29, 2.0, 3.0
+    """A 280 by 240 m lattice leaves room for 12 m footprints and service paths."""
+    rows, cols, east, south = 21, 29, EAST, SOUTH
     data = {"grid": {"rows": rows, "cols": cols},
             "metadata": {"product_id": "recovery-test-only",
                          "effective_spacing_m": {"east": east, "south": south}},
@@ -116,6 +118,7 @@ async def until(fleet, predicate, limit=MAX_TICKS):
 
 def assert_recovery_contract(state):
     assert type(state["autoRepair"]) is bool
+    assert state["serviceZone"] == {"minimumM": 22.0, "distanceM": 24.0, "maximumM": 26.0}
     for item in state["rovers"]:
         recovery = item["recovery"]
         assert recovery["phase"] in PHASES
@@ -178,14 +181,17 @@ def test_minor_repair_requires_safe_arrival_and_timed_progress_then_validation(t
             length2 = dx * dx + dz * dz
             fraction = min(1, max(0, ((halted[0] - a[0]) * dx + (halted[2] - a[2]) * dz) / length2)) if length2 else 0
             nearest = [a[0] + fraction * dx, 0, a[2] + fraction * dz]
-            assert distance(nearest, halted) >= fleet.standoff_min_m - 1e-6
+            clearance = (SERVICE_MIN_M if target["recovery"]["phase"] in
+                         ("approaching", "repairing", "validating") else fleet.standoff_min_m)
+            assert distance(nearest, halted) >= clearance - 1e-6
             point = helper["position"]
-            assert point[1] == pytest.approx(100 + (point[0] + 28) * .03 + (point[2] + 30) * .02)
+            assert point[1] == pytest.approx(100 + (point[0] + 14 * EAST) * .03
+                                            + (point[2] + 10 * SOUTH) * .02)
             previous = helper["position"]
             phase = target["recovery"]["phase"]
             if phase == "repairing":
                 assert helper["status"] == "repairing" and target["fault"] == fault
-                assert fleet.standoff_min_m <= distance(helper["position"], halted) <= fleet.standoff_max_m
+                assert SERVICE_MIN_M <= distance(helper["position"], halted) <= SERVICE_MAX_M
                 progress.append(target["recovery"]["progress"])
             elif phase == "validating":
                 assert target["fault"] == "nominal"
@@ -282,7 +288,7 @@ def test_approved_serious_recovery_waits_for_helper_and_validation(terrain, feed
         target = rover(state)
         helper = rover(state, target["recovery"]["helperId"])
         assert helper["status"] == "repairing" and helper["guardian"]["riskLevel"] == "nominal"
-        assert fleet.standoff_min_m <= distance(helper["position"], target["position"]) <= fleet.standoff_max_m
+        assert SERVICE_MIN_M <= distance(helper["position"], target["position"]) <= SERVICE_MAX_M
         state = await until(fleet, lambda s: rover(s)["recovery"]["phase"] == "validating")
         assert rover(state)["fault"] == "nominal" and rover(state)["status"] == "halted"
         feed.block_nominal.remove(TARGET)
@@ -411,6 +417,239 @@ def test_explicit_operator_clearance_still_waits_for_nominal_guardian(terrain, f
     asyncio.run(scenario())
 
 
+def swept_clearance(a, b, obstacle):
+    dx, dz = b[0] - a[0], b[2] - a[2]
+    length2 = dx * dx + dz * dz
+    t = (min(1, max(0, ((obstacle[0] - a[0]) * dx +
+                        (obstacle[2] - a[2]) * dz) / length2)) if length2 else 0)
+    return math.hypot(a[0] + t * dx - obstacle[0], a[2] + t * dz - obstacle[2])
+
+
+async def at_inspection(terrain, feed, *, fault="dust", count=2):
+    """Drive the actual planner to inspection with close service still disabled."""
+    fleet = await ready(terrain, feed, count=count, auto=False)
+    state = await command(fleet, "fault", roverId=TARGET, fault=fault)
+    helper_id = rover(state)["recovery"]["helperId"]
+    assert helper_id
+    state = await until(fleet, lambda s: rover(s, helper_id)["status"] == "assisting")
+    gap = distance(rover(state)["position"], rover(state, helper_id)["position"])
+    assert fleet.standoff_min_m <= gap <= fleet.standoff_max_m
+    assert gap > SERVICE_MAX_M and rover(state)["recovery"]["progress"] == 0
+    return fleet, helper_id
+
+
+def test_close_approach_is_continuous_bilinear_grounded_and_ends_at_24m(terrain, feed):
+    # A cross term distinguishes bilinear surface sampling from straight endpoint
+    # height interpolation; the original unequal axes and affine slope remain.
+    data = json.loads(terrain.read_text(encoding="utf-8"))
+    for i, point in enumerate(data["points"]):
+        row, col = divmod(i, data["grid"]["cols"])
+        point[1] += .012 * row * col
+    terrain.write_text(json.dumps(data), encoding="utf-8")
+
+    def assert_grounded(point):
+        col, row = (point[0] + 14 * EAST) / EAST, (point[2] + 10 * SOUTH) / SOUTH
+        assert point[1] == pytest.approx(100 + col * EAST * .03 + row * SOUTH * .02 + .012 * row * col)
+        assert data["points"][0][0] + 12 <= point[0] <= data["points"][-1][0] - 12
+        assert data["points"][0][2] + 12 <= point[2] <= data["points"][-1][2] - 12
+
+    async def scenario():
+        fleet, helper_id = await at_inspection(terrain, feed, count=3)
+        assert fleet.standoff_min_m == 36 and fleet.standoff_max_m == 48
+        # Keep the unused rover as a stationary physical obstacle.
+        for item in fleet.rovers:
+            if item.carrier_id not in (TARGET, helper_id):
+                item.status = "waiting"
+        before = fleet.state()
+        halted = rover(before)["position"][:]
+        previous = rover(before, helper_id)["position"][:]
+        state = await command(fleet, "configure", autoRepair=True)
+        assert rover(state)["recovery"]["phase"] == "approaching"
+        assert rover(state, helper_id)["position"] == previous  # Planning is not movement.
+        helper_object = next(r for r in fleet.rovers if r.carrier_id == helper_id)
+        waypoints = [previous, *helper_object.approach]
+        assert len(waypoints) > 2
+        for a, b in zip(waypoints, waypoints[1:]):
+            assert 0 < distance(a, b) <= 4 + 1e-7
+            assert_grounded(b)
+        assert distance(waypoints[-1], halted) == pytest.approx(24)
+        observed, moves, inside_inspection = set(), 0, False
+        for _ in range(MAX_TICKS):
+            old_trail = helper_object.trail[-1][:]
+            state = await command(fleet, "step", speedMultiplier=1)
+            target, helper = rover(state), rover(state, helper_id)
+            observed.add(target["recovery"]["phase"])
+            point = helper["position"]
+            travelled = distance(previous, point)
+            assert travelled <= DRIVE_SPEED_MPS + 1e-7
+            assert swept_clearance(previous, point, halted) >= 22 - 1e-7
+            for other in state["rovers"]:
+                if other["carrierId"] not in (TARGET, helper_id):
+                    assert swept_clearance(previous, point, other["position"]) >= 24 - 1e-7
+            assert_grounded(point)
+            assert target["position"] == halted and target["fault"] == "dust" and target["status"] == "halted"
+            gap = distance(point, halted)
+            if gap > 26 + 1e-7:
+                assert target["recovery"]["phase"] == "approaching"
+                assert target["recovery"]["progress"] == 0 and helper["status"] != "repairing"
+            inside_inspection |= 26 < gap < fleet.standoff_min_m
+            if travelled > 1e-7:
+                moves += 1
+                # Every retained trail sample is a real bounded movement on the surface.
+                trail = list(helper_object.trail)
+                start = next(i for i in range(len(trail) - 1, -1, -1) if trail[i] == old_trail)
+                for a, b in zip(trail[start:], trail[start + 1:]):
+                    assert distance(a, b) <= DRIVE_SPEED_MPS + 1e-7
+                    assert_grounded(b)
+            previous = point[:]
+            if target["recovery"]["phase"] == "repairing":
+                assert gap == pytest.approx(24) and helper["status"] == "repairing"
+                break
+        else:
+            pytest.fail("Bounded close approach never reached the service zone")
+        assert moves >= 3 and inside_inspection
+        assert {"approaching", "repairing"} <= observed
+        assert_recovery_contract(state)
+    asyncio.run(scenario())
+
+
+@pytest.mark.parametrize("fault", ["sensor_drop", "hq_link_broken"])
+def test_serious_inspection_cannot_approach_until_matching_approval(terrain, feed, fault):
+    async def scenario():
+        fleet, helper_id = await at_inspection(terrain, feed, fault=fault)
+        await command(fleet, "configure", autoRepair=True)
+        before = fleet.state()
+        request_id = rover(before)["recovery"]["requestId"]
+        with pytest.raises(ValueError, match="matching pending"):
+            await fleet.control({"action": "approve_recovery", "roverId": TARGET,
+                                 "requestId": request_id + 1})
+        assert fleet.state() == before
+        await command(fleet, "hold_recovery", roverId=TARGET, requestId=request_id)
+        for _ in range(5):
+            state = await command(fleet, "step")
+            assert rover(state)["recovery"]["phase"] == "awaiting_approval"
+            assert rover(state)["fault"] == fault and rover(state)["recovery"]["progress"] == 0
+            assert rover(state, helper_id)["position"] == rover(before, helper_id)["position"]
+            assert rover(state, helper_id)["status"] == "assisting"
+        approved = await command(fleet, "approve_recovery", roverId=TARGET, requestId=request_id)
+        assert rover(approved)["recovery"]["phase"] == "approaching"
+        assert rover(approved)["recovery"]["approved"] is True
+        assert rover(approved, helper_id)["position"] == rover(before, helper_id)["position"]
+        assert rover(approved)["fault"] == fault and rover(approved)["status"] == "halted"
+        state = await command(fleet, "step", speedMultiplier=1)
+        moved = distance(rover(state, helper_id)["position"], rover(before, helper_id)["position"])
+        assert 0 < moved <= DRIVE_SPEED_MPS
+    asyncio.run(scenario())
+
+
+@pytest.mark.parametrize("interruption", ["disable", "pause"])
+def test_close_approach_cancellation_or_pause_retains_fault_and_halt(terrain, feed, interruption):
+    async def scenario():
+        fleet, helper_id = await at_inspection(terrain, feed)
+        await command(fleet, "configure", autoRepair=True)
+        initial = fleet.state()
+        state = await command(fleet, "step", speedMultiplier=1)
+        assert rover(state)["recovery"]["phase"] == "approaching"
+        assert distance(rover(state, helper_id)["position"], rover(initial, helper_id)["position"]) > 0
+        if interruption == "disable":
+            paused = await command(fleet, "configure", autoRepair=False)
+            helper_object = next(r for r in fleet.rovers if r.carrier_id == helper_id)
+            assert not helper_object.approach
+            for _ in range(12):
+                state = await command(fleet, "step")
+                assert rover(state, helper_id)["position"] == rover(paused, helper_id)["position"]
+                assert rover(state)["recovery"]["phase"] not in ("approaching", "repairing", "validating", "recovered")
+                assert rover(state)["fault"] == "dust" and rover(state)["status"] == "halted"
+                assert rover(state)["position"] == rover(initial)["position"]
+                assert rover(state)["recovery"]["progress"] == 0
+            resumed = await command(fleet, "configure", autoRepair=True)
+            assert rover(resumed)["recovery"]["phase"] == "approaching"
+            assert rover(resumed, helper_id)["position"] == rover(paused, helper_id)["position"]
+        else:
+            now = [1_800_000_000.0]
+            fleet.clock = lambda: now[0]
+            try:
+                await command(fleet, "start")
+                paused = await command(fleet, "stop")
+                assert rover(paused)["recovery"]["phase"] == "approaching"
+                now[0] += 86_400
+                for _ in range(5):
+                    await asyncio.sleep(0)
+                assert fleet.state() == paused and not paused["running"]
+                resumed = await command(fleet, "start")
+                moved = distance(rover(resumed, helper_id)["position"], rover(paused, helper_id)["position"])
+                assert 0 < moved <= DRIVE_SPEED_MPS + 1e-7
+            finally:
+                await fleet.stop()
+        assert rover(resumed)["fault"] == "dust" and rover(resumed)["status"] == "halted"
+        assert rover(resumed)["recovery"]["progress"] == 0
+    asyncio.run(scenario())
+
+
+@pytest.mark.parametrize("obstruction", ["boundary", "slope", "obstacles"])
+def test_unsafe_service_path_cannot_fabricate_repair(terrain, feed, obstruction):
+    async def scenario():
+        fleet, helper_id = await at_inspection(terrain, feed, count=5 if obstruction == "obstacles" else 2)
+        target = next(r for r in fleet.rovers if r.carrier_id == TARGET)
+        helper = next(r for r in fleet.rovers if r.carrier_id == helper_id)
+        if obstruction == "boundary":
+            # Inspection centres can lie within 12 m of the source boundary;
+            # this does not authorize a vehicle footprint outside that boundary.
+            target.position, helper.position = fleet._position(10, 4), fleet._position(10, 0)
+        elif obstruction == "slope":
+            for point in fleet.points:
+                point[1] = 100 + (point[0] + 14 * EAST) + (point[2] + 10 * SOUTH) * .02
+            for item in (target, helper):
+                item.position = fleet._surface((item.position[2] + 10 * SOUTH) / SOUTH,
+                                               (item.position[0] + 14 * EAST) / EAST)
+        else:
+            # Park three real fleet members across all candidate approach angles.
+            bearing = math.atan2(helper.position[0] - target.position[0], helper.position[2] - target.position[2])
+            others = [r for r in fleet.rovers if r.carrier_id not in (TARGET, helper_id)]
+            for item, offset in zip(others, (-math.pi / 3, 0, math.pi / 3)):
+                x = target.position[0] + 24 * math.sin(bearing + offset)
+                z = target.position[2] + 24 * math.cos(bearing + offset)
+                item.position = fleet._surface((z + 10 * SOUTH) / SOUTH, (x + 14 * EAST) / EAST)
+                item.status = "waiting"
+        halted, stopped = target.position[:], helper.position[:]
+        state = await command(fleet, "configure", autoRepair=True)
+        for _ in range(12):
+            assert rover(state)["recovery"]["phase"] == "failed"
+            assert rover(state)["recovery"]["progress"] == 0
+            assert rover(state)["fault"] == "dust" and rover(state)["status"] == "halted"
+            assert rover(state)["position"] == halted and rover(state, helper_id)["position"] == stopped
+            assert not any(r["status"] == "repairing" for r in state["rovers"])
+            state = await command(fleet, "step")
+        assert any(e["type"] == "service_approach_blocked" for e in state["events"])
+    asyncio.run(scenario())
+
+
+@pytest.mark.parametrize("when", ["approaching", "repairing"])
+def test_new_vehicle_obstacle_stops_approach_or_close_service(terrain, feed, when):
+    async def scenario():
+        fleet, helper_id = await at_inspection(terrain, feed, count=3)
+        blocker = next(r for r in fleet.rovers if r.carrier_id not in (TARGET, helper_id))
+        blocker.status = "waiting"
+        await command(fleet, "configure", autoRepair=True)
+        state = await until(fleet, lambda s: rover(s)["recovery"]["phase"] == when)
+        helper = next(r for r in fleet.rovers if r.carrier_id == helper_id)
+        # A newly observed vehicle overlaps the clearance disc. Never finish a
+        # procedure using a path/arrival safety decision from an older frame.
+        blocker.position = helper.position[:]
+        before = helper.position[:]
+        for _ in range(12):
+            state = await command(fleet, "step")
+            assert rover(state)["recovery"]["phase"] == "failed"
+            assert rover(state)["recovery"]["progress"] == 0
+            assert rover(state)["fault"] == "dust" and rover(state)["status"] == "halted"
+            assert rover(state, helper_id)["position"] == before
+            assert rover(state, helper_id)["status"] != "repairing"
+        blocker.position = fleet._position(17, 24)
+        state = await until(fleet, lambda s: rover(s)["recovery"]["phase"] == "recovered")
+        assert rover(state)["fault"] == "nominal"  # Safe retry after obstruction clears.
+    asyncio.run(scenario())
+
+
 @pytest.fixture
 def api(terrain, tmp_path):
     cfg = lab.Settings(producer_token="recovery-test-producer", viewer_token="recovery-test-viewer",
@@ -514,10 +753,17 @@ def test_api_stale_recovery_requests_never_authorize_other_work(api, action, rep
 @pytest.mark.parametrize("fault,approval", [("wheel_jam", False), ("sensor_drop", True),
                                             ("hq_link_broken", True)])
 def test_new_faults_recover_through_real_guardian_ingest_and_api(api, fault, approval):
-    api_command(api, "reset", count=2, speedMultiplier=30)
+    api_command(api, "reset", count=2, speedMultiplier=1)
+    # Start on interior cells of the real survey route, before Guardian sees any
+    # frames. Boundary starts cannot admit a 12 m footprint final approach.
+    for item, cell in zip(api[1].state.fleet.rovers, ((9, 6), (9, 24))):
+        item.position = api[1].state.fleet._position(*cell)
+        item.cursor = item.survey.index(cell) + 1
+        item.trail.clear()
+        item.trail.append(item.position[:])
     for _ in range(5):
         api_command(api, "step")
-    state = api_command(api, "fault", roverId=TARGET, fault=fault)
+    state = api_command(api, "fault", roverId=TARGET, fault=fault, speedMultiplier=30)
     for _ in range(6):
         # Policy halts immediately. The existing classifier has no isolated HQ-loss
         # class; do not invent an ML warning for a policy-detected link failure.
@@ -544,7 +790,7 @@ def test_new_faults_recover_through_real_guardian_ingest_and_api(api, fault, app
             break
         state = api_command(api, "step")
     target = rover(state)
-    assert {"repairing", "validating", "recovered"} <= phases
+    assert {"approaching", "repairing", "validating", "recovered"} <= phases
     assert target["fault"] == "nominal" and target["guardian"]["riskLevel"] == "nominal"
     assert target["status"] in ("surveying", "waiting")
     client, application, now = api

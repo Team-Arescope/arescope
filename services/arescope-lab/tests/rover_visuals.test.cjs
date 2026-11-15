@@ -41,23 +41,23 @@ test('six wheel contacts follow bilinear rectangular slopes at every heading and
     assert.equal(anchor.wheelCount, 6); assert.equal(anchor.grounded, true);
     assert.equal(new Set(anchor.groundContacts.map(p => p.join(','))).size, 6);
     for (const p of anchor.groundContacts) near(p[1], point(p[0], p[2])[1]);
-    assert.ok(Math.max(...anchor.groundContacts.map(p => p[1])) - Math.min(...anchor.groundContacts.map(p => p[1])) > 5);
+    assert.ok(Math.max(...anchor.groundContacts.map(p => p[1])) - Math.min(...anchor.groundContacts.map(p => p[1])) > .5);
     for (const call of h.calls.filter(c => c.name === 'bufferData' || c.name === 'bufferSubData')) {
       const data = call.args[call.name === 'bufferData' ? 1 : 2]; assert.ok([...data].every(Number.isFinite));
     }
   }
 });
 
-test('enlarged models shrink at archive edges without moving the authoritative centre', () => {
+test('models keep a fixed half-metre part scale at edges and interior without moving their centre', () => {
   const h = harness(); h.terrain.load(fixture); const p0 = fixture.points[0], pn = fixture.points.at(-1), step = fixture.metadata.effective_spacing_m;
-  for (const position of [[p0[0] + step / 2, 0, p0[2] + step / 2], [pn[0] - step / 2, 0, pn[2] - step / 2]]) {
+  for (const position of [[p0[0] + step / 2, 0, p0[2] + step / 2], [pn[0] - step / 2, 0, pn[2] - step / 2], [0, 0, 0]]) {
     for (const headingDeg of [0, 45, 90, 225]) {
       position[1] = h.terrain.surface(position[0], position[2]).height;
       h.terrain.setFleet(state([rover(position, {headingDeg})])); h.at(0);
       const anchor = h.terrain.fleetAnchors[0]; assert.ok(anchor.grounded); assert.equal(anchor.wheelCount, 6);
       near(anchor.worldPosition[0], position[0]); near(anchor.worldPosition[2], position[2]);
       for (const p of anchor.groundContacts) { assert.ok(p[0] > p0[0] && p[0] < pn[0]); assert.ok(p[2] > p0[2] && p[2] < pn[2]); }
-      assert.ok(anchor.visualScale < 2, 'no oversized wheel extends past the raster');
+      assert.equal(anchor.visualScale, .5, 'fixed display scale at every position and heading');
     }
   }
   assert.ok(h.terrain.focusRover('test-rover')); h.at(10); assert.equal(h.canvas.dataset.focusedRover, 'test-rover'); assert.ok(h.terrain.viewScale > 10);
@@ -84,11 +84,12 @@ test('interpolation follows acknowledged corners and wheel rotation follows dist
   h.at(1250); let anchor = h.terrain.fleetAnchors[0];
   assert.ok(anchor.worldPosition[0] > 0 && anchor.worldPosition[0] < 80); near(anchor.worldPosition[2], 0);
   assert.ok(anchor.wheelAngle > 0); const rotation = anchor.wheelAngle;
-  h.at(1750); anchor = h.terrain.fleetAnchors[0]; near(anchor.worldPosition[0], 80);
+  h.at(2125); anchor = h.terrain.fleetAnchors[0]; near(anchor.worldPosition[0], 80);
   assert.ok(anchor.worldPosition[2] > 0 && anchor.worldPosition[2] < 80); assert.ok(anchor.wheelAngle > rotation);
-  h.at(2000); anchor = h.terrain.fleetAnchors[0]; near(anchor.worldPosition[0], 80); near(anchor.worldPosition[2], 80);
+  h.at(2500); anchor = h.terrain.fleetAnchors[0]; near(anchor.worldPosition[0], 80); near(anchor.worldPosition[2], 80);
   const length = Math.hypot(...corner.map((v, k) => v - a[k])) + Math.hypot(...b.map((v, k) => v - corner[k]));
-  near(anchor.wheelAngle, length / (4.2 * h.terrain.extent / 700));
+  near(anchor.wheelAngle, length / (4.2 * .5));
+  h.at(4000);
   assert.equal(h.frames.size, 0, 'render loop ends when the snapshot is reached');
   h.at(10000); near(h.terrain.fleetAnchors[0].wheelAngle, anchor.wheelAngle);
 });
@@ -100,7 +101,7 @@ test('repeated snapshots retain the interpolation deadline and missing trail jun
   h.at(1300); const before = h.terrain.fleetAnchors[0].worldPosition[0];
   h.clock(1400); h.terrain.setFleet(snapshot); assert.equal(h.terrain.roverMotion.get('test-rover').started, 1000);
   h.at(1500); assert.ok(h.terrain.fleetAnchors[0].worldPosition[0] > before);
-  const remote = point(-300, 200); h.clock(1600); h.terrain.setFleet(state([rover(remote, {trail: [remote]})], {elapsedS: 180})); h.at(1700);
+  const remote = point(-300, 200); h.clock(1600); h.terrain.setFleet(state([rover(remote, {trail: [remote]})], {elapsedS: 180})); h.at(4000);
   near(h.terrain.fleetAnchors[0].worldPosition[0], remote[0]); assert.equal(h.frames.size, 0);
 });
 
@@ -122,7 +123,7 @@ test('pause, halt, reset, reduced motion and hidden tabs leave no perpetual anim
 test('repair animation is bounded by live snapshots, preserves progress and never spins halted wheels', () => {
   const h = harness(), recovery = {phase: 'repairing', progress: .4, helperId: 'helper', requiresApproval: false};
   const target = rover(point(0, 0), {status: 'halted', fault: 'dust', recovery});
-  const helper = rover(point(180, 0), {carrierId: 'helper', status: 'repairing', targetId: target.carrierId});
+  const helper = rover(point(24, 0), {carrierId: 'helper', headingDeg: -90, status: 'repairing', targetId: target.carrierId});
   const snapshot = state([target, helper]); h.terrain.setFleet(snapshot); h.at(100);
   assert.ok(h.terrain.fleetAnchors.every(a => h.terrain.project(a.position).inViewport), 'follow view includes the stopped rover and its repairing helper');
   assert.equal(h.terrain.fleetAnchors[1].repairing, true);
@@ -133,7 +134,87 @@ test('repair animation is bounded by live snapshots, preserves progress and neve
   h.at(1601); assert.equal(h.frames.size, 0, 'missing updates stop the synthetic tool motion');
   h.terrain.setFleet({...snapshot, running: false}); h.at(2000); assert.equal(h.frames.size, 0);
   h.terrain.setFleet(state([rover(point(0, 0), {status: 'halted', fault: 'sensor_dropout', recovery: {phase: 'awaiting_approval', requiresApproval: true}})]));
-  h.at(2100); assert.equal(h.terrain.fleetAnchors[0].repairing, false); assert.equal(h.frames.size, 0);
+  h.at(2100); h.at(5000); assert.equal(h.terrain.fleetAnchors[0].repairing, false); assert.equal(h.frames.size, 0);
+});
+
+test('fixed scale survives different terrain extents, low orbit angles and zoom, without foreground magnification', () => {
+  const h = harness();
+  for (const grid of [slope, fixture]) {
+    h.terrain.load(grid);
+    const a = grid.points[0], positions = [[a[0] + 39, 0, a[2] + 39], [0, 0, 0], [100, 0, 200]];
+    h.terrain.setFleet(state(positions.map((p, i) => rover(p, {carrierId: `scale-${i}`})), {running: false}));
+    h.terrain.focusRover('scale-1'); h.at(1);
+    for (const pitch of [-1.5, -.05, 0, .05, 1.5]) for (const zoom of [.55, 1, 1.6, 12]) {
+      h.terrain.pitch = pitch; h.terrain.zoom = zoom; h.terrain.draw();
+      assert.equal(h.terrain.inspectionCamera, true); assert.ok(h.terrain.zoom <= 1.6);
+      const projectedLengths = h.terrain.fleetAnchors.map(anchor => {
+        assert.equal(anchor.visualScale, .5);
+        const p = anchor.worldPosition, start = h.terrain.project(h.terrain.normalize(p));
+        const end = h.terrain.project(h.terrain.normalize([p[0] + 18, p[1], p[2]]));
+        return Math.hypot(start.x - end.x, start.y - end.y);
+      });
+      for (const length of projectedLengths) { near(length, projectedLengths[0], 1e-6); assert.ok(length < 240, `bounded rover footprint: ${length}px`); }
+    }
+    // Sampling outside a raster clamps heights; it never shrinks or relocates a rover.
+    h.terrain.setFleet(state([rover(a)], {running: false})); h.terrain.draw();
+    const edge = h.terrain.fleetAnchors[0]; near(edge.visualScale, .5); near(edge.worldPosition[0], a[0]); near(edge.worldPosition[2], a[2]);
+    assert.equal(edge.groundContacts.length, 6); assert.ok(edge.grounded);
+  }
+});
+
+test('irregular receipt cadence keeps acknowledged movement continuous, then settles without extrapolation', () => {
+  const h = harness(); let now = 0, x = 0, elapsedS = 0, trail = [point(0, 0)];
+  h.terrain.setFleet(state([rover(trail[0])], {elapsedS})); h.at(now);
+  let prior = 0;
+  for (const interval of [1100, 1100, 1300, 1500, 1100, 1300, 1500]) {
+    now += interval; x += 80; elapsedS += 60; trail.push(point(x, 0)); h.clock(now);
+    const before = h.terrain.sampleMotion(h.terrain.roverMotion.get('test-rover'), now).position[0];
+    h.terrain.setFleet(state([rover(point(x, 0), {trail})], {elapsedS})); h.at(now);
+    near(h.terrain.fleetAnchors[0].worldPosition[0], before);
+    for (const dt of [50, 500, 1000]) {
+      h.at(now + dt); const position = h.terrain.fleetAnchors[0].worldPosition[0];
+      assert.ok(position > prior, `no periodic hold at ${now + dt}`); assert.ok(position < x); prior = position;
+    }
+  }
+  h.at(now + 3000); const last = h.terrain.fleetAnchors[0]; near(last.worldPosition[0], x);
+  h.at(now + 6000); near(h.terrain.fleetAnchors[0].wheelAngle, last.wheelAngle); assert.equal(h.frames.size, 0);
+});
+
+test('completed approach interpolates its last trail and keeps the arm folded until arrival', () => {
+  const h = harness(), target = rover(point(0, 0), {status: 'halted', fault: 'dust', recovery: {phase: 'repairing', helperId: 'helper'}});
+  const helper = p => rover(point(p, 0), {carrierId: 'helper', headingDeg: -90, status: 'approaching', targetId: target.carrierId});
+  h.terrain.setFleet(state([target, helper(120)])); h.at(0); h.clock(1000);
+  const trail = Array.from({length: 25}, (_, i) => point(120 - i * 4, 0));
+  h.terrain.setFleet(state([target, {...helper(24), status: 'assisting', trail}], {elapsedS: 120}));
+  h.at(1300); let anchor = h.terrain.fleetAnchors[1]; assert.ok(anchor.worldPosition[0] > 24 && anchor.worldPosition[0] < 120); assert.equal(anchor.repairing, false);
+  h.clock(1500); h.terrain.setFleet(state([target, {...helper(24), status: 'repairing', trail}], {elapsedS: 150}));
+  h.at(1700); anchor = h.terrain.fleetAnchors[1]; assert.ok(anchor.worldPosition[0] > 24); assert.equal(anchor.repairing, false);
+  h.at(2600); anchor = h.terrain.fleetAnchors[1]; near(anchor.worldPosition[0], 24); assert.ok(anchor.repairing && anchor.serviceReachable);
+});
+
+test('service tool touches the target with fixed-length articulated links and freezes exactly on pause, stale or reduced motion', () => {
+  for (const stop of ['pause', 'stale', 'reduced']) {
+    const h = harness(), target = rover(point(0, 0), {status: 'halted', fault: 'dust', recovery: {phase: 'repairing', helperId: 'helper', progress: .4}});
+    const snapshot = state([target, rover(point(24, 0), {carrierId: 'helper', headingDeg: -90, status: 'repairing', targetId: target.carrierId})]);
+    h.terrain.setFleet(snapshot); h.at(0); const first = h.terrain.fleetAnchors[1];
+    for (let t = 20; t <= 500; t += 20) h.at(t);
+    const next = h.terrain.fleetAnchors[1];
+    const distance = (a, b) => Math.hypot(...a.map((v, k) => v - b[k]));
+    const visual = p => [p[0], p[1] * h.terrain.scale, p[2]];
+    assert.ok(next.repairing && next.serviceReachable); assert.ok(distance(first.toolTip, next.toolTip) > .5);
+    assert.ok(distance(first.armJoints.elbow, next.armJoints.elbow) > .5);
+    near(distance(visual(next.armJoints.shoulder), visual(next.armJoints.elbow)), 7.2);
+    near(distance(visual(next.armJoints.elbow), visual(next.armJoints.wrist)), 6.15);
+    near(distance(next.toolTip, next.serviceContact), 0); assert.ok(distance(next.toolTip, target.position) < 13);
+    assert.ok(Math.abs(next.jointSwivel - first.jointSwivel) > .15, 'elbow visibly sweeps several degrees');
+    if (stop === 'pause') h.terrain.setFleet({...snapshot, running: false});
+    if (stop === 'reduced') h.preference.matches = true;
+    h.at(stop === 'stale' ? 1700 : 520); const frozen = h.terrain.fleetAnchors[1];
+    h.at(4000); h.terrain.draw(); const end = h.terrain.fleetAnchors[1];
+    assert.deepEqual(end.armJoints, frozen.armJoints); assert.deepEqual(end.toolTip, frozen.toolTip); assert.equal(h.frames.size, 0);
+    h.terrain.setFleet(state([target, rover(point(180, 0), {carrierId: 'helper', status: 'repairing', targetId: target.carrierId})])); h.terrain.draw();
+    assert.equal(h.terrain.fleetAnchors[1].repairing, false); assert.equal(h.terrain.fleetAnchors[1].serviceContact, null);
+  }
 });
 
 test('disconnect and switching away from HiRISE cancel an active model animation', () => {
@@ -158,8 +239,9 @@ test('real Chromium renders the six-wheel geometry, moves and stops without WebG
     await page.setContent('<style>html,body{margin:0;background:#0d0907;color:#e4d3c7;font:14px Arial}header{position:absolute;left:28px;top:24px;pointer-events:none}small{color:#b8a599}canvas{display:block;width:100vw;height:100vh;outline:none}</style><header>ARESCOPE LAB · Fleet visual QA<br><small>NASA HiRISE archive · Enlarged rover models · Synthetic service animation</small></header><canvas id="terrain" tabindex="0"></canvas>');
     await page.addScriptTag({content: `${terrainSource}; window.viz = new Terrain(document.getElementById('terrain'));`});
     const sample = (row, col) => fixture.points[row * fixture.grid.cols + col];
-    const positions = [sample(64, 18), sample(64, 24), sample(69, 31)];
-    const snapshot = state(positions.map((p, i) => rover(p, {carrierId: `rover-${i}`, headingDeg: [30, -50, 105][i]})));
+    const targetPoint = sample(64, 18);
+    const positions = [targetPoint, [targetPoint[0] + 24, targetPoint[1], targetPoint[2]], sample(69, 31)];
+    const snapshot = state(positions.map((p, i) => rover(p, {carrierId: `rover-${i}`, headingDeg: [90, -90, 105][i]})));
     await page.evaluate(({grid, snapshot}) => { viz.load(grid); viz.setFleet(snapshot); }, {grid: fixture, snapshot});
     await page.waitForSelector('#terrain[data-ready="true"]');
     await page.screenshot({path: path.join(artifacts, 'fleet-default.png')});
@@ -172,15 +254,22 @@ test('real Chromium renders the six-wheel geometry, moves and stops without WebG
     const next = structuredClone(snapshot); next.elapsedS = 120;
     next.rovers[2].position = sample(69, 33); next.rovers[2].trail.push(sample(69, 32), next.rovers[2].position);
     next.rovers[0].status = 'halted'; next.rovers[0].fault = 'dust'; next.rovers[0].recovery = {phase: 'repairing', progress: .55, helperId: 'rover-1', requiresApproval: false};
-    next.rovers[1].status = 'repairing'; next.rovers[1].targetId = 'rover-0';
+    next.rovers[1].status = 'repairing'; next.rovers[1].targetId = 'rover-0'; next.rovers[1].position = [positions[0][0] + 24, positions[0][1], positions[0][2]];
     await page.evaluate(snapshot => viz.setFleet(snapshot), next);
     await page.waitForTimeout(350);
     const moving = await page.evaluate(() => JSON.parse(viz.canvas.dataset.fleetMarkers));
     assert.ok(moving[2].wheelAngle > 0); assert.ok(moving.every(r => r.grounded && r.wheelCount === 6));
     assert.equal(moving[1].repairing, true); assert.equal(moving[0].wheelAngle, 0);
     await page.screenshot({path: path.join(artifacts, 'fleet-repair.png')});
-    await page.evaluate(() => { viz.focusRover('rover-1'); viz.draw(); });
+    await page.evaluate(() => { viz.focusRover('rover-1'); viz.pitch = .45; viz.draw(); });
     await page.screenshot({path: path.join(artifacts, 'fleet-repair-detail.png')});
+    await page.evaluate(snapshot => viz.setFleet(snapshot), next);
+    const before = await page.evaluate(() => viz.fleetAnchors.find(a => a.carrierId === 'rover-1'));
+    await page.waitForTimeout(500);
+    const after = await page.evaluate(() => viz.fleetAnchors.find(a => a.carrierId === 'rover-1'));
+    assert.ok(after.serviceReachable); assert.ok(Math.hypot(...after.toolTip.map((v, i) => v - before.toolTip[i])) > .5);
+    assert.deepEqual(after.toolTip, after.serviceContact);
+    await page.screenshot({path: path.join(artifacts, 'fleet-repair-sweep.png')});
     await page.evaluate(snapshot => viz.setFleet({...snapshot, running: false}), next); await page.waitForTimeout(100);
     const stopped = await page.evaluate(() => ({markers: viz.canvas.dataset.fleetMarkers, error: viz.gl.getError(), pending: viz.pending}));
     await page.waitForTimeout(200);
@@ -193,6 +282,13 @@ test('real Chromium renders the six-wheel geometry, moves and stops without WebG
     await page.evaluate(snapshot => { viz.setFleet(snapshot); viz.focusRover('test-rover'); viz.draw(); }, state([rover(corner)], {running: false, elapsedS: 0}));
     await page.screenshot({path: path.join(artifacts, 'fleet-boundary-detail.png')});
     assert.ok((await page.evaluate(() => JSON.parse(viz.canvas.dataset.fleetMarkers)))[0].grounded);
+    // Reproduce the user's mixed edge/interior low-angle scene with the actual raster.
+    const regression = state([rover(corner), rover(sample(64, 24), {carrierId: 'middle'}), rover(sample(64, 25), {carrierId: 'near'})], {running: false});
+    await page.evaluate(snapshot => { viz.setFleet(snapshot); viz.focusRover('middle'); viz.pitch = .04; viz.yaw = -.5; viz.zoom = 1.6; viz.draw(); }, regression);
+    const visible = await page.evaluate(() => JSON.parse(viz.canvas.dataset.fleetMarkers));
+    assert.ok(visible.every(a => a.visualScale === .5 && a.grounded));
+    await page.screenshot({path: path.join(artifacts, 'fleet-fixed-scale-low-orbit.png')});
+    assert.equal(await page.evaluate(() => viz.gl.getError()), 0);
     console.log(`Rover screenshot QA: ${artifacts}`);
   } finally { await browser.close(); }
 });

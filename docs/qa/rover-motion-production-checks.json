@@ -1,0 +1,213 @@
+{
+  "ok": true,
+  "scope": "Production HTTPS, real credentials, acknowledged simulation actions, cache disabled",
+  "checks": [
+    {
+      "name": "anonymous_start_disabled",
+      "ok": true
+    },
+    {
+      "name": "viewer_needs_producer",
+      "ok": true
+    },
+    {
+      "name": "new_recovery_api",
+      "ok": true
+    },
+    {
+      "name": "follow_view_default",
+      "ok": true
+    },
+    {
+      "name": "three_six_wheel_grounded_models",
+      "ok": true
+    },
+    {
+      "name": "wheels_rotate_on_motion",
+      "ok": true
+    },
+    {
+      "name": "fixed_rover_scale",
+      "ok": true
+    },
+    {
+      "name": "continuous_motion_across_snapshots",
+      "ok": true,
+      "movingSamples": 20,
+      "samples": 20
+    },
+    {
+      "name": "fleet_camera",
+      "ok": true
+    },
+    {
+      "name": "region_camera",
+      "ok": true
+    },
+    {
+      "name": "roster_focus",
+      "ok": true
+    },
+    {
+      "name": "minor_repair_automatic",
+      "ok": true
+    },
+    {
+      "name": "tool_animation_state",
+      "ok": true
+    },
+    {
+      "name": "close_service_distance",
+      "ok": true,
+      "metres": 24
+    },
+    {
+      "name": "tool_reaches_target",
+      "ok": true
+    },
+    {
+      "name": "visible_tool_sweep",
+      "ok": true
+    },
+    {
+      "name": "minor_recovery_validated",
+      "ok": true
+    },
+    {
+      "name": "other_rover_keeps_surveying",
+      "ok": true
+    },
+    {
+      "name": "serious_failure_needs_approval",
+      "ok": true
+    },
+    {
+      "name": "stale_approval_rejected",
+      "ok": true
+    },
+    {
+      "name": "operator_hold_acknowledged",
+      "ok": true
+    },
+    {
+      "name": "approved_recovery_validated",
+      "ok": true
+    },
+    {
+      "name": "pause_freezes_wheels",
+      "ok": true
+    },
+    {
+      "name": "auto_repair_can_disable",
+      "ok": true
+    },
+    {
+      "name": "auto_repair_can_enable",
+      "ok": true
+    },
+    {
+      "name": "drawer_1440_equipment",
+      "ok": true,
+      "overflow": 0,
+      "escape": 0
+    },
+    {
+      "name": "drawer_1440_guardian",
+      "ok": true,
+      "overflow": 0,
+      "escape": 0
+    },
+    {
+      "name": "drawer_1440_sessions",
+      "ok": true,
+      "overflow": 0,
+      "escape": 0
+    },
+    {
+      "name": "drawer_1440_logs",
+      "ok": true,
+      "overflow": 0,
+      "escape": 0
+    },
+    {
+      "name": "drawer_1440_settings",
+      "ok": true,
+      "overflow": 0,
+      "escape": 0
+    },
+    {
+      "name": "drawer_390_equipment",
+      "ok": true,
+      "overflow": 0,
+      "escape": 0
+    },
+    {
+      "name": "drawer_390_guardian",
+      "ok": true,
+      "overflow": 0,
+      "escape": 0
+    },
+    {
+      "name": "drawer_390_sessions",
+      "ok": true,
+      "overflow": 0,
+      "escape": 0
+    },
+    {
+      "name": "drawer_390_logs",
+      "ok": true,
+      "overflow": 0,
+      "escape": 0
+    },
+    {
+      "name": "drawer_390_settings",
+      "ok": true,
+      "overflow": 0,
+      "escape": 0
+    },
+    {
+      "name": "asset_/static/favicon.svg",
+      "ok": true
+    },
+    {
+      "name": "asset_/static/fonts/manrope.woff2",
+      "ok": true
+    },
+    {
+      "name": "asset_/static/fonts/dm-mono.woff2",
+      "ok": true
+    },
+    {
+      "name": "asset_/static/style.css",
+      "ok": true
+    },
+    {
+      "name": "asset_/static/mission.css",
+      "ok": true
+    },
+    {
+      "name": "asset_/static/shell.js",
+      "ok": true
+    },
+    {
+      "name": "asset_/static/app.js",
+      "ok": true
+    },
+    {
+      "name": "asset_/static/docs/terrain-sources.md",
+      "ok": true
+    },
+    {
+      "name": "no_browser_errors",
+      "ok": true
+    },
+    {
+      "name": "no_missing_assets",
+      "ok": true
+    },
+    {
+      "name": "webgl_no_error",
+      "ok": true
+    }
+  ]
+}
