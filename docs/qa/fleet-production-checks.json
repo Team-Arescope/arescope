@@ -2,6 +2,18 @@
   "ok": true,
   "checks": [
     {
+      "name": "hirise_extent",
+      "ok": true
+    },
+    {
+      "name": "hirise_spacing",
+      "ok": true
+    },
+    {
+      "name": "mola_spacing",
+      "ok": true
+    },
+    {
       "name": "camera_positive_pitch",
       "ok": true,
       "pitch": 3.100000000000002

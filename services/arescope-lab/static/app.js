@@ -88,10 +88,11 @@
     schedule() { if (!this.pending) this.pending = requestAnimationFrame(() => { this.pending = 0; this.draw(); }); }
     load(data) {
       const {rows, cols} = data.grid, points = data.points, gl = this.gl;
-      if (points.length !== rows * cols || points.some(p => p.length !== 3 || !p.every(Number.isFinite))) throw new Error('Invalid terrain grid.');
-      let lo = [Infinity, Infinity, Infinity], hi = [-Infinity, -Infinity, -Infinity];
-      for (const p of points) p.forEach((v, k) => { lo[k] = Math.min(lo[k], v); hi[k] = Math.max(hi[k], v); });
-      const extent = Math.max(hi[0] - lo[0], hi[2] - lo[2]);
+      if (!Number.isInteger(rows) || !Number.isInteger(cols) || rows < 2 || cols < 2 || !Array.isArray(points) || points.length !== rows * cols || points.some(p => !Array.isArray(p) || p.length !== 3 || !p.every(Number.isFinite))) throw new Error('Invalid terrain grid.');
+      // Each cell adds a centre vertex; every index must still fit in Uint16.
+      if (rows * cols + (rows - 1) * (cols - 1) > 65536) throw new Error('Terrain grid exceeds the 3D renderer vertex limit.');
+      const {lo, hi, east, south, stepX, stepZ} = terrainDimensions(data), extent = Math.max(east, south);
+      if (!(stepX > 0 && stepZ > 0 && extent > 0)) throw new Error('Invalid terrain spacing.');
       this.data = data; this.center = lo.map((v, k) => (v + hi[k]) / 2); this.extent = extent;
       const normalized = points.flatMap(p => p.map((v, k) => (v - (lo[k] + hi[k]) / 2) * 2 / extent));
       const triangles = [], minimal = [], diagonals = [];
@@ -130,7 +131,7 @@
         const a = r0 * cols + c0;
         return points[a][1] * (1 - dx) * (1 - dz) + points[a + 1][1] * dx * (1 - dz) + points[a + cols][1] * (1 - dx) * dz + points[a + cols + 1][1] * dx * dz;
       };
-      const batches = [], coverage = [], seen = new Set();
+      const batches = [], coverage = [], seen = new Set(), markerScale = Math.max(1, this.extent / 1100);
       for (const cell of state.coverage?.cells || []) {
         if (!Array.isArray(cell)) continue;
         const [r, c] = cell, key = `${r}:${c}`;
@@ -148,13 +149,13 @@
         if (trail.length >= 6) batches.push({vertices: trail, mode: this.gl.LINE_STRIP, color});
         if (!validPoint(rover.position)) continue;
         const [x, y, z] = rover.position, heading = Number.isFinite(rover.headingDeg) ? rover.headingDeg * Math.PI / 180 : 0;
-        this.fleetAnchors.push({carrierId: rover.carrierId, position: this.normalize([x, y + 9, z])});
+        this.fleetAnchors.push({carrierId: rover.carrierId, position: this.normalize([x, y + 9 * markerScale, z])});
         const vertex = (side, forward, height) => {
-          const px = x + Math.cos(heading) * side + Math.sin(heading) * forward;
-          const pz = z - Math.sin(heading) * side + Math.cos(heading) * forward;
-          return this.normalize([px, Math.max(y, surface(px, pz)) + height, pz]);
+          const px = x + (Math.cos(heading) * side + Math.sin(heading) * forward) * markerScale;
+          const pz = z + (-Math.sin(heading) * side + Math.cos(heading) * forward) * markerScale;
+          return this.normalize([px, Math.max(y, surface(px, pz)) + height * markerScale, pz]);
         };
-        // Raised heading chevrons remain depth-tested against hills, just like their trails.
+        // Diagram symbols grow with the view extent and remain depth-tested against hills.
         const tip = vertex(0, 18, 5), left = vertex(-11, -11, 5), right = vertex(11, -11, 5), mast = vertex(0, -2, 18);
         batches.push({vertices: [...tip, ...left, ...mast, ...tip, ...mast, ...right, ...left, ...right, ...mast, ...tip, ...right, ...left], mode: this.gl.TRIANGLES, color});
         if (rover.fault && rover.fault !== 'nominal') {
@@ -203,6 +204,26 @@
       canvas.dataset.ready = 'true';
     }
   }
+  function terrainDimensions(data) {
+    const lo = [Infinity, Infinity, Infinity], hi = [-Infinity, -Infinity, -Infinity];
+    for (const p of data.points) p.forEach((v, k) => { lo[k] = Math.min(lo[k], v); hi[k] = Math.max(hi[k], v); });
+    return {lo, hi, east: hi[0] - lo[0], south: hi[2] - lo[2], stepX: data.points[1][0] - data.points[0][0], stepZ: data.points[data.grid.cols][2] - data.points[0][2]};
+  }
+  function terrainLabels(data) {
+    const {east, south, stepX, stepZ} = terrainDimensions(data), hirise = data.source === 'nasa-pds-hirise';
+    const name = hirise ? 'HiRISE' : 'MOLA', mission = hirise ? 'MRO' : 'MGS';
+    const extent = `${(east / 1000).toFixed(2)} × ${(south / 1000).toFixed(2)} km`;
+    const spacing = Math.abs(stepX - stepZ) < .00001 ? `${stepX.toFixed(1)} m` : `${stepX.toFixed(1)} × ${stepZ.toFixed(1)} m`;
+    const samples = `${data.grid.rows} × ${data.grid.cols}`, native = data.metadata?.native_spacing_m;
+    const nativeNote = Number.isFinite(native) && native > 0 ? ` Native spacing: ${native.toFixed(4)} m.` : '';
+    return {
+      count: `${samples} samples`,
+      caption: `${name} archive · ${extent}`,
+      source: `NASA ${mission} / ${name} · ${spacing} display step`,
+      notes: `${name} display grid: ${samples} (rows × columns). Extent: ${extent}; display step: ${spacing} (east × south).${nativeNote}`,
+      fleet: `Synthetic accelerated survey on the NASA ${name} archive: ${samples} samples, ${spacing} display step, ${extent} (east × south), ${(east * south / 1000000).toFixed(1)} km². Heading symbols are enlarged for visibility. Guardian ML flags risk; sector and assistance planning coordinate the simulated response.`
+    };
+  }
   let terrain, terrainLoad = 0;
   try { terrain = new Terrain($('terrain')); } catch (e) { $('terrain-error').hidden = false; $('terrain-caption').textContent = e.message; }
   async function loadTerrain() {
@@ -213,10 +234,12 @@
       const r = await fetch(path); if (!r.ok) throw new Error('Terrain is temporarily unavailable.');
       const data = await r.json(); if (version !== terrainLoad) return;
       terrain.load(data); $('terrain-error').hidden = true;
-      $('grid-count').textContent = `${data.grid.rows} × ${data.grid.cols} samples`;
-      $('terrain-caption').textContent = type === 'mola' ? 'MOLA regional archive · 118 km extent' : 'HiRISE local archive · 1.04 km extent';
-      $('terrain-source').textContent = type === 'mola' ? 'NASA MGS / MOLA · 1.85 km step' : 'NASA MRO / HiRISE · 8.09 m display step';
-      $('source-notes').textContent = type === 'mola' ? 'MOLA display grid: 65 × 65. About 118 km across, with a 1.85 km step. Regional altimetry from NASA MGS.' : 'HiRISE display grid: 129 × 129. About 1.04 km across, with an 8.09 m display step. Native spacing: 1.0117 m.';
+      const labels = terrainLabels(data);
+      $('grid-count').textContent = labels.count;
+      $('terrain-caption').textContent = labels.caption;
+      $('terrain-source').textContent = labels.source;
+      $('source-notes').textContent = labels.notes;
+      if (data.source === 'nasa-pds-hirise') $('fleet-description').textContent = labels.fleet;
       if (fleetState) renderFleet(fleetState);
     } catch (e) { $('terrain-error').hidden = false; $('terrain-caption').textContent = e.message; }
   }

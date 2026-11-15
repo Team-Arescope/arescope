@@ -8,7 +8,7 @@ the commit containing this document. No Unity/Android build is part of this roll
 
 - SSH account: `ubuntu`, port 22. Deployment credentials remain outside Git.
 - Copilot release: `/opt/arescope-releases/v2-20261115-002532/services/arescope-copilot`.
-- LAB fleet release: `/opt/arescope-releases/v2-fleet-20261115/services/arescope-lab`.
+- LAB terrain release: `/opt/arescope-releases/v2-terrain-20261115/services/arescope-lab`.
   Its virtual environment links to the previous LAB release; keep that release
   available while this environment is in use.
 - LAB: `arescope-lab.service`, system user `arescope-lab`, Python 3.12 virtual
@@ -150,3 +150,31 @@ remain depth-tested. Legacy floating carrier cards hide in fleet view, and fleet
 frames do not automatically open an inspection window.
 [Browser evidence](qa/fleet-production-checks.json) and
 [production screenshot](qa/fleet-production-1440.png).
+
+## Expanded terrain update
+
+The active HiRISE display now uses exact source samples across **4.05 × 9.97 km**:
+129 rows × 53 columns, stride 77, 77.90 m display spacing, about 40.4 km². Its
+native source spacing remains 1.0117 m. MOLA now uses the native **64 ppd** product
+`MEGT00N000GB.IMG`, a 65 × 65 crop spanning about 59 × 59 km, with 922.82 m east
+and 926.12 m south spacing. No coordinates are stretched to enlarge either view.
+
+The former HiRISE crop is frozen byte-for-byte in
+`static/data/hirise-gale-benchmark.json`. Guardian explicitly uses it for training
+and hold-out evaluation. Dataset hash checks and the adapted 30/30, 14.8 s and
+98.6% F1 metrics remain unchanged. Fleet coordinates, coverage areas and routes
+now derive from rectangular grid dimensions and actual east/south spacing.
+
+The target host independently verified **11,062 displayed heights** against
+NASA PDS byte ranges/checksums and passed **224 Python tests**. The frontend passed
+**19 Node tests** for physical extents, rectangular rendering and fleet behavior.
+The public HTTPS check passed **97 checks** after cutover.
+Production Chrome passed **23 checks**, including both terrain extents/steps,
+full camera orbit, three rover markers, inspection assistance and desktop/mobile
+drawer bounds. [Expanded-region browser evidence](qa/terrain-production-checks.json).
+
+The previous LAB unit and an online SQLite backup are in
+`/var/backups/arescope/v2-terrain-20261115/`. Roll back code by restoring that
+directory's `arescope-lab.service`, reloading systemd and restarting LAB. The
+database schema did not change; existing credentials and state paths are retained.
+The virtual environment still links to the original LAB release. Keep it available.

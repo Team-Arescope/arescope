@@ -17,6 +17,42 @@ from urllib.request import Request, urlopen
 
 CAUSES = ("nominal", "dust", "low_texture", "glare", "wheel_slip", "sensor_drop")
 TERRAIN_PATH = Path(__file__).resolve().parent / "static/data/hirise-gale.json"
+BENCHMARK_TERRAIN_PATH = TERRAIN_PATH.with_name("hirise-gale-benchmark.json")
+
+
+def grid_geometry(data):
+    """Validate an east/south rectangular lattice without rescaling its coordinates.
+
+    Metadata keeps its scalar form for square cells, or uses east/south metres
+    for rectangular cells. Validated metadata retains the original precision
+    used by the frozen Guardian replay.
+    """
+    try:
+        rows, cols = data["grid"]["rows"], data["grid"]["cols"]
+        points = data["points"]
+        if (any(isinstance(n, bool) or not isinstance(n, int) or n < 2 for n in (rows, cols))
+                or not isinstance(points, list) or len(points) != rows * cols
+                or any(not isinstance(p, list) or len(p) != 3
+                       or any(isinstance(v, bool) or not isinstance(v, (int, float))
+                              or not math.isfinite(v) for v in p) for p in points)):
+            raise ValueError("Invalid finite HiRISE grid")
+        east = (points[cols - 1][0] - points[0][0]) / (cols - 1)
+        south = (points[(rows - 1) * cols][2] - points[0][2]) / (rows - 1)
+        close = lambda a, b: math.isclose(a, b, rel_tol=1e-9, abs_tol=1e-6)
+        if (not math.isfinite(east) or not math.isfinite(south) or min(east, south) <= 0
+                or any(not close(p[0], points[0][0] + (i % cols) * east)
+                       or not close(p[2], points[0][2] + (i // cols) * south)
+                       for i, p in enumerate(points))):
+            raise ValueError("Expected a uniform east/south rectangular HiRISE grid")
+        spacing = data["metadata"]["effective_spacing_m"]
+        axes = (spacing["east"], spacing["south"]) if isinstance(spacing, dict) else (spacing, spacing)
+        if any(isinstance(v, bool) or not isinstance(v, (int, float))
+               or not math.isfinite(v) or v <= 0 or not close(v, measured)
+               for v, measured in zip(axes, (east, south))):
+            raise ValueError("HiRISE spacing metadata disagrees with coordinates")
+        return rows, cols, axes[0], axes[1]
+    except (KeyError, TypeError, OverflowError) as exc:
+        raise ValueError("Invalid HiRISE grid or spacing metadata") from exc
 
 
 @lru_cache(maxsize=2)
@@ -27,12 +63,10 @@ def _terrain(path):
 class RoverSimulator:
     def __init__(self, terrain_path=TERRAIN_PATH, seed=41, row=40, col=30, emerging=False):
         data = _terrain(str(terrain_path))
-        self.rows, self.cols = data["grid"]["rows"], data["grid"]["cols"]
+        self.rows, self.cols, self.spacing_east, self.spacing_south = grid_geometry(data)
         self.terrain = data["points"]
         self.spacing = data["metadata"]["effective_spacing_m"]
         self.product_id = data["metadata"]["product_id"]
-        if len(self.terrain) != self.rows * self.cols or self.spacing <= 0:
-            raise ValueError("Invalid HiRISE grid")
         self.rng = random.Random(seed)
         self.row, self.col = row, float(col)
         self.elapsed, self.steps = 0.0, 0
@@ -51,11 +85,12 @@ class RoverSimulator:
         self.elapsed += dt
         self.fault_age += dt
         severity = min(1.0, self.fault_age / 22) if self.fault != "nominal" else 0.0
-        index = max(1, min(self.cols - 2, round(self.col)))
-        row = max(6, min(self.rows - 7, self.row))
+        index = max(0, min(self.cols - 2, round(self.col)))
+        margin = min(6, (self.rows - 1) // 2)
+        row = max(margin, min(self.rows - margin - 1, self.row))
         origin = self.terrain[row * self.cols + index]
         neighbor = self.terrain[row * self.cols + index + 1]
-        slope = min(1.0, abs(neighbor[1] - origin[1]) / self.spacing)
+        slope = min(1.0, abs(neighbor[1] - origin[1]) / self.spacing_east)
         noise = lambda scale: self.rng.uniform(-scale, scale)
         commanded = .22
         slip = max(0.0, .035 + slope * .035 + noise(.012))
@@ -82,13 +117,15 @@ class RoverSimulator:
             jump += .9 * severity
             link = severity < .8
         observed = commanded * (1 - slip)
-        self.col += observed * dt / self.spacing
-        if self.col >= self.cols - 7:
-            self.col, self.row = 7.0, 6 + (self.row + 9) % (self.rows - 13)
+        self.col += observed * dt / self.spacing_east
+        col_margin = min(6, (self.cols - 2) // 2)
+        if self.col >= self.cols - col_margin - 1:
+            self.col = float(col_margin + 1)
+            self.row = margin + (self.row + 9) % max(1, self.rows - 2 * margin - 1)
         center = self.terrain[row * self.cols + max(0, min(self.cols - 1, round(self.col)))]
-        # Sparse local terrain patch, preserving the DTM's real 8.09 m sample spacing.
+        # Sparse local terrain patch, preserving the source DTM's sample spacing.
         points = [self.terrain[r * self.cols + c][:]
-                  for r in range(row - 6, row + 7)
+                  for r in range(max(0, row - 6), min(self.rows, row + 7))
                   for c in range(max(0, index - 6), min(self.cols, index + 7))]
         keep = max(0, min(len(points), round(len(points) * count / 1200)))
         points = self.rng.sample(points, keep)

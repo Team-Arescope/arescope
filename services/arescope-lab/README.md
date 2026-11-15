@@ -112,7 +112,7 @@ the producer token and accepts `action: start|stop|step|reset|fault`, optional
 injection. Changing rover count after activity requires an explicit reset.
 The POST reply wraps the state as `{ok, fleetState}`; GET returns the state itself.
 
-The synthetic mission divides the approximately 1.07 km² HiRISE tile into survey
+The synthetic mission divides the approximately 40.4 km² HiRISE strip into survey
 sectors. Coverage, rover positions, bounded trails and a decision log appear in
 the Guardian pane and the same terrain camera. Time acceleration is explicit.
 Each rover's synthetic telemetry passes through the normal Guardian, WebSocket,

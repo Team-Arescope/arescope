@@ -13,7 +13,7 @@ import random
 import threading
 import time
 
-from rover_sim import CAUSES, RoverSimulator
+from rover_sim import BENCHMARK_TERRAIN_PATH, CAUSES, RoverSimulator
 
 DEFAULTS = {"pointCount": 1200, "fps": 30, "poseJumpM": .01, "lumaContrast": .58,
             "slipRatio": .03, "linkOk": True}
@@ -83,7 +83,8 @@ def generate_dataset(split="train"):
             # Entire trajectories, including their terrain corridors, belong to one split.
             row = 51 + index * 2 if split == "adaptation" else (12 if split == "train" else 77) + index * 5
             emerging = cause == "wheel_slip" and split != "train" and index >= 2
-            sim = RoverSimulator(seed=rng.randrange(1_000_000), row=row, col=15 + index * 3, emerging=emerging)
+            sim = RoverSimulator(terrain_path=BENCHMARK_TERRAIN_PATH, seed=rng.randrange(1_000_000),
+                                 row=row, col=15 + index * 3, emerging=emerging)
             frames = []
             onset = 7 + index % 3
             for step in range(36):

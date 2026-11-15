@@ -1,4 +1,4 @@
-"""Synthetic, accelerated fleet mission on the archived ~1 km² HiRISE tile.
+"""Synthetic, accelerated fleet mission on an archived HiRISE terrain grid.
 
 Guardian ML is supplied by the normal ingest callback. Deterministic mission
 policies partition survey work, latch safety halts and plan inspection routes;
@@ -15,7 +15,7 @@ import json
 import math
 import time
 
-from rover_sim import CAUSES, TERRAIN_PATH
+from rover_sim import CAUSES, TERRAIN_PATH, grid_geometry
 
 MAX_TRAIL = 128
 MAX_EVENTS = 100
@@ -52,18 +52,19 @@ class FleetSimManager:
                 or not math.isfinite(interval) or interval < 1):
             raise ValueError("Fleet interval must be finite and at least one second")
         data = json.loads(terrain_path.read_text(encoding="utf-8"))
-        self.rows, self.cols = data["grid"]["rows"] - 1, data["grid"]["cols"] - 1
+        source_rows, self.source_cols, self.spacing_east, self.spacing_south = grid_geometry(data)
+        self.rows, self.cols = source_rows - 1, self.source_cols - 1
         self.points = data["points"]
         self.spacing = data["metadata"]["effective_spacing_m"]
-        if (self.rows != 128 or self.cols != 128 or len(self.points) != 129 * 129
-                or not math.isfinite(self.spacing) or self.spacing <= 0
-                or any(len(p) != 3 or any(not math.isfinite(v) for v in p) for p in self.points)):
-            raise ValueError("Expected the existing finite 129 by 129 HiRISE grid")
+        self.cell_area_m2 = self.spacing_east * self.spacing_south
+        # Conservative physical clearance on either axis, expressed in metres.
+        self.standoff_min_m = 2 * max(self.spacing_east, self.spacing_south)
+        self.standoff_max_m = 3 * max(self.spacing_east, self.spacing_south)
         self.ingest, self.interval, self.clock = ingest, interval, clock
         self.clear_windows = clear_windows
         self.lock, self.control_lock = asyncio.Lock(), asyncio.Lock()
         self.task = None
-        self.count, self.speed_multiplier = 3, 60.0
+        self.count, self.speed_multiplier = min(3, self.cols), 60.0
         self.elapsed = 0.0
         self.covered = set()
         self.events = deque(maxlen=MAX_EVENTS)
@@ -79,14 +80,14 @@ class FleetSimManager:
         row, col = max(0.0, min(self.rows, row)), max(0.0, min(self.cols, col))
         r, c = min(self.rows - 1, int(row)), min(self.cols - 1, int(col))
         fr, fc = row - r, col - c
-        corners = [self.points[r * 129 + c], self.points[r * 129 + c + 1],
-                   self.points[(r + 1) * 129 + c], self.points[(r + 1) * 129 + c + 1]]
+        corners = [self.points[r * self.source_cols + c], self.points[r * self.source_cols + c + 1],
+                   self.points[(r + 1) * self.source_cols + c], self.points[(r + 1) * self.source_cols + c + 1]]
         weights = [(1 - fr) * (1 - fc), (1 - fr) * fc, fr * (1 - fc), fr * fc]
         return [sum(p[i] * w for p, w in zip(corners, weights)) for i in range(3)]
 
     def _cell(self, position):
-        return (max(0, min(self.rows - 1, int((position[2] - self.points[0][2]) / self.spacing))),
-                max(0, min(self.cols - 1, int((position[0] - self.points[0][0]) / self.spacing))))
+        return (max(0, min(self.rows - 1, int((position[2] - self.points[0][2]) / self.spacing_south))),
+                max(0, min(self.cols - 1, int((position[0] - self.points[0][0]) / self.spacing_east))))
 
     def _reset(self, count):
         if self.clear_windows is not None:
@@ -105,7 +106,7 @@ class FleetSimManager:
             rover.trail.append(rover.position[:])
             self.rovers.append(rover)
         self._event("reset", None, None,
-                    "Synthetic accelerated survey of the archived ~1.07 km² HiRISE tile. "
+                    f"Synthetic accelerated survey of the archived {self.rows * self.cols * self.cell_area_m2 / 1e6:.2f} km² HiRISE tile. "
                     "Guardian ML detects risk; explicit mission policies control survey and inspection. "
                     "No LLM motor control; assistance does not repair faults.")
 
@@ -123,8 +124,8 @@ class FleetSimManager:
                 "timeBasis": "elapsedS is simulated seconds; speedMultiplier accelerates mission time",
                 "coverage": {"scannedCells": len(self.covered), "totalCells": total,
                              "percent": 100 * len(self.covered) / total,
-                             "areaM2": len(self.covered) * self.spacing ** 2,
-                             "totalAreaM2": total * self.spacing ** 2,
+                             "areaM2": len(self.covered) * self.cell_area_m2,
+                             "totalAreaM2": total * self.cell_area_m2,
                              "cells": [list(cell) for cell in sorted(self.covered)]},
                 "rovers": [{"carrierId": r.carrier_id, "position": r.position[:], "headingDeg": r.heading,
                             "status": r.status, "fault": r.fault, "guardian": deepcopy(r.guardian),
@@ -141,6 +142,8 @@ class FleetSimManager:
         count, speed = data.get("count", self.count), data.get("speedMultiplier", self.speed_multiplier)
         if isinstance(count, bool) or not isinstance(count, int) or not 1 <= count <= 6:
             raise ValueError("count must be an integer from 1 to 6")
+        if count > self.cols:
+            raise ValueError("count cannot exceed the number of terrain cell columns")
         if (isinstance(speed, bool) or not isinstance(speed, (int, float))
                 or not 1 <= speed <= 120 or not math.isfinite(speed)):
             raise ValueError("speedMultiplier must be finite and between 1 and 120")
@@ -158,7 +161,8 @@ class FleetSimManager:
     def _telemetry(self, rover):
         row, col = self._cell(rover.position)
         neighbor = self._position(row, min(self.cols - 1, col + 1))
-        slip = .035 + .035 * min(1.0, abs(neighbor[1] - rover.position[1]) / self.spacing)
+        separation = distance(neighbor, rover.position)
+        slip = .035 + .035 * min(1.0, abs(neighbor[1] - rover.position[1]) / separation) if separation else .035
         count, fps, contrast, jump, link = 1200, 29.0, .58, .012, True
         if rover.fault == "dust":
             count, fps, contrast = 72, 13.0, .035
@@ -180,9 +184,9 @@ class FleetSimManager:
         row, col = self._cell(rover.position)
         telemetry = self._telemetry(rover)
         # Real archived samples, with a synthetic sensor return rate; no invented detail.
-        patch = [self.points[r * 129 + c][:]
-                 for r in range(max(0, row - 3), min(129, row + 4))
-                 for c in range(max(0, col - 3), min(129, col + 4))]
+        patch = [self.points[r * self.source_cols + c][:]
+                 for r in range(max(0, row - 3), min(self.rows + 1, row + 4))
+                 for c in range(max(0, col - 3), min(self.source_cols, col + 4))]
         keep = round(len(patch) * telemetry["pointCount"] / 1200)
         frame = await self.ingest({"source": "simulated-rover", "room": "gale-fleet-sim",
                                    "carrierId": rover.carrier_id, "carrierType": "rover",
@@ -205,7 +209,7 @@ class FleetSimManager:
 
     def _scan(self, rover):
         row, col = self._cell(rover.position)
-        # Synthetic ~24 m swath; only traversed cells and their immediate neighbors.
+        # Synthetic three-cell swath at the source spacing, clipped to the sector.
         self.covered.update((r, c) for r in range(max(0, row - 1), min(self.rows, row + 2))
                             for c in range(max(rover.columns[0], col - 1), min(rover.columns[1], col + 2)))
 
@@ -244,8 +248,8 @@ class FleetSimManager:
                 dx, dz = destination[0] - rover.position[0], destination[2] - rover.position[2]
                 rover.heading = math.degrees(math.atan2(dx, dz)) % 360
                 x, z = rover.position[0] + fraction * dx, rover.position[2] + fraction * dz
-                rover.position = self._surface((z - self.points[0][2]) / self.spacing,
-                                               (x - self.points[0][0]) / self.spacing)
+                rover.position = self._surface((z - self.points[0][2]) / self.spacing_south,
+                                               (x - self.points[0][0]) / self.spacing_east)
                 budget -= min(budget, length)
                 rover.trail.append(rover.position[:])
                 if surveying:
@@ -263,7 +267,7 @@ class FleetSimManager:
         for target in obstacles:
             t = max(0.0, min(1.0, ((target[0] - a[0]) * dx + (target[2] - a[2]) * dz) / norm)) if norm else 0.0
             # Bilinear resampling can shift a grid coordinate by a few ulps.
-            if math.hypot(a[0] + t * dx - target[0], a[2] + t * dz - target[2]) + 1e-7 < 2 * self.spacing:
+            if math.hypot(a[0] + t * dx - target[0], a[2] + t * dz - target[2]) + 1e-7 < self.standoff_min_m:
                 return False
         return True
 
@@ -274,7 +278,10 @@ class FleetSimManager:
         start_position = self._position(*start)
         if not self._safe_segment(helper.position, start_position, obstacles):
             return None
-        heuristic = lambda p: max(0.0, distance(p, target.position) - 3 * self.spacing)
+        start_distance = distance(helper.position, start_position)
+        if start_distance and abs(helper.position[1] - start_position[1]) / start_distance > MAX_HELPER_SLOPE:
+            return None
+        heuristic = lambda p: max(0.0, distance(p, target.position) - self.standoff_max_m)
         frontier = [(heuristic(start_position), 0.0, start)]
         costs, parents, closed = {start: 0.0}, {}, set()
         while frontier and len(closed) < MAX_PATH_NODES:
@@ -283,7 +290,7 @@ class FleetSimManager:
                 continue
             closed.add(cell)
             position = self._position(*cell)
-            if 2 * self.spacing <= distance(position, target.position) <= 3 * self.spacing:
+            if self.standoff_min_m <= distance(position, target.position) <= self.standoff_max_m:
                 path = [cell]
                 while cell in parents:
                     cell = parents[cell]
@@ -294,10 +301,11 @@ class FleetSimManager:
                 if not (0 <= neighbor[0] < self.rows and 0 <= neighbor[1] < self.cols) or neighbor in closed:
                     continue
                 other = self._position(*neighbor)
-                slope = abs(other[1] - position[1]) / self.spacing
+                length = distance(position, other)
+                slope = abs(other[1] - position[1]) / length
                 if slope > MAX_HELPER_SLOPE or not self._safe_segment(position, other, obstacles):
                     continue
-                candidate = cost + self.spacing * (1 + slope)
+                candidate = cost + length * (1 + slope)
                 if candidate < costs.get(neighbor, math.inf):
                     costs[neighbor], parents[neighbor] = candidate, cell
                     heapq.heappush(frontier, (candidate + heuristic(other), candidate, neighbor))
@@ -329,7 +337,7 @@ class FleetSimManager:
                 self._event("helper_assigned", helper.carrier_id, target.carrier_id,
                             f"Mission policy selected nearest available healthy rover with a safe bounded A* route "
                             f"({distance(helper.position, target.position):.1f} m away). "
-                            f"Scout/inspect at {2 * self.spacing:.1f}–{3 * self.spacing:.1f} m standoff; no automatic repair.")
+                            f"Scout/inspect at {self.standoff_min_m:.1f}–{self.standoff_max_m:.1f} m standoff; no automatic repair.")
                 break
             else:
                 if target.carrier_id not in self.unavailable:

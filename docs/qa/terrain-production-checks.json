@@ -1,0 +1,121 @@
+{
+  "ok": true,
+  "checks": [
+    {
+      "name": "hirise_extent",
+      "ok": true
+    },
+    {
+      "name": "hirise_spacing",
+      "ok": true
+    },
+    {
+      "name": "mola_spacing",
+      "ok": true
+    },
+    {
+      "name": "camera_positive_pitch",
+      "ok": true,
+      "pitch": 3.100000000000002
+    },
+    {
+      "name": "camera_negative_pitch",
+      "ok": true,
+      "pitch": -1.5
+    },
+    {
+      "name": "camera_reset",
+      "ok": true
+    },
+    {
+      "name": "fleet_three_markers",
+      "ok": true
+    },
+    {
+      "name": "helper_assigned",
+      "ok": true
+    },
+    {
+      "name": "helper_arrived_and_other_surveys",
+      "ok": true
+    },
+    {
+      "name": "markers_follow_camera",
+      "ok": true
+    },
+    {
+      "name": "webgl_no_error",
+      "ok": true
+    },
+    {
+      "name": "drawer_1440_equipment",
+      "ok": true,
+      "overflow": 0,
+      "escape": 0
+    },
+    {
+      "name": "drawer_1440_guardian",
+      "ok": true,
+      "overflow": 0,
+      "escape": 0
+    },
+    {
+      "name": "drawer_1440_sessions",
+      "ok": true,
+      "overflow": 0,
+      "escape": 0
+    },
+    {
+      "name": "drawer_1440_logs",
+      "ok": true,
+      "overflow": 0,
+      "escape": 0
+    },
+    {
+      "name": "drawer_1440_settings",
+      "ok": true,
+      "overflow": 0,
+      "escape": 0
+    },
+    {
+      "name": "drawer_390_equipment",
+      "ok": true,
+      "overflow": 0,
+      "escape": 0
+    },
+    {
+      "name": "drawer_390_guardian",
+      "ok": true,
+      "overflow": 0,
+      "escape": 0
+    },
+    {
+      "name": "drawer_390_sessions",
+      "ok": true,
+      "overflow": 0,
+      "escape": 0
+    },
+    {
+      "name": "drawer_390_logs",
+      "ok": true,
+      "overflow": 0,
+      "escape": 0
+    },
+    {
+      "name": "drawer_390_settings",
+      "ok": true,
+      "overflow": 0,
+      "escape": 0
+    },
+    {
+      "name": "page_errors",
+      "ok": true
+    },
+    {
+      "name": "static_assets",
+      "ok": true
+    }
+  ],
+  "pageErrors": [],
+  "badAssets": []
+}

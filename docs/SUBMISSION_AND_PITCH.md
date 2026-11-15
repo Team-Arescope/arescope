@@ -4,6 +4,8 @@ Prepared: 14 November 2026. Scope: **V2 Rover + Two-Loop Arescope Guardian**. Th
 
 **Evidence boundary:** this is an Earth prototype using a Quest 3S sensor-mast testbed and a rover simulator on archived NASA terrain. Guardian's reported performance comes from **synthetic hold-out validation**, not Mars telemetry, a Spirit reconstruction, rover chassis trials, or flight validation. The intended Fast Loop runs onboard; the current Quest client sends frames to LAB and receives Guardian results. Recovery outputs are recommendations, not demonstrated autonomous vehicle maneuvers.
 
+**Terrain update, 15 November 2026:** the LAB display/fleet region is now 4.05×9.97 km HiRISE, with a compact 59×59 km MOLA view at approximately 1 km native grid spacing. The fixed Guardian evaluation remains on its separate original crop. See [terrain sources](../services/arescope-lab/static/docs/terrain-sources.md).
+
 ## 1. Ready-to-paste hackathon submission fields
 
 ### 1A. English variant
@@ -67,8 +69,8 @@ We use archived NASA elevation products for **terrain and slope context**, not m
 
 | Data | Exact project use and resolution boundary |
 | --- | --- |
-| **MRO HiRISE DTM**, Gale crater, product `DTEEC_001488_1750_001752_1750_U02`; dataset `MRO-M-HIRISE-5-DTM-V1.0` | **129×129 display/simulation grid at approximately 8.09 m spacing**, sampled at stride 8 from a source with **1.0117 m native spacing**. The display does not preserve native detail or resolve wheel-scale sand traps. [HiRISE product catalog](https://www.uahirise.org/dtm/dtm.php?ID=PSP_001488_1750). |
-| **MGS MOLA MEGDR**, product `MEGT90N000FB.IMG`; legacy dataset identifier `MGS-M-MOLA-5-MEGDR-L3-V1.0` | **65×65 regional grid at approximately 1.85 km spacing** for broad elevation context in Mission Control. Grid spacing is not effective resolving power; MOLA is not a wheel-scale navigation surface. [NASA PDS MOLA archive](https://pds-geosciences.wustl.edu/missions/mgs/megdr.html). |
+| **MRO HiRISE DTM**, Gale crater, product `DTEEC_001488_1750_001752_1750_U02`; dataset `MRO-M-HIRISE-5-DTM-V1.0` | **129×53 display/fleet grid at 77.90 m spacing**, covering **4.05×9.97 km**, sampled at stride 77 from a source with **1.0117 m native spacing**. Guardian’s fixed synthetic benchmark separately retains the original 129×129 stride-8 crop. The display does not preserve native detail or resolve wheel-scale sand traps. [HiRISE product catalog](https://www.uahirise.org/dtm/dtm.php?ID=PSP_001488_1750). |
+| **MGS MOLA MEGDR**, product `MEGT00N000GB.IMG`; legacy dataset identifier `MGS-M-MOLA-5-MEGDR-L3-V1.0` | **65×65 regional grid at approximately 0.923–0.926 km spacing**, covering about **59×59 km** for broad elevation context in Mission Control. Grid spacing is not effective resolving power; MOLA is not a wheel-scale navigation surface. [NASA PDS MOLA archive](https://pds-geosciences.wustl.edu/missions/mgs/megdr.html). |
 
 Local Quest captures are Earth measurements. Simulator optics/chassis telemetry, fault onset, failure times, and labels are synthetic. Keeping these sources distinct makes the demonstration reproducible without overstating NASA validation.
 
@@ -152,8 +154,8 @@ Arescope объединяет локальную 3D-карту с ранним �
 
 | Данные | Применение и границы разрешения |
 | --- | --- |
-| **MRO HiRISE DTM**, кратер Гейла, продукт `DTEEC_001488_1750_001752_1750_U02`, набор `MRO-M-HIRISE-5-DTM-V1.0` | **Сетка отображения/симуляции 129×129 с шагом около 8,09 м**, выборка каждой восьмой точки источника с **исходным шагом 1,0117 м**. Отображение не сохраняет исходную детализацию и не разрешает песчаные ловушки масштаба колеса. [Каталог HiRISE](https://www.uahirise.org/dtm/dtm.php?ID=PSP_001488_1750). |
-| **MGS MOLA MEGDR**, продукт `MEGT90N000FB.IMG`, прежний идентификатор набора `MGS-M-MOLA-5-MEGDR-L3-V1.0` | **Региональная сетка 65×65 с шагом около 1,85 км** для общего высотного контекста Mission Control. Шаг сетки не равен эффективной разрешающей способности; MOLA не подходит для навигации на масштабе колёс. [Архив NASA PDS MOLA](https://pds-geosciences.wustl.edu/missions/mgs/megdr.html). |
+| **MRO HiRISE DTM**, кратер Гейла, продукт `DTEEC_001488_1750_001752_1750_U02`, набор `MRO-M-HIRISE-5-DTM-V1.0` | **Сетка отображения/группы роверов 129×53 с шагом 77,90 м**, область **4,05×9,97 км**, выборка каждой 77-й точки источника с **исходным шагом 1,0117 м**. Фиксированный синтетический benchmark Guardian отдельно сохраняет прежний участок 129×129 с выборкой каждой восьмой точки. Отображение не сохраняет исходную детализацию и не разрешает песчаные ловушки масштаба колеса. [Каталог HiRISE](https://www.uahirise.org/dtm/dtm.php?ID=PSP_001488_1750). |
+| **MGS MOLA MEGDR**, продукт `MEGT00N000GB.IMG`, прежний идентификатор набора `MGS-M-MOLA-5-MEGDR-L3-V1.0` | **Региональная сетка 65×65 с шагом около 0,923–0,926 км**, область около **59×59 км** для общего высотного контекста Mission Control. Шаг сетки не равен эффективной разрешающей способности; MOLA не подходит для навигации на масштабе колёс. [Архив NASA PDS MOLA](https://pds-geosciences.wustl.edu/missions/mgs/megdr.html). |
 
 Локальные сканы Quest — земные измерения. Телеметрия оптики/шасси симулятора, начало помех, времена отказов и метки — синтетические. Эти источники различаются явно, чтобы не приписывать NASA проверку нашего классификатора.
 
@@ -281,7 +283,7 @@ Answer the question directly, then show the named evidence if requested. English
 
 ### Q6. “What is really NASA data, and what did you invent?”
 
-**Answer:** NASA contributes archived HiRISE and MOLA elevations. Our HiRISE display is 129×129 at 8.09 m spacing, sampled from 1.0117 m native data; MOLA is a 65×65 regional grid at about 1.85 km. The simulator synthesizes optical/chassis telemetry, fault progression, and labels. Quest contributes Earth room captures. None of those synthetic faults are NASA-measured rover failures, and orbital grids do not reveal wheel-scale soil strength. Evidence: terrain JSON metadata, `rover_sim.py`, and §1's data provenance fields.
+**Answer:** NASA contributes archived HiRISE and MOLA elevations. Our HiRISE display is 129×53 at 77.90 m spacing over 4.05×9.97 km, sampled from 1.0117 m native data. MOLA is a 65×65 regional grid at about 0.923–0.926 km spacing. The Guardian benchmark uses its separate frozen 129×129, 8.09 m crop. The simulator synthesizes optical/chassis telemetry, fault progression, and labels. Quest contributes Earth room captures. None of those synthetic faults are NASA-measured rover failures, and orbital grids do not reveal wheel-scale soil strength. Evidence: terrain JSON metadata, `rover_sim.py`, and §1's data provenance fields.
 
 **RU:** «NASA даёт архивные высоты. Телеметрия и метки сбоев синтетические; Quest снимает земное помещение. Ни сетки, ни метрики не доказывают распознавание прочности грунта под колесом».
 

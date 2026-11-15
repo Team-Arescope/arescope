@@ -7,7 +7,7 @@ Guardian risk warnings with an operator-reviewed learning loop. Quest 3S is the
 sensor-mast testbed. [Production LAB](https://arescope.mrfenek.eu.cc) and
 [deployment evidence and rollback](docs/V2_DEPLOYMENT.md).
 
-The fleet demo coordinates 1–6 simulated rovers surveying an approximately 1 km²
+The fleet demo coordinates 1–6 simulated rovers surveying an approximately 40 km²
 HiRISE tile. Guardian risk can trigger a safety halt and an available rover's
 inspection approach. Coverage and trails share the terrain's freely rotating
 camera. [Demo runbook](docs/FLEET_DEMO_RUNBOOK.md).
@@ -22,7 +22,7 @@ camera. [Demo runbook](docs/FLEET_DEMO_RUNBOOK.md).
 
 ## Verification Scope
 
-- **Arescope LAB (`services/arescope-lab`):** 200 Python tests passed on the deployment host; 17 Node tests passed for the camera, fleet UI and existing contracts. Production checks cover authenticated streaming and persistent history. NASA PDS terrain verification covers 20,866 heights.
+- **Arescope LAB (`services/arescope-lab`):** 224 Python tests passed on the deployment host and 19 Node tests passed for terrain geometry, the camera, fleet UI and existing contracts. Production checks cover authenticated streaming, persistent history and both terrain views. The expanded display contains 11,062 source-verified heights; the original Guardian benchmark is frozen separately.
 - **Arescope Copilot (`services/arescope-copilot`):** 260 Python tests passed on the deployment host, including legacy SQLite migration, provider fallback, role isolation and POSIX `0600` permissions.
 - **Unity Quest Client (`unity/arescope-quest`):** project verification (10 passed) and standalone C# core kernel tests (22 passed). Unity scene wiring, HUD preview, cloud APK build and package inspection completed in prior V2 QA; these do not establish headset runtime behavior.
 - **Remaining hardware gate:** Meta Quest 3S device QA (`H-01..H-10`). Do not run Unity/Android builds on the local Windows workstation; execute them on the InstaBox cloud build host. Guardian benchmark results are synthetic hold-out validation, not flight or field validation.

@@ -9,6 +9,7 @@ from collections import deque
 from copy import deepcopy
 from concurrent.futures import ThreadPoolExecutor
 import gzip
+import hashlib
 import json
 from pathlib import Path
 import sqlite3
@@ -22,7 +23,7 @@ from fastapi.testclient import TestClient
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 import app as lab
 from guardian import GuardianEngine, extract_features, generate_dataset, predict_model
-from rover_sim import CAUSES, RoverSimulator, RoverSimManager, TERRAIN_PATH
+from rover_sim import BENCHMARK_TERRAIN_PATH, CAUSES, RoverSimulator, RoverSimManager, TERRAIN_PATH
 
 P = {"Authorization": "Bearer guardian-producer"}
 V = {"Authorization": "Bearer guardian-viewer"}
@@ -81,6 +82,10 @@ def test_baseline_holdout_is_reproducible_and_terrain_disjoint():
     metrics = engine.evaluate_holdout()
     assert metrics == engine.baseline_metrics == GuardianEngine().evaluate_holdout()
     assert metrics["caughtFailures"] == 26 and metrics["totalFailures"] == 30
+    assert metrics["F1"] == 0.8950747548026402
+    assert metrics["accuracy"] == 0.9140625
+    assert metrics["meanLeadTimeS"] == 14.923076923076923
+    assert metrics["falseAlarms"] == 10
     assert metrics["evaluatedWindows"] == 1152 and metrics["holdoutTrajectories"] == 36
     assert metrics["microSlipRecall"] == 0
     assert metrics["meanLeadTimeS"] > 10 and metrics["falseAlarmRate"] < .03
@@ -96,6 +101,22 @@ def test_baseline_holdout_is_reproducible_and_terrain_disjoint():
     holdout = {tuple(extract_features(t["frames"][i-4:i+1]))
                for t in generate_dataset("holdout") for i in range(4, 36)}
     assert training.isdisjoint(holdout)
+
+
+def test_frozen_terrain_and_all_guardian_splits_remain_byte_exact():
+    assert BENCHMARK_TERRAIN_PATH != TERRAIN_PATH
+    assert hashlib.sha256(BENCHMARK_TERRAIN_PATH.read_bytes()).hexdigest() == (
+        "8f3774a0724fcc3bac42afd2b2ca305675d580fdcc9d5318fdb26825ba76d6c2")
+    hashes = {"train": "8529006873f529238b799566781dd647a85833e6da22b7016eb760bdfedf444c",
+              "adaptation": "7b2ec8be90c00e22cf506174ee575870769adc11fb694f10646db518eb8c34be",
+              "holdout": "9d7727cbd8b262a4490d33cc7c74351dbb7630bacacd861add0c1a4efba5e0cc"}
+    generate_dataset.cache_clear()
+    with patch("guardian.RoverSimulator", wraps=RoverSimulator) as replay:
+        for split, expected in hashes.items():
+            payload = json.dumps(generate_dataset(split), sort_keys=True, separators=(",", ":"), allow_nan=False)
+            assert hashlib.sha256(payload.encode()).hexdigest() == expected
+    assert len(replay.call_args_list) == 108
+    assert all(call.kwargs["terrain_path"] == BENCHMARK_TERRAIN_PATH for call in replay.call_args_list)
 
 
 @pytest.mark.parametrize("cause", CAUSES[1:])
@@ -135,6 +156,11 @@ def test_retraining_improves_micro_slip_without_holdout_training(trained):
     before, after = result["beforeMetrics"], result["candidateMetrics"]
     assert result["ok"] and result["improved"] and result["candidateVersion"] == "v2"
     assert after["caughtFailures"] == 30 > before["caughtFailures"]
+    assert after["totalFailures"] == 30
+    assert after["meanLeadTimeS"] == 14.8
+    assert after["F1"] == 0.9864308083449758
+    assert after["accuracy"] == 0.9852430555555556
+    assert after["falseAlarms"] == 11
     assert after["F1"] > before["F1"] and after["accuracy"] > before["accuracy"]
     assert after["microSlipRecall"] > .95 > before["microSlipRecall"]
     assert after["meanLeadTimeS"] > 10 and after["falseAlarmRate"] < .03

@@ -87,10 +87,28 @@ async function request(url, {method = 'GET', body, producer = false, json = fals
     const polygonal = await page.locator('#terrain').screenshot();
     await page.locator('#grid-mode').selectOption('minimal');
     assert.notDeepEqual(await page.locator('#terrain').screenshot(), polygonal, 'Grid modes change the rendered canvas');
-    await page.locator('#terrain-select').selectOption('mola');
-    await page.waitForFunction(() => document.querySelector('#grid-count').textContent.startsWith('65'));
-    await page.locator('#terrain-select').selectOption('hirise'); await page.locator('#grid-mode').selectOption('polygonal');
-    await page.waitForFunction(() => document.querySelector('#grid-count').textContent.startsWith('129'));
+    const terrainFixtures = await Promise.all(['mola', 'hirise'].map(async name => ({name, data: await (await page.request.get(`${base}/static/data/${name}-gale.json`)).json()})));
+    const fleetDescription = await page.locator('#fleet-description').textContent();
+    for (const {name, data} of terrainFixtures) {
+      const {rows, cols} = data.grid, first = data.points[0];
+      const east = data.points[cols - 1][0] - first[0], south = data.points[(rows - 1) * cols][2] - first[2];
+      const stepX = data.points[1][0] - first[0], stepZ = data.points[cols][2] - first[2];
+      const extent = `${(east / 1000).toFixed(2)} × ${(south / 1000).toFixed(2)} km`;
+      const samples = `${rows} × ${cols}`, spacing = Math.abs(stepX - stepZ) < .00001 ? `${stepX.toFixed(1)} m` : `${stepX.toFixed(1)} × ${stepZ.toFixed(1)} m`;
+      await page.locator('#terrain-select').selectOption(name);
+      await page.waitForFunction(count => document.querySelector('#grid-count').textContent === count, `${samples} samples`);
+      assert.ok((await page.locator('#terrain-caption').textContent()).includes(extent), `${name} caption follows both physical axes`);
+      assert.ok((await page.locator('#terrain-source').textContent()).includes(`${spacing} display step`));
+      const notes = await page.locator('#source-notes').textContent();
+      assert.ok(notes.includes(`${samples} (rows × columns)`) && notes.includes(extent));
+      if (name === 'hirise') {
+        assert.ok(notes.includes(`Native spacing: ${data.metadata.native_spacing_m.toFixed(4)} m`));
+        const description = await page.locator('#fleet-description').textContent();
+        assert.ok(description.includes(samples) && description.includes(spacing) && description.includes(extent));
+        assert.ok(description.includes(`${(east * south / 1000000).toFixed(1)} km²`));
+      } else assert.equal(await page.locator('#fleet-description').textContent(), fleetDescription, 'regional view retains the HiRISE fleet frame description');
+    }
+    await page.locator('#grid-mode').selectOption('polygonal');
     assert.equal(await page.locator('#terrain').evaluate(el => el.getContext('webgl').getError()), 0);
 
     // The real Track 1 backend must support the viewer/operator contracts too.

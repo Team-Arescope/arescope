@@ -92,29 +92,81 @@ test('both scripts parse without a build step', () => {
   for (const file of ['static/app.js', 'static/shell.js']) assert.doesNotThrow(() => new vm.Script(read(file), {filename: file}));
 });
 
-for (const [name, size, source] of [['mola', 65, 'nasa-pds-mola'], ['hirise', 129, 'nasa-pds-hirise']]) {
-  test(`${name} fixture is a finite, regular ${size}x${size} Gale grid with provenance`, () => {
+for (const [name, source] of [['mola', 'nasa-pds-mola'], ['hirise', 'nasa-pds-hirise']]) {
+  test(`${name} fixture retains provenance and a regular grid at the expanded physical scale`, () => {
     const data = JSON.parse(read(`static/data/${name}-gale.json`));
+    const {rows, cols} = data.grid;
     assert.equal(data.source, source); assert.equal(data.frame, 'mars-local-metres');
-    assert.deepEqual(data.grid, {rows: size, cols: size}); assert.equal(data.points.length, size * size);
+    assert.ok(Number.isInteger(rows) && rows > 1 && Number.isInteger(cols) && cols > 1);
+    assert.equal(data.points.length, rows * cols);
+    assert.ok(rows * cols + (rows - 1) * (cols - 1) <= 65536, 'source and cell-centre vertices fit Uint16 indices');
     assert.equal(data.metadata.live, false); assert.match(data.metadata.source_url, /^https:\/\//);
     assert.ok(data.metadata.product_id); assert.match(data.metadata.units, /metres/);
     for (const point of data.points) assert.ok(Array.isArray(point) && point.length === 3 && point.every(Number.isFinite));
     const stepX = data.points[1][0] - data.points[0][0];
-    const stepZ = data.points[size][2] - data.points[0][2];
+    const stepZ = data.points[cols][2] - data.points[0][2];
     assert.ok(stepX > 0 && stepZ > 0);
-    for (let r = 0; r < size; r++) for (let c = 0; c < size; c++) {
-      const p = data.points[r * size + c];
+    for (let r = 0; r < rows; r++) for (let c = 0; c < cols; c++) {
+      const p = data.points[r * cols + c];
       assert.ok(Math.abs(p[0] - data.points[0][0] - c * stepX) < .001);
       assert.ok(Math.abs(p[2] - data.points[0][2] - r * stepZ) < .001);
     }
+    const east = data.points[cols - 1][0] - data.points[0][0], south = data.points[(rows - 1) * cols][2] - data.points[0][2];
+    const extent = data.metadata.extent_m_axes || data.metadata.extent_m;
+    if (typeof extent === 'object') {
+      assert.ok(Math.abs(extent.east - east) < .001); assert.ok(Math.abs(extent.south - south) < .001);
+    } else assert.ok(Math.abs(extent - Math.max(east, south)) < .001);
     assert.ok(new Set(data.points.map(p => p[1])).size > 100);
     if (name === 'hirise') {
-      assert.ok(Math.abs(stepX - 8.093974) < .00001);
-      assert.equal(data.metadata.native_spacing_m, 1.0117467945795);
+      assert.equal(data.metadata.product_id, 'DTEEC_001488_1750_001752_1750_U02');
+      assert.ok(Math.abs(data.metadata.native_spacing_m - 1.0117467945795) < 1e-10);
+      assert.ok(Math.abs(stepX - 77.9045031826215) < .00001 && Math.abs(stepX - stepZ) < .00001, 'display samples have equal ~77.9 m spacing');
+      assert.ok(Math.max(east, south) > 9500 && Math.max(east, south) < 10500, 'long side covers about 10 km of the source stripe');
+      assert.ok(east > 4000 && east < 4100 && south > 9900 && south < 10000, 'the valid stripe is about 4.05 km east by 9.97 km south');
+      assert.ok(east * south / 1000000 > 40 && east * south / 1000000 < 41, 'survey area is about 40.4 km²');
+      const stride = stepX / data.metadata.native_spacing_m;
+      assert.ok(Math.abs(stride - Math.round(stride)) < .00001, 'display step is an exact native pixel stride');
+    } else {
+      assert.equal(data.metadata.product_id, 'MEGT00N000GB.IMG');
+      assert.equal(data.metadata.grid_pixels_per_degree, 64);
+      assert.ok(stepX > 900 && stepX < 1000 && stepZ > 900 && stepZ < 1000, 'MOLA steps are about 0.926 km');
+      assert.ok(east > 57000 && east < 61000 && south > 57000 && south < 61000, 'regional extent is about 59 km on both axes');
+      assert.ok(Math.abs(data.metadata.spacing_m.east - stepX) < .001);
+      assert.ok(Math.abs(data.metadata.spacing_m.south - stepZ) < .001);
     }
   });
 }
+
+function rectangularTerrain(rows, cols, stepX = 77 * 1.0117467945795, stepZ = stepX) {
+  const east = (cols - 1) * stepX, south = (rows - 1) * stepZ;
+  return {source: 'nasa-pds-hirise', grid: {rows, cols}, metadata: {native_spacing_m: 1.0117467945795, effective_spacing_m: stepX, extent_m: Math.max(east, south), extent_m_axes: {east, south}},
+    points: Array.from({length: rows * cols}, (_, i) => [(i % cols) * stepX - east / 2, Math.sin(i / cols) * 30 - 4000, Math.floor(i / cols) * stepZ - south / 2])};
+}
+
+function labelsFor(data) {
+  const code = read('static/app.js');
+  const labels = vm.runInNewContext(`${code.slice(code.indexOf('  function terrainDimensions('), code.indexOf('  let terrain,'))}; terrainLabels`);
+  return {...labels(data)};
+}
+
+test('terrain labels and fleet description use both physical axes and source native spacing', () => {
+  const data = rectangularTerrain(129, 53), labels = labelsFor(data);
+  assert.equal(labels.count, '129 × 53 samples');
+  assert.equal(labels.caption, 'HiRISE archive · 4.05 × 9.97 km');
+  assert.match(labels.source, /77\.9 m display step/);
+  assert.match(labels.notes, /129 × 53 \(rows × columns\)/);
+  assert.match(labels.notes, /Native spacing: 1\.0117 m/);
+  assert.match(labels.fleet, /4\.05 × 9\.97 km \(east × south\), 40\.4 km²/);
+  assert.match(labels.fleet, /symbols are enlarged/);
+  data.metadata.extent_m = 999999; delete data.metadata.extent_m_axes;
+  data.metadata.effective_spacing_m = 1;
+  assert.deepEqual(labelsFor(data), labels, 'legacy scalar metadata cannot square or stretch the actual grid');
+  const mola = rectangularTerrain(4, 7, 921.99, 926.12); mola.source = 'nasa-pds-mola'; mola.metadata = {spacing_m: {east: 921.99, south: 926.12}, extent_m: {east: 5531.94, south: 2778.36}};
+  const regional = labelsFor(mola);
+  assert.equal(regional.caption, 'MOLA archive · 5.53 × 2.78 km');
+  assert.equal(regional.source, 'NASA MGS / MOLA · 922.0 × 926.1 m display step');
+  assert.doesNotMatch(regional.notes, /Native spacing/);
+});
 
 test('drawer geometry is constrained and accessible across desktop and mobile', () => {
   const css = read('static/mission.css');
@@ -172,6 +224,39 @@ function terrainHarness() {
   return {terrain: new Terrain(canvas), gl, calls, listeners, flush: () => { while (raf.length) raf.shift()(); }};
 }
 
+test('rectangular meshes preserve world proportions, cover edge cells and stay within Uint16 indices', () => {
+  for (const cols of [40, 53, 87]) {
+    const {terrain, gl, calls, flush} = terrainHarness(), rows = 129, data = rectangularTerrain(rows, cols);
+    terrain.load(data);
+    const cells = (rows - 1) * (cols - 1), vertices = rows * cols + cells;
+    assert.equal(terrain.normalized.length / 3, vertices);
+    assert.equal(terrain.counts.triangles, cells * 12);
+    assert.equal(terrain.counts.minimal, 2 * (rows * (cols - 1) + cols * (rows - 1)));
+    assert.equal(terrain.counts.polygonal, terrain.counts.minimal + cells * 8);
+    for (const call of calls.filter(c => c.name === 'bufferData' && c.args[0] === gl.ELEMENT_ARRAY_BUFFER)) {
+      const indices = call.args[1]; assert.equal(indices.BYTES_PER_ELEMENT, 2);
+      assert.ok([...indices].every(i => i >= 0 && i < vertices));
+    }
+    const triangles = calls.find(c => c.name === 'bufferData' && c.args[0] === gl.ELEMENT_ARRAY_BUFFER).args[1];
+    assert.ok([...triangles].includes(vertices - 1), 'last cell centre retains its unwrapped index');
+    const nw = terrain.normalize(data.points[0]), ne = terrain.normalize(data.points[cols - 1]), sw = terrain.normalize(data.points[(rows - 1) * cols]);
+    assert.ok(Math.abs((ne[0] - nw[0]) / (sw[2] - nw[2]) - (cols - 1) / (rows - 1)) < 1e-10);
+    assert.ok(Math.abs((terrain.normalize(data.points[1])[0] - nw[0]) - (terrain.normalize(data.points[cols])[2] - nw[2])) < 1e-10, 'equal metre steps stay equal after normalization');
+    const position = data.points[Math.floor(rows / 2) * cols + Math.floor(cols / 2)];
+    terrain.setFleet({simulation: true, terrainSource: data.source, coverage: {cells: [[rows - 2, cols - 2]]}, rovers: [{carrierId: 'diagram-marker', position, headingDeg: 0}]}); flush();
+    assert.equal(terrain.fleetGeometry[0].count, 12);
+    const upload = calls.filter(c => c.name === 'bufferData' && c.args[2] === gl.DYNAMIC_DRAW).at(-1).args[1];
+    const corner = terrain.normalize(data.points[(rows - 2) * cols + cols - 2]);
+    for (const k of [0, 2]) assert.ok(Math.abs(upload[k] - corner[k]) < 1e-6);
+    assert.ok([...upload].every(Number.isFinite));
+    const tipZ = upload[terrain.fleetGeometry[1].first * 3 + 2] - terrain.normalize(position)[2];
+    assert.ok(tipZ > .03 && tipZ < .04, 'heading symbol stays legible at a 10 km extent');
+    assert.equal(terrain.pitch, .8);
+  }
+  const {terrain} = terrainHarness();
+  assert.throws(() => terrain.load(rectangularTerrain(256, 129)), /vertex limit/, 'cell-centre vertices count toward the index budget');
+});
+
 test('camera supports complete vertical and horizontal revolutions, keyboard zoom and reset', () => {
   const {terrain, listeners} = terrainHarness();
   const key = key => { let prevented = false; listeners.get('keydown')({key, preventDefault() { prevented = true; }}); assert.ok(prevented); };
@@ -199,10 +284,12 @@ test('camera supports complete vertical and horizontal revolutions, keyboard zoo
 
 function fleetFixture() {
   const grid = JSON.parse(read('static/data/hirise-gale.json'));
-  const position = grid.points[64 * 129 + 64];
+  const {rows, cols} = grid.grid, row = Math.floor((rows - 1) / 2), col = Math.floor((cols - 1) / 2);
+  const position = grid.points[row * cols + col], totalCells = (rows - 1) * (cols - 1);
+  const areaM2 = (grid.points[1][0] - grid.points[0][0]) * (grid.points[cols][2] - grid.points[0][2]);
   return {running: true, count: 3, speedMultiplier: 60, elapsedS: 120, terrainSource: 'nasa-pds-hirise', simulation: true,
-    coverage: {scannedCells: 1, totalCells: 16384, percent: 100 / 16384, areaM2: 65.5, totalAreaM2: 1073389, cells: [[64, 64]]},
-    rovers: Array.from({length: 3}, (_, i) => ({carrierId: `fleet-rover-${i + 1}`, position: [...position], headingDeg: i * 90, status: i ? 'responding' : 'halted', fault: i ? 'nominal' : 'dust', guardian: null, targetId: i ? 'fleet-rover-1' : null, assignedSector: `sector-${i + 1}`, trail: [grid.points[64 * 129 + 63], position]})),
+    coverage: {scannedCells: 1, totalCells, percent: 100 / totalCells, areaM2, totalAreaM2: areaM2 * totalCells, cells: [[row, col]]},
+    rovers: Array.from({length: 3}, (_, i) => ({carrierId: `fleet-rover-${i + 1}`, position: [...position], headingDeg: i * 90, status: i ? 'responding' : 'halted', fault: i ? 'nominal' : 'dust', guardian: null, targetId: i ? 'fleet-rover-1' : null, assignedSector: `sector-${i + 1}`, trail: [grid.points[row * cols + Math.max(0, col - 1)], position]})),
     events: [{id: 1, ts: 100, type: 'guardian_halt', roverId: 'fleet-rover-1', targetId: null, message: 'Safety halt'}, {id: 2, ts: 101, type: 'assistance_dispatch', roverId: 'fleet-rover-2', targetId: 'fleet-rover-1', message: 'Inspection planned'}]};
 }
 
@@ -212,7 +299,8 @@ test('fleet coverage, trails and markers share source normalization, camera unif
   assert.ok(terrain.project([0, .02, 0]).depth < terrain.project([0, 0, 0]).depth, 'default camera views the top: raised geometry is closer than its terrain surface');
   assert.ok(terrain.fleetGeometry.length >= 7, 'coverage, three trails, three heading markers and a fault halo');
   const upload = calls.filter(c => c.name === 'bufferData' && c.args[2] === gl.DYNAMIC_DRAW).at(-1).args[1];
-  const corner = terrain.normalize(data.points[64 * 129 + 64]);
+  const [row, col] = state.coverage.cells[0], {rows, cols} = data.grid;
+  const corner = terrain.normalize(data.points[row * cols + col]);
   for (const k of [0, 2]) assert.ok(Math.abs(upload[k] - corner[k]) < 1e-6, 'coverage uses archive x/z without a second projection');
   assert.ok(Math.abs(upload[1] - corner[1] - .0015) < 1e-6);
   assert.equal(terrain.fleetGeometry[0].count, 12, 'cell uses the same four centre triangles as the depth pass');
@@ -229,7 +317,7 @@ test('fleet coverage, trails and markers share source normalization, camera unif
   assert.ok(!calls.some(c => c.name === 'disable' && c.args[0] === gl.DEPTH_TEST), 'fleet never bypasses hills');
   assert.ok(calls.some(c => c.name === 'drawArrays'));
   const originalCount = terrain.fleetGeometry[0].count;
-  state.coverage.cells.push([64, 64], [-1, 0], [128, 128], [0, 129], [NaN, 0]); terrain.setFleet(state);
+  state.coverage.cells.push([row, col], [-1, 0], [rows - 1, cols - 1], [0, cols], [NaN, 0]); terrain.setFleet(state);
   assert.equal(terrain.fleetGeometry[0].count, originalCount, 'invalid and duplicate cell addresses are ignored');
   terrain.load(JSON.parse(read('static/data/mola-gale.json'))); assert.equal(terrain.fleetGeometry.length, 0, 'HiRISE fleet cannot leak into the regional MOLA frame');
   terrain.load(data); assert.ok(terrain.fleetGeometry.length);

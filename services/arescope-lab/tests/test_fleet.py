@@ -14,8 +14,9 @@ from starlette.websockets import WebSocket
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 import app as lab
-from fleet_sim import DRIVE_SPEED_MPS, MAX_EVENTS, MAX_TRAIL, FleetSimManager, distance
-from rover_sim import CAUSES
+from fleet_sim import DRIVE_SPEED_MPS, MAX_EVENTS, MAX_HELPER_SLOPE, MAX_TRAIL, FleetSimManager, distance
+from guardian import GuardianEngine
+from rover_sim import BENCHMARK_TERRAIN_PATH, CAUSES, RoverSimulator, TERRAIN_PATH
 
 P = {"Authorization": "Bearer fleet-producer"}
 V = {"Authorization": "Bearer fleet-viewer"}
@@ -39,6 +40,239 @@ def control(client, action, **kwargs):
     result = response.json()
     assert set(result) == {"ok", "fleetState"} and result["ok"] is True
     return result["fleetState"]
+
+
+def rectangular_terrain(rows=129, cols=87, east=78.916249977201, south=77.9045031826215):
+    """Synthetic sloped lattice for geometry tests; never a NASA-data replacement."""
+    return {"grid": {"rows": rows, "cols": cols},
+            "metadata": {"effective_spacing_m": {"east": east, "south": south}, "product_id": "test-only"},
+            "points": [[-east * (cols - 1) / 2 + c * east, -4000 + c * east * .03 + r * south * .02,
+                        -south * (rows - 1) / 2 + r * south]
+                       for r in range(rows) for c in range(cols)]}
+
+
+def write_terrain(tmp_path, data):
+    path = tmp_path / "rectangular-test-terrain.json"
+    path.write_text(json.dumps(data), encoding="utf-8")
+    return path
+
+
+async def nominal_ingest(frame):
+    return {**frame, "guardian": {"riskLevel": "nominal", "predictedCause": "nominal", "riskScore": .05}}
+
+
+@pytest.mark.parametrize("rows,cols,east,south", [(129, 53, 77.9045031826215, 77.9045031826215),
+                                               (129, 87, 78.916249977201, 77.9045031826215),
+                                               (37, 19, 13.5, 31.25), (18, 23, 10.0, 10.0)])
+def test_rectangular_grid_interpolation_movement_samples_and_coverage(tmp_path, rows, cols, east, south):
+    data = rectangular_terrain(rows, cols, east, south)
+    if east == south:
+        data["metadata"]["effective_spacing_m"] = east
+    path = write_terrain(tmp_path, data)
+
+    async def scenario():
+        frames = []
+
+        async def ingest(frame):
+            frames.append(frame)
+            return await nominal_ingest(frame)
+
+        fleet = FleetSimManager(ingest, terrain_path=path)
+        assert (fleet.rows, fleet.cols, fleet.source_cols) == (rows - 1, cols - 1, cols)
+        assert fleet.spacing == data["metadata"]["effective_spacing_m"]
+        assert fleet.spacing_east == east and fleet.spacing_south == south
+        assert fleet._surface(rows - 1, cols - 1) == data["points"][-1]
+        for row, col in ((0, 0), (rows - 2, cols - 2), (7, 5)):
+            assert fleet._cell(fleet._position(row, col)) == (row, col)
+        # An affine height field has an exact bilinear answer on either axis.
+        point = fleet._surface(7.25, 5.75)
+        assert point == pytest.approx([-east * (cols - 1) / 2 + 5.75 * east,
+                                      -4000 + 5.75 * east * .03 + 7.25 * south * .02,
+                                      -south * (rows - 1) / 2 + 7.25 * south])
+        rover = fleet.rovers[0]
+        start = rover.position[:]
+        slip = fleet._telemetry(rover)["slipRatio"]
+        fleet._move(rover, .5)
+        assert distance(start, rover.position) == pytest.approx(DRIVE_SPEED_MPS * .5 * (1 - slip))
+        fleet._reset(3)
+        previous = [r.position[:] for r in fleet.rovers]
+        source_points = {tuple(p) for p in data["points"]}
+        observed_cells = set()
+        for _ in range(8):
+            state = (await fleet.control({"action": "step", "speedMultiplier": 120}))["fleetState"]
+            assert all(distance(a, r.position) <= DRIVE_SPEED_MPS * 120 + 1e-6
+                       for a, r in zip(previous, fleet.rovers))
+            previous = [r.position[:] for r in fleet.rovers]
+            cells = {tuple(cell) for cell in state["coverage"]["cells"]}
+            assert cells >= observed_cells
+            assert all(0 <= r < rows - 1 and 0 <= c < cols - 1 for r, c in cells)
+            observed_cells = cells
+            for rover, frame in zip(fleet.rovers, frames[-3:]):
+                r, c = fleet._cell(rover.position)
+                expected = [data["points"][rr * cols + cc]
+                            for rr in range(max(0, r - 3), min(rows, r + 4))
+                            for cc in range(max(0, c - 3), min(cols, c + 4))]
+                assert frame["points"] == expected
+                assert {tuple(p) for p in frame["points"]} <= source_points
+                on_surface = fleet._surface((rover.position[2] - data["points"][0][2]) / south,
+                                            (rover.position[0] - data["points"][0][0]) / east)
+                assert rover.position == pytest.approx(on_surface)
+        coverage = state["coverage"]
+        assert coverage["totalCells"] == (rows - 1) * (cols - 1)
+        assert coverage["totalAreaM2"] == pytest.approx((rows - 1) * (cols - 1) * east * south)
+        assert coverage["areaM2"] == pytest.approx(len(observed_cells) * east * south)
+        assert coverage["percent"] == pytest.approx(100 * len(observed_cells) / coverage["totalCells"])
+        json.dumps(state, allow_nan=False)
+        # Force coverage at the far boundary, where a fixed 129 stride would fail.
+        rover = fleet.rovers[-1]
+        rover.position = fleet._position(rows - 2, cols - 2)
+        await fleet._observe(rover)
+        assert frames[-1]["points"][-1] == data["points"][-1]
+
+    asyncio.run(scenario())
+
+
+@pytest.mark.parametrize("defect", ["rows", "cols", "length", "point", "nan", "infinity", "boolean",
+                                  "zero_east", "reverse_south", "warped", "nonuniform", "metadata",
+                                  "scalar_for_rectangle", "missing_axis"])
+def test_both_simulators_reject_invalid_terrain_before_ingest(tmp_path, defect):
+    data = rectangular_terrain(rows=15, cols=9, east=20, south=30)
+    if defect == "rows":
+        data["grid"]["rows"] = True
+    elif defect == "cols":
+        data["grid"]["cols"] = 1
+    elif defect == "length":
+        data["points"].pop()
+    elif defect == "point":
+        data["points"][0] = [0, 1]
+    elif defect in ("nan", "infinity", "boolean"):
+        data["points"][3][1] = {"nan": float("nan"), "infinity": float("inf"), "boolean": True}[defect]
+    elif defect == "zero_east":
+        for point in data["points"]:
+            point[0] = 0
+    elif defect == "reverse_south":
+        for point in data["points"]:
+            point[2] = -point[2]
+    elif defect == "warped":
+        data["points"][9][0] += 3
+    elif defect == "nonuniform":
+        data["points"][4][0] += 2
+    elif defect == "metadata":
+        data["metadata"]["effective_spacing_m"]["south"] = float("nan")
+    elif defect == "scalar_for_rectangle":
+        data["metadata"]["effective_spacing_m"] = 20
+    elif defect == "missing_axis":
+        del data["metadata"]["effective_spacing_m"]["east"]
+    path = write_terrain(tmp_path, data)
+    with pytest.raises(ValueError):
+        FleetSimManager(nominal_ingest, terrain_path=path)
+    with pytest.raises(ValueError):
+        RoverSimulator(terrain_path=path)
+
+
+def test_rectangular_rover_replay_uses_east_spacing_and_native_samples(tmp_path):
+    data = rectangular_terrain(rows=17, cols=11, east=15, south=30)
+    sim = RoverSimulator(terrain_path=write_terrain(tmp_path, data), row=8, col=4)
+    points = {tuple(p) for p in data["points"]}
+    for _ in range(24):
+        before = sim.col
+        frame = sim.step(.5)
+        expected = before + frame["telemetry"]["observedSpeedMps"] * .5 / 15
+        assert sim.col == pytest.approx(expected)
+        assert {tuple(p) for p in frame["points"]} <= points
+        assert tuple(frame["telemetry"]["position"]) in points
+
+
+@pytest.mark.parametrize("east,south,direction", [(10, 40, "south"), (40, 10, "east")])
+def test_astar_uses_axis_length_for_slope_and_detours_around_cliff(tmp_path, east, south, direction):
+    data = rectangular_terrain(rows=31, cols=31, east=east, south=south)
+    # Height rises by 20 m along the 40 m axis: valid slope .5, not 2.
+    for i, point in enumerate(data["points"]):
+        point[1] = (i // 31 if direction == "south" else i % 31) * 20
+    fleet = FleetSimManager(nominal_ingest, terrain_path=write_terrain(tmp_path, data))
+    target, helper, blocker = fleet.rovers
+    target.status = "halted"
+    target.position = fleet._position(2, 15) if direction == "south" else fleet._position(15, 2)
+    helper.position = fleet._position(27, 15) if direction == "south" else fleet._position(15, 27)
+    blocker.position = fleet._position(15, 15)
+    blocker.status = "halted"
+    path = fleet._inspection_path(helper, target)
+    assert path is not None
+    previous = helper.position
+    for cell in path:
+        point = fleet._position(*cell)
+        length = distance(previous, point)
+        if length:
+            assert abs(previous[1] - point[1]) / length <= MAX_HELPER_SLOPE
+        assert fleet._safe_segment(previous, point, [target.position, blocker.position])
+        previous = point
+    assert fleet.standoff_min_m <= distance(previous, target.position) <= fleet.standoff_max_m
+    # Every east/south edge crossing this full-width cliff is too steep.
+    for i, point in enumerate(fleet.points):
+        point[1] = 10_000 if (i // 31 if direction == "south" else i % 31) >= 12 else 0
+    assert fleet._inspection_path(helper, target) is None
+
+
+def test_expanded_rectangular_tile_real_guardian_helper_arrives_within_120_ticks_at_120(tmp_path):
+    path = write_terrain(tmp_path, rectangular_terrain(cols=53, east=77.9045031826215))
+
+    async def scenario():
+        from collections import defaultdict, deque
+        engine, windows = GuardianEngine(), defaultdict(lambda: deque(maxlen=5))
+        received = []
+
+        async def ingest(frame):
+            window = windows[frame["carrierId"]]
+            window.append({"telemetry": frame["telemetry"], "receivedAt": len(received)})
+            received.append(frame)
+            return {**frame, "guardian": engine.predict(window)}
+
+        fleet = FleetSimManager(ingest, terrain_path=path)
+        for _ in range(5):
+            await fleet.control({"action": "step", "speedMultiplier": 120})
+        assert all(r.guardian["riskLevel"] == "nominal" for r in fleet.rovers)
+        target = fleet.rovers[0]
+        target_position = target.position[:]
+        expected = min(fleet.rovers[1:], key=lambda r: distance(r.position, target_position))
+        await fleet.control({"action": "fault", "roverId": target.carrier_id, "fault": "wheel_slip"})
+        halted_position = None
+        for tick in range(120):
+            previous = expected.position[:]
+            await fleet.step()
+            assert distance(previous, expected.position) <= DRIVE_SPEED_MPS * 120 + 1e-6
+            if target.status == "halted":
+                if halted_position is None:
+                    assert tick < 6  # Allow the existing five-frame classifier window to react.
+                    halted_position = target.position[:]
+                assert target.position == halted_position
+                assert fleet._safe_segment(previous, expected.position, [halted_position])
+            if expected.status == "assisting":
+                break
+        assert expected.status == "assisting" and expected.target_id == target.carrier_id
+        assert halted_position is not None
+        assert fleet.standoff_min_m <= distance(expected.position, halted_position) <= fleet.standoff_max_m
+        assert target.position == halted_position and target.status == "halted" and target.fault == "wheel_slip"
+        assert target.guardian["predictedCause"] == "wheel_slip"
+        assert fleet.elapsed == (5 + tick + 1) * 120
+        assert all(frame["telemetry"]["commandedSpeedMps"] <= DRIVE_SPEED_MPS for frame in received)
+        assert fleet.state()["acceleratedTime"] is True and fleet.state()["speedMultiplier"] == 120
+
+    asyncio.run(scenario())
+
+
+def test_display_terrain_dimensions_spacing_and_area_follow_coordinates():
+    data = json.loads(TERRAIN_PATH.read_text(encoding="utf-8"))
+    fleet = FleetSimManager(nominal_ingest)
+    rows, cols = data["grid"]["rows"], data["grid"]["cols"]
+    width = data["points"][cols - 1][0] - data["points"][0][0]
+    depth = data["points"][-1][2] - data["points"][0][2]
+    assert (fleet.rows, fleet.cols) == (rows - 1, cols - 1)
+    assert fleet.state()["coverage"]["totalAreaM2"] == pytest.approx(width * depth)
+    assert fleet.spacing_east == pytest.approx(width / (cols - 1))
+    assert fleet.spacing_south == pytest.approx(depth / (rows - 1))
+    assert (rows, cols) == (129, 53)
+    assert 40_000_000 < fleet.state()["coverage"]["totalAreaM2"] < 41_000_000
+    assert fleet.spacing == 77 * 1.0117467945795
 
 
 @pytest.mark.parametrize("method", ["get", "post"])
@@ -108,8 +342,10 @@ def test_contract_bounds_and_distinct_carriers(rig, count, speed):
     assert state["elapsedS"] == speed and state["speedMultiplier"] == speed
     assert state["terrainSource"] == "nasa-pds-hirise" and state["simulation"] is True
     assert state["synthetic"] is True and state["acceleratedTime"] is True
-    assert state["coverage"]["totalCells"] == 128 ** 2
-    assert 1_000_000 < state["coverage"]["totalAreaM2"] < 1_100_000
+    fleet = application.state.fleet
+    assert state["coverage"]["totalCells"] == fleet.rows * fleet.cols
+    assert state["coverage"]["totalAreaM2"] == pytest.approx(
+        (fleet.points[-1][0] - fleet.points[0][0]) * (fleet.points[-1][2] - fleet.points[0][2]))
     assert len({r["carrierId"] for r in state["rovers"]}) == count
     assert len({r["assignedSector"] for r in state["rovers"]}) == count
     assert all(r["guardian"]["riskLevel"] == "nominal" for r in state["rovers"])
@@ -123,18 +359,19 @@ def test_one_vs_three_coverage_grows_without_overlap_and_reset_is_explicit(rig):
     client, application, cfg, now = rig
     coverage = {}
     for count in (1, 3):
-        control(client, "reset", count=count, speedMultiplier=60)
+        control(client, "reset", count=count, speedMultiplier=120)
+        fleet = application.state.fleet
         previous = set()
         for _ in range(8):
             state = control(client, "step")
             cells = {tuple(cell) for cell in state["coverage"]["cells"]}
             assert cells > previous
-            assert all(0 <= r < 128 and 0 <= c < 128 for r, c in cells)
+            assert all(0 <= r < fleet.rows and 0 <= c < fleet.cols for r, c in cells)
             assert len(cells) == state["coverage"]["scannedCells"]
             previous = cells
         coverage[count] = len(previous)
-        assert state["coverage"]["percent"] == pytest.approx(100 * len(previous) / 128 ** 2)
-        assert state["coverage"]["areaM2"] == pytest.approx(len(previous) * application.state.fleet.spacing ** 2)
+        assert state["coverage"]["percent"] == pytest.approx(100 * len(previous) / (fleet.rows * fleet.cols))
+        assert state["coverage"]["areaM2"] == pytest.approx(len(previous) * fleet.spacing_east * fleet.spacing_south)
         before = client.get(URL, headers=V).json()
         result = client.post(URL, headers=P, json={"action": "start", "count": 2})
         assert result.status_code == 422 and "reset" in result.json()["detail"]
@@ -205,21 +442,21 @@ def test_nearest_healthy_helper_moves_on_terrain_to_standoff_without_healing(rig
     assert helper["position"] == next(r for r in initial["rovers"] if r["carrierId"] == expected_helper)["position"]
     previous = helper["position"]
     initial_coverage = state["coverage"]["scannedCells"]
-    for _ in range(30):
+    for _ in range(120):
         state = control(client, "step")
         helper = next(r for r in state["rovers"] if r["carrierId"] == expected_helper)
         assert distance(previous, helper["position"]) <= DRIVE_SPEED_MPS * 120 + 1e-6
-        assert distance(helper["position"], target_position) >= 2 * application.state.fleet.spacing - 1e-6
+        assert distance(helper["position"], target_position) >= application.state.fleet.standoff_min_m - 1e-6
         point = helper["position"]
         fleet = application.state.fleet
-        on_surface = fleet._surface((point[2] - fleet.points[0][2]) / fleet.spacing,
-                                    (point[0] - fleet.points[0][0]) / fleet.spacing)
+        on_surface = fleet._surface((point[2] - fleet.points[0][2]) / fleet.spacing_south,
+                                    (point[0] - fleet.points[0][0]) / fleet.spacing_east)
         assert point == pytest.approx(on_surface)
         previous = point
         if helper["status"] == "assisting":
             break
     assert helper["status"] == "assisting"
-    assert 2 * fleet.spacing <= distance(helper["position"], target_position) <= 3 * fleet.spacing
+    assert fleet.standoff_min_m <= distance(helper["position"], target_position) <= fleet.standoff_max_m
     arrived = deepcopy(helper["position"])
     for _ in range(5):
         state = control(client, "step")
@@ -281,7 +518,7 @@ def test_reset_discards_only_fleet_observation_windows_and_operator_can_clear(ri
 
 
 @pytest.mark.parametrize("fault", ["dust", "wheel_slip"])
-def test_real_guardian_after_five_nominal_frames_arrives_within_twenty_ticks_at_default_speed(rig, fault):
+def test_real_guardian_after_five_nominal_frames_arrives_within_120_ticks_at_default_speed(rig, fault):
     client, application, cfg, now = rig
     for _ in range(5):
         state = control(client, "step")
@@ -292,7 +529,7 @@ def test_real_guardian_after_five_nominal_frames_arrives_within_twenty_ticks_at_
     assert all(f["telemetry"]["commandedSpeedMps"] == .8 for f in application.state.live.frames.values())
     state = control(client, "fault", roverId="fleet-rover-01", fault=fault)
     previous = {r["carrierId"]: r["position"] for r in state["rovers"]}
-    for _ in range(20):
+    for _ in range(120):
         state = control(client, "step")
         now[0] += 1
         target = state["rovers"][0]
@@ -308,7 +545,8 @@ def test_real_guardian_after_five_nominal_frames_arrives_within_twenty_ticks_at_
     assert target["guardian"]["predictedCause"] == fault
     helper = next(r for r in state["rovers"] if r["status"] == "assisting")
     assert helper["targetId"] == target["carrierId"]
-    assert 2 * application.state.fleet.spacing <= distance(helper["position"], target["position"]) <= 3 * application.state.fleet.spacing
+    fleet = application.state.fleet
+    assert fleet.standoff_min_m <= distance(helper["position"], target["position"]) <= fleet.standoff_max_m
     assert any(r["status"] == "surveying" for r in state["rovers"])
 
 
@@ -316,7 +554,7 @@ def test_real_astar_respects_new_exclusions_and_completely_blocked_route():
     async def run():
         async def ingest(frame):
             return {**frame, "guardian": {"riskLevel": "nominal", "predictedCause": "nominal", "riskScore": .05}}
-        fleet = FleetSimManager(ingest)
+        fleet = FleetSimManager(ingest, terrain_path=BENCHMARK_TERRAIN_PATH)
         await fleet.control({"action": "step", "count": 3})
         target, helper, blocker = fleet.rovers
         target.status, target.fault = "halted", "dust"
@@ -336,7 +574,7 @@ def test_real_astar_respects_new_exclusions_and_completely_blocked_route():
             b = fleet._position(*cell)
             assert fleet._safe_segment(a, b, [target.position, blocker.position])
             a = b
-        fleet = FleetSimManager(ingest)
+        fleet = FleetSimManager(ingest, terrain_path=BENCHMARK_TERRAIN_PATH)
         await fleet.control({"action": "step", "count": 6})
         target, helper, *blockers = fleet.rovers
         target.position, helper.position = fleet._position(60, 60), fleet._position(60, 75)
@@ -380,7 +618,7 @@ def test_async_concurrent_start_stop_bounded_rate_and_error_shutdown():
         async def ingest(frame):
             calls.append(frame)
             return {**frame, "guardian": {"riskLevel": "nominal", "predictedCause": "nominal", "riskScore": .05}}
-        fleet = FleetSimManager(ingest)
+        fleet = FleetSimManager(ingest, terrain_path=BENCHMARK_TERRAIN_PATH)
         await asyncio.gather(*(fleet.control({"action": "start", "count": 6}) for _ in range(5)))
         assert fleet.state()["running"] and len(calls) == 6
         await asyncio.sleep(1.1)
@@ -403,7 +641,7 @@ def test_bounded_trails_events_coverage_and_no_route_fallback():
     async def run():
         async def ingest(frame):
             return {**frame, "guardian": {"riskLevel": "nominal", "predictedCause": "nominal", "riskScore": .05}}
-        fleet = FleetSimManager(ingest)
+        fleet = FleetSimManager(ingest, terrain_path=BENCHMARK_TERRAIN_PATH)
         await fleet.control({"action": "step", "count": 3, "speedMultiplier": 120})
         target = fleet.rovers[0]
         target.status, target.fault = "halted", "dust"
@@ -418,10 +656,10 @@ def test_bounded_trails_events_coverage_and_no_route_fallback():
         assert len(state["events"]) == MAX_EVENTS
         assert all(len(r["trail"]) <= MAX_TRAIL for r in state["rovers"])
         assert any(len(r["trail"]) == MAX_TRAIL for r in state["rovers"])
-        assert len(state["coverage"]["cells"]) <= 128 ** 2
+        assert len(state["coverage"]["cells"]) <= fleet.rows * fleet.cols
         assert len({e["id"] for e in state["events"]}) == MAX_EVENTS
         assert target.status == "halted" and target.fault == "dust"
-        assert all(len(r.inspection) <= 128 ** 2 for r in fleet.rovers)
+        assert all(len(r.inspection) <= fleet.rows * fleet.cols for r in fleet.rovers)
     asyncio.run(run())
 
 
