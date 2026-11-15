@@ -93,8 +93,9 @@ Content-Length. PLY merged exports deduplicate rounded xyz coordinates at 1 cm.
 ## Mission Control
 
 The stage is an HTML5 Canvas WebGL renderer with a filled depth pass and
-Polygonal Grid / Minimal Grid modes. Drag to orbit, scroll to zoom, or use arrow
-keys and R when the canvas is focused. Local HiRISE detail is the initial view;
+Polygonal Grid / Minimal Grid modes. Drag for a full horizontal or vertical orbit,
+scroll or use +/- to zoom, and use arrow keys or R when the canvas is focused.
+Local HiRISE detail is the initial view;
 Settings also offers the MOLA regional view and elevation scale.
 
 The NASA terrain fixtures retain their product metadata and source coordinates.
@@ -102,6 +103,34 @@ Quest live and archived room frames render in a separate local-metre point-cloud
 overlay. An archived inspection remains selected until another scan is selected.
 Live rooms expire after 30 seconds. See
 [terrain provenance](static/docs/terrain-sources.md).
+
+## Fleet survey demonstration
+
+`GET /api/sim/fleet` requires the viewer token. `POST /api/sim/fleet` requires
+the producer token and accepts `action: start|stop|step|reset|fault`, optional
+`count` (1–6), `speedMultiplier` (1–120), and a `roverId` plus `fault` for fault
+injection. Changing rover count after activity requires an explicit reset.
+The POST reply wraps the state as `{ok, fleetState}`; GET returns the state itself.
+
+The synthetic mission divides the approximately 1.07 km² HiRISE tile into survey
+sectors. Coverage, rover positions, bounded trails and a decision log appear in
+the Guardian pane and the same terrain camera. Time acceleration is explicit.
+Each rover's synthetic telemetry passes through the normal Guardian, WebSocket,
+history and incident pipeline. Existing single-rover controls remain available.
+
+Guardian ML identifies degraded telemetry. Explicit mission policies halt an
+affected rover and select an available healthy rover with a bounded A* path for
+inspection at a standoff distance. Other healthy rovers continue surveying.
+Assistance never repairs or clears a fault automatically. Operator clearance and
+nominal Guardian observations are required before resuming the affected rover.
+
+Mission state, coverage and assignments are process-local. Frames and incidents
+persist in SQLite. Reset clears only fleet observations from live views, retaining
+unrelated devices and archived history. The coordinator runs in LAB; onboard
+execution and physical rover validation remain future work. The fixed Guardian
+benchmark fixtures are unchanged by this demo.
+
+See the [presentation demo runbook](../../docs/FLEET_DEMO_RUNBOOK.md).
 
 The four drawer panes are 350 px wide on desktop and become a scrollable sheet
 on phones. Both fonts are local WOFF2 files. Icons are inline Lucide SVGs.

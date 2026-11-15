@@ -1,0 +1,4 @@
+# Disposable browser profiles and slide QA captures; final screenshots live in screenshots/.
+.verify-chrome-*/
+.verify-slides-*/
+.export-chrome-*/

@@ -122,6 +122,14 @@ async function main() {
     await sleep(150);
   };
   const activeSlide = () => evaluate(() => [...document.querySelectorAll('.slide')].findIndex(slide => slide.classList.contains('on')) + 1);
+  const linkState = () => evaluate(() => ({
+    live: document.querySelector('[data-link="live"]')?.getAttribute('aria-pressed'),
+    delay: document.querySelector('[data-link="delay"]')?.getAttribute('aria-pressed'),
+    localAutonomy: !!document.getElementById('sub1')?.classList.contains('pulse-local'),
+    cards: ['sub1', 'sub2', 'sub3'].map(id => document.getElementById(id)?.className ?? null),
+    tags: ['tg1', 'tg2', 'tg3'].map(id => document.getElementById(id)?.textContent.trim() ?? ''),
+    description: document.getElementById('linkDesc')?.textContent.trim() ?? ''
+  }));
   const settle = async () => {
     await sleep(1900);
     await evaluate(() => Promise.all(document.querySelector('.slide.on').getAnimations({ subtree: true })
@@ -178,6 +186,17 @@ async function main() {
     const content = await evaluate(() => ({
       count: document.querySelectorAll('.slide').length,
       text: [...document.querySelectorAll('.pad')].map(p => p.textContent).join(' '),
+      slides: [...document.querySelectorAll('.slide .pad')].map(p => p.textContent.replace(/\s+/g, ' ').trim()),
+      blocks: [...document.querySelectorAll('.pad .c, .pad p, .pad .bridge')].map(el => el.textContent.replace(/\s+/g, ' ').trim()),
+      architecture: [...document.querySelectorAll('.slide[data-architecture="target"]')].map(slide => ({
+        number: [...document.querySelectorAll('.slide')].indexOf(slide) + 1,
+        text: slide.querySelector('.pad')?.textContent.replace(/\s+/g, ' ').trim() ?? '',
+        levels: [...slide.querySelectorAll('[data-ai-level]')].map(el => ({ level: el.dataset.aiLevel, text: el.textContent.replace(/\s+/g, ' ').trim() }))
+      })),
+      deployment: {
+        scope: document.getElementById('deployment-boundary')?.dataset.deployment,
+        text: document.getElementById('deployment-boundary')?.textContent.replace(/\s+/g, ' ').trim() ?? ''
+      },
       fonts: ['Manrope', 'DM Mono'].map(f => ({ family: f, loaded: [...document.fonts].some(face => face.family.replace(/['"]/g, '') === f && face.status === 'loaded') })),
       metrics: [...document.querySelectorAll('[data-metric]')].map(el => ({ key: el.dataset.metric, value: el.textContent.trim() })),
       notesSeconds: [...document.querySelectorAll('.speaker-notes')].reduce((sum, n) => sum + Number(n.dataset.seconds), 0),
@@ -185,14 +204,27 @@ async function main() {
       bg: getComputedStyle(document.documentElement).getPropertyValue('--bg').trim(),
       copper: getComputedStyle(document.documentElement).getPropertyValue('--copper').trim()
     }));
-    check(content.count >= 7 && content.count <= 9, 'Expected 7–9 slides', content.count);
-    check(!/astronaut|helmet|\bEVA\b|Martian Base|humanoid/i.test(content.text), 'Legacy framing remains');
+    check(content.count === 7, 'Expected seven slides', content.count);
+    check(!/astronaut|helmet|\bEVA\b|humanoid/i.test(content.text), 'Legacy crew framing remains');
     check(content.troy && content.bg === '#0d0907' && content.copper === '#ee8a5b', 'Artwork or design system missing');
     check(content.fonts.every(font => font.loaded), 'Embedded fonts did not load offline', content.fonts);
     check(content.notesSeconds === 180, 'Speaker notes must cover three minutes', content.notesSeconds);
+    // Check the story's meaning without locking headings or card copy to exact sentences.
+    const architecture = content.architecture[0], architectureText = architecture?.text || '';
+    const levels = architecture?.levels || [];
+    const levelText = level => levels.find(item => item.level === String(level))?.text || '';
+    check(content.architecture.length === 1 && architecture.number === 5 && levels.length === 3 && /protect/i.test(levelText(1)) && /mission/i.test(levelText(2)) && /coordinat/i.test(levelText(2)) && /analys/i.test(levelText(3)) && /learn/i.test(levelText(3)), 'Explicit three-level target AI architecture is missing', content.architecture);
+    check(/\b(?:station|base|hub)\b/i.test(architectureText) && /\boptional\b/i.test(architectureText) && /\b(?:uncrewed|unmanned)\b/i.test(architectureText) && /comput/i.test(architectureText) && /\b(?:future|planned|next)\b/i.test(content.deployment.text), 'Local station must be an optional future uncrewed compute hub');
+    check(content.deployment.scope === 'lab' && /Guardian/i.test(content.deployment.text) && /\bLAB\b/i.test(content.deployment.text) && /\b(?:now|today|current(?:ly)?)\b/i.test(content.deployment.text), 'Current Guardian deployment must be scoped to LAB', content.deployment);
+    check(/\b(?:on[ -]?board|on[ -]rover)\b/i.test(content.deployment.text) && /inferenc|deploy|Guardian/i.test(content.deployment.text) && /\b(?:next|future|planned)\b/i.test(content.deployment.text), 'Onboard Guardian inference must remain a next step');
+    // Simulated fleet coordination may be demonstrated now; physical deployment is future work.
+    check(/\b(?:field|physical|real[ -]world)\b/i.test(levelText(2)) && /\b(?:planned|future|next|pending)\b/i.test(levelText(2)), 'Field fleet coordination must remain planned');
+    check(content.blocks.some(text => /\b(?:hardware|device|headset|Quest|physical)\b/i.test(text) && /validat|test|check|trial/i.test(text) && /pending|not yet|unvalidated|await|to be/i.test(text)), 'Hardware validation must remain pending');
+    check(/architectur/i.test(content.slides[4] || '') && /illustrat|diagram|concept/i.test(content.slides[4] || ''), 'Slide five link controls must be identified as an architecture illustration');
     const metricKeys = ['GUARDIAN_CAUGHT', 'GUARDIAN_LEAD', 'GUARDIAN_FALSE_ALARMS', 'GUARDIAN_BEFORE_F1', 'GUARDIAN_AFTER_F1'];
-    check(content.metrics.length === 5 && metricKeys.every(key => content.metrics.some(metric => metric.key === key && metric.value && (!metric.value.includes('{{') || metric.value === '{{' + key + '}}'))), 'Guardian metrics missing or malformed', content.metrics);
-    console.log('METRICS:', JSON.stringify({ target: target.name, pendingTrack1: content.metrics.filter(metric => metric.value.startsWith('{{')).map(metric => metric.key) }));
+    check(content.metrics.length === 5 && metricKeys.every(key => content.metrics.some(metric => metric.key === key && /\d/.test(metric.value) && !/\{\{|\}\}/.test(metric.value))), 'Five measured Guardian metrics required; placeholders are not allowed', content.metrics);
+    check(!/\{\{|\}\}/.test(content.text), 'Unresolved deck placeholder remains');
+    console.log('METRICS:', JSON.stringify({ target: target.name, values: content.metrics }));
     for (let slide = 0; slide < content.count; slide++) {
       await evaluate(n => go(n), slide);
       await settle();
@@ -216,15 +248,18 @@ async function main() {
 
     await evaluate('go(4)');
     await settle();
+    const available = await linkState();
+    check(available.live === 'true' && available.delay === 'false' && available.localAutonomy && available.cards.every(Boolean) && available.tags.every(Boolean) && available.description, 'Earth-link architecture illustration must start available', available);
     await click('[data-link="delay"]');
     await sleep(400);
-    check(await evaluate(() => document.getElementById('sub1').classList.contains('pulse-local') && document.getElementById('tg1').textContent.includes('stays on') && document.querySelector('[data-link="delay"]').getAttribute('aria-pressed') === 'true') && await activeSlide() === 5, 'Interrupted link must retain rover Fast Loop');
-    await layout('pipeline-interrupted');
-    await screenshot(target.name, 'pipeline-interrupted');
+    const interrupted = await linkState();
+    check(interrupted.delay === 'true' && interrupted.live === 'false' && interrupted.localAutonomy && interrupted.tags.every(Boolean) && interrupted.tags.some((tag, index) => tag !== available.tags[index]) && interrupted.description && interrupted.description !== available.description && await activeSlide() === 5, 'Interrupted Earth-link illustration must retain distributed autonomy and update status without navigation', interrupted);
+    await layout('architecture-link-interrupted');
+    await screenshot(target.name, 'architecture-link-interrupted');
     await evaluate(() => document.querySelector('[data-link="live"]').focus());
     await key('Enter', 'Enter', 13);
-    const pipelineKeyboard = await evaluate(() => ({ live: document.querySelector('[data-link="live"]').getAttribute('aria-pressed'), fastLoop: document.getElementById('sub1').classList.contains('pulse-local'), focus: document.activeElement.outerHTML.slice(0, 200) }));
-    check(pipelineKeyboard.live === 'true' && pipelineKeyboard.fastLoop && await activeSlide() === 5, 'Pipeline keyboard control navigated or failed', pipelineKeyboard);
+    const restored = await linkState();
+    check(restored.live === 'true' && restored.delay === 'false' && restored.localAutonomy && restored.tags.every((tag, index) => tag === available.tags[index]) && restored.cards.every((card, index) => card === available.cards[index]) && restored.description === available.description && await activeSlide() === 5, 'Earth-link architecture keyboard control must restore the available state without navigation', restored);
 
     await evaluate('document.activeElement.blur()');
     await key('1', 'Digit1', 49);

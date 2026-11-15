@@ -28,10 +28,16 @@
     <a href="/static/docs/terrain-sources.md" target="_blank" rel="noopener" title="Terrain sources"><i data-icon="book-open"></i><span class="sr-only">Terrain sources</span></a>
   </nav>
   <main class="stage" id="stage">
-    <canvas id="terrain" tabindex="0" aria-label="Interactive 3D terrain of Gale crater. Drag to orbit, scroll to zoom, press R to reset."></canvas>
+    <canvas id="terrain" tabindex="0" aria-label="Interactive 3D terrain of Gale crater. Drag or use arrow keys for a full orbit, scroll or use plus and minus to zoom, press R to reset."></canvas>
     <div class="stage-heading"><p class="eyebrow">Mars / Gale crater</p><h1>Mars rover &amp; mast mission control</h1><p id="terrain-caption">Loading archived elevation data</p></div>
     <section id="carrier-stage" class="carrier-stage" aria-label="Live carriers"><p class="muted">Awaiting rover or mast telemetry.</p></section>
     <div class="stage-toolbar" aria-label="Terrain controls"><button id="reset-view" class="icon-button" title="Reset view"><i data-icon="rotate-ccw"></i><span class="sr-only">Reset view</span></button><span class="mono" id="grid-count">Terrain loading</span></div>
+    <section id="fleet-map" class="fleet-map" aria-label="Synthetic fleet on archived terrain" hidden>
+      <h2>Synthetic accelerated survey</h2><p id="fleet-map-status" class="mono"></p>
+      <div class="fleet-legend"><span><i class="coverage-swatch"></i>Scanned cells</span><span>Colored trails / heading markers</span><span><i class="fault-swatch"></i>Injected fault</span></div>
+      <div id="fleet-map-rovers" class="fleet-map-rovers"></div>
+      <p id="fleet-map-frame">NASA HiRISE archive · Separate from Quest local scans</p>
+    </section>
     <div class="terrain-error" id="terrain-error" hidden><p>Terrain could not be loaded.</p><button id="retry-terrain">Reload terrain</button></div>
     <section id="live-overlay" class="live-overlay" aria-label="Carrier scan overlay" tabindex="0" hidden>
       <header><span class="status-dot active"></span><h2 id="overlay-title">Carrier live</h2><button id="close-overlay" class="icon-button" aria-label="Close scan overlay"><i data-icon="x"></i></button></header>
@@ -41,7 +47,7 @@
       <p class="mono" id="scan-caption"></p>
       <p class="mono" id="scan-telemetry"></p>
     </section>
-    <footer class="stage-footer"><span><i data-icon="mouse-pointer-2"></i>Drag to orbit · Scroll to zoom</span><span class="mono" id="terrain-source">Archived terrain</span></footer>
+    <footer class="stage-footer"><span><i data-icon="mouse-pointer-2"></i>Drag / arrows to orbit · Scroll / + − to zoom · R resets</span><span class="mono" id="terrain-source">Archived terrain</span></footer>
   </main>
   <aside id="drawer" class="drawer" aria-label="Mission tools" hidden>
     <header class="drawer-header"><h2 id="drawer-title">Equipment and live</h2><button id="close-drawer" class="icon-button" aria-label="Close panel"><i data-icon="x"></i></button></header>
@@ -62,6 +68,11 @@
     <section id="guardian" class="drawer-pane" hidden>
       <div class="section-heading"><i data-icon="shield-check"></i><h3>Arescope Guardian</h3><button id="refresh-guardian" class="icon-button" aria-label="Refresh Guardian"><i data-icon="refresh-cw"></i></button></div>
       <p>Review live risk, label incidents and validate the next model before approving deployment.</p>
+      <section class="operator-access" aria-label="Operator access">
+        <h3>Operator access</h3>
+        <label for="producer-token">Producer token</label><input id="producer-token" type="password" autocomplete="off" spellcheck="false" placeholder="Paste producer token">
+        <p class="field-help">Kept in this input for simulator, labeling and model actions. Cleared on disconnect. Also authorizes session deletion.</p>
+      </section>
       <div id="guardian-risk" class="guardian-risk" data-risk="unknown">
         <div class="risk-heading"><span id="guardian-level">Awaiting telemetry</span><strong id="guardian-score" class="mono">—</strong></div>
         <progress id="guardian-meter" max="1" value="0" aria-label="Guardian risk score" hidden></progress>
@@ -70,13 +81,34 @@
         <p id="guardian-recovery">Recovery guidance appears with telemetry.</p>
         <p id="guardian-confidence" class="confidence-warning" role="status" hidden><i data-icon="alert-triangle"></i>Low confidence · Verify terrain before driving.</p>
       </div>
+      <section id="fleet-summary" class="fleet-summary" aria-label="Fleet roster and coverage" hidden>
+        <h3>Synthetic fleet survey</h3>
+        <p id="fleet-status" role="status">Connect a viewer to follow the fleet.</p>
+        <label for="fleet-coverage">Scanned coverage <output id="fleet-percent">—</output></label>
+        <progress id="fleet-coverage" max="100" value="0" aria-label="Simulated scanned coverage"></progress>
+        <p id="fleet-area" class="mono field-help">No survey loaded.</p>
+        <div id="fleet-summary-rovers" class="fleet-summary-rovers" aria-label="Current fleet roster"></div>
+      </section>
+      <section class="fleet-panel" aria-labelledby="fleet-title">
+        <div class="section-heading"><i data-icon="truck"></i><h3 id="fleet-title">Fleet survey demo</h3><button id="refresh-fleet" class="icon-button" aria-label="Refresh fleet"><i data-icon="refresh-cw"></i></button></div>
+        <p class="field-help">Synthetic accelerated survey on the NASA HiRISE archive, 129 × 129 samples at 8.09 m spacing, about 1 km². Guardian ML flags risk; sector and assistance planning coordinate the simulated response.</p>
+        <div class="fleet-settings">
+          <div><label for="fleet-count">Rovers</label><select id="fleet-count"><option value="1">1 rover</option><option value="2">2 rovers</option><option value="3" selected>3 rovers</option><option value="4">4 rovers</option><option value="5">5 rovers</option><option value="6">6 rovers</option></select></div>
+          <div><label for="fleet-speed">Speed multiplier</label><input id="fleet-speed" type="number" min="1" max="120" step="1" value="60" inputmode="numeric" required></div>
+        </div>
+        <p class="field-help">Count and speed apply on Start or Reset. Speed is simulated time per wall-clock second.</p>
+        <div class="fleet-controls" aria-label="Fleet simulator controls"><button type="button" data-fleet-action="start"><i data-icon="play"></i>Start fleet</button><button type="button" data-fleet-action="stop"><i data-icon="square"></i>Stop fleet</button><button type="button" data-fleet-action="step"><i data-icon="step-forward"></i>Step fleet</button><button type="button" data-fleet-action="reset"><i data-icon="rotate-ccw"></i>Reset fleet</button></div>
+        <label for="fleet-target">Fault target</label><select id="fleet-target"><option value="">Awaiting fleet</option></select>
+        <label for="fleet-fault">Fault cause</label><select id="fleet-fault"><option value="dust">Dust</option><option value="low_texture">Low texture</option><option value="glare">Glare</option><option value="wheel_slip">Wheel slip</option><option value="sensor_drop">Sensor dropout</option><option value="nominal">Nominal / clear injection</option></select>
+        <button id="fleet-inject" type="button"><i data-icon="alert-triangle"></i>Apply fault to selected rover</button>
+        <p id="fleet-message" class="field-help" role="status">Uses the viewer connection and the token in Operator access.</p>
+        <details class="fleet-details"><summary>Rover details</summary><div id="fleet-rovers" class="card-list"><p class="muted">No fleet state loaded.</p></div></details>
+        <details class="fleet-details"><summary>Recent fleet events</summary><ol id="fleet-events" aria-label="Fleet simulation events"><li class="muted">No fleet events loaded.</li></ol></details>
+      </section>
       <h3 class="ruled-heading">Hold-out validation</h3>
       <dl id="guardian-validation"><div><dt>Active model</dt><dd id="guardian-model">—</dd></div><div><dt>Faults caught / total</dt><dd id="guardian-caught">—</dd></div><div><dt>Mean lead time</dt><dd id="guardian-validation-lead">—</dd></div><div><dt>False alarms</dt><dd id="guardian-false-alarms">—</dd></div><div><dt>Baseline F1</dt><dd id="guardian-baseline-f1">—</dd></div><div><dt>Retrained F1</dt><dd id="guardian-retrained-f1">—</dd></div><div><dt>Candidate model</dt><dd id="guardian-candidate">—</dd></div></dl>
       <p id="guardian-validation-note" class="field-help">No hold-out results loaded.</p>
       <button id="guardian-export" type="button" disabled><i data-icon="download"></i>Download active model</button>
-      <h3 class="ruled-heading">Operator access</h3>
-      <label for="producer-token">Producer token</label><input id="producer-token" type="password" autocomplete="off" spellcheck="false" placeholder="Paste producer token">
-      <p class="field-help">Kept in this input for simulator, labeling and model actions. Cleared on disconnect. Also authorizes session deletion.</p>
       <h3 class="ruled-heading">Rover simulator</h3><p class="field-help">Synthetic rover telemetry on archived HiRISE terrain.</p>
       <div class="guardian-controls" aria-label="Rover simulator controls"><button data-sim-action="start"><i data-icon="play"></i>Start</button><button data-sim-action="stop"><i data-icon="square"></i>Stop</button><button data-sim-action="step"><i data-icon="step-forward"></i>Step</button></div>
       <p id="sim-status" role="status">Simulator state unknown.</p>

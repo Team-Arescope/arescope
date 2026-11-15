@@ -419,12 +419,12 @@ a:focus-visible,button:focus-visible,[role="button"]:focus-visible{outline:2px s
     <div class="pad">
       <div class="r kick">NASA Space Apps Challenge 2026</div>
       <h1 class="r">ARESCOPE</h1>
-      <p class="r sub">One perception and failure-protection<br>module for Mars rovers.</p>
-      <div class="r tag">Every rover aware. Every failure caught early.</div>
-      <div class="r mission-role mono">ON THE ROVER · LIVE PERCEPTION + GUARDIAN</div>
+      <p class="r sub">Unified mission control<br>for Mars rovers.</p>
+      <div class="r tag">Shared terrain context and early risk warnings</div>
+      <div class="r mission-role mono">CENTRAL OVERSIGHT · DISTRIBUTED AUTONOMY BY DESIGN</div>
       <div class="r who">Team Arescope<br>Margarita G. · Timur I. · Ziyoda A. · Amir A. · Kausar A. · Dinakhmed S.</div>
     </div>
-    <aside class="speaker-notes" hidden data-seconds="15">0:00–0:15. Arescope is one perception and failure-protection module for Mars rovers. It maps the immediate surface and warns locally when tracking or traction starts to degrade.</aside>
+    <aside class="speaker-notes" hidden data-seconds="15">0:00–0:15. Arescope is a prototype for unified rover mission control. It brings terrain context, rover status and Guardian warnings into one operator view. The target architecture combines central oversight with distributed autonomy. Our current demonstration runs on Earth.</aside>
   </section>
 
   <!-- SLIDE 02: BACKSTORY -->
@@ -437,10 +437,10 @@ a:focus-visible,button:focus-visible,[role="button"]:focus-visible{outline:2px s
           <h2 class="r">Spirit stuck at Troy</h2>
           <div class="story-lines">
             <p class="r">A thin crust looked solid. Spirit’s wheels broke through into soft sand.</p>
-            <p class="r muted-line">The wheels began sinking on April 23. The rover never regained mobility.</p>
+            <p class="r muted-line">The wheels began sinking on April 23. Engineers suspended driving to study recovery options.</p>
           </div>
           <div class="r delay-signal"><strong>3–22 min</strong><span class="mono">Earth signal delay · one way</span></div>
-          <div class="r bridge">A rover needs onboard awareness<br>before Earth can respond.</div>
+          <div class="r bridge">Local risk awareness and Earth oversight<br>operate on different timescales.</div>
           <p class="r source-note"><a href="https://science.nasa.gov/photojournal/spirits-view-from-troy/" target="_blank" rel="noopener">NASA/JPL · Spirit at Troy, April 2009</a><br><a href="https://science.nasa.gov/blog/speaking-percys-language-how-to-talk-so-perseverance-will-listen/" target="_blank" rel="noopener">NASA · Mars communication delay</a></p>
         </div>
         <div class="r c troy-card" id="troyCard" role="button" tabindex="0" aria-pressed="false" aria-label="Toggle Troy diagram between historical trap and illustrative rover surface scan">
@@ -805,103 +805,104 @@ a:focus-visible,button:focus-visible,[role="button"]:focus-visible{outline:2px s
   <section class="slide" data-p="-215,355,.82,180" data-label="The Problem" aria-label="Slide 3: Real Mars hazards">
     <div class="pad">
       <div class="r kick">The problem</div>
-      <h2 class="r">Unmapped micro-terrain. Real hazards.</h2>
+      <h2 class="r">Rover risks and the operator’s view</h2>
       <div class="r hl"></div>
-      <p class="r lead">Orbital context cannot replace what a rover sees at its wheels.</p>
+      <p class="r lead">Mission decisions depend on reliable sensing and a clear view of each rover’s condition.</p>
       <div class="hazards">
         <div class="r c hazard"><div class="ch"><div class="ic"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 12m-2 0a2 2 0 1 0 4 0a2 2 0 1 0 -4 0"/><path d="M5 7h1a2 2 0 0 0 2 -2a1 1 0 0 1 1 -1h6a1 1 0 0 1 1 1a2 2 0 0 0 2 2h1a2 2 0 0 1 2 2v9a2 2 0 0 1 -2 2h-14a2 2 0 0 1 -2 -2v-9a2 2 0 0 1 2 -2"/></svg></div><b>Raised dust on optics</b></div><p>Coated lenses lose contrast and reliable surface points.</p></div>
         <div class="r c hazard"><div class="ch"><div class="ic"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M3 12h1M12 3v1M20 12h1M12 20v1M5.6 5.6l.7 .7M17.7 17.7l.7 .7M5.6 18.4l.7 -.7M17.7 6.3l.7 -.7"/></svg></div><b>Glare &amp; deep shadow</b></div><p>Lighting extremes hide the features used for tracking.</p></div>
         <div class="r c hazard"><div class="ch"><div class="ic"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 4h16v16h-16zM8 8h.01M16 8h.01M12 12h.01M8 16h.01M16 16h.01"/></svg></div><b>Low-texture terrain</b></div><p>Uniform sand offers few stable visual landmarks.</p></div>
         <div class="r c hazard"><div class="ch"><div class="ic"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="2"/><path d="M12 4v6M12 14v6M4 12h6M14 12h6"/></svg></div><b>Soft-sand wheel slip</b></div><p>Wheels turn while actual movement falls behind.</p></div>
         <div class="r c hazard"><div class="ch"><div class="ic"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 15l6 -6M7 10l-2 2a4 4 0 0 0 6 6l2 -2M11 8l2 -2a4 4 0 0 1 6 6l-2 2"/></svg></div><b>Sensor &amp; link drops</b></div><p>Missing frames or communications interrupt context.</p></div>
-        <div class="r c hazard warm"><div class="ch"><div class="ic"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l8 4v5c0 5 -4 8 -8 9c-4 -1 -8 -4 -8 -9v-5l8 -4"/><path d="M9 12l2 2l4 -4"/></svg></div><b>Warning before failure</b></div><p>Guardian watches the lead-up and recommends a recovery action.</p></div>
+        <div class="r c hazard warm"><div class="ch"><div class="ic"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l8 4v5c0 5 -4 8 -8 9c-4 -1 -8 -4 -8 -9v-5l8 -4"/><path d="M9 12l2 2l4 -4"/></svg></div><b>One incident workflow</b></div><p>Inspect degraded data, review Guardian warnings and validate each model update.</p></div>
       </div>
-      <p class="r foot">Mission Control supports the rover from Earth. Local protection cannot wait for a round trip.</p>
+      <p class="r foot">NASA terrain supplies context. Local captures and simulated faults remain distinct data sources.</p>
     </div>
-    <aside class="speaker-notes" hidden data-seconds="25">0:40–1:05. Name the five realistic failure modes. Emphasize dust on optics, visual tracking and traction. Earth Mission Control provides context and supervision while local warning stays on the rover.</aside>
+    <aside class="speaker-notes" hidden data-seconds="25">0:40–1:05. Explain realistic optical, tracking and traction failures. NASA rovers already have autonomous navigation. Arescope connects terrain context, degraded sensing, warnings and reviewed learning. Current Guardian inference runs in LAB. Source: NASA, Self-Driving Perseverance Takes the Wheel, https://www.nasa.gov/missions/mars-2020-perseverance/perseverance-rover/nasas-self-driving-perseverance-mars-rover-takes-the-wheel/ .</aside>
   </section>
 
-  <!-- SLIDE 04: MODULE AND TESTBED -->
-  <section class="slide" data-p="930,400,.75,0" data-label="Module & Mast Testbed" aria-label="Slide 4: The module and mast testbed">
+<!-- SLIDE 04: MISSION CONTROL AND SENSOR TESTBED -->
+  <section class="slide" data-p="930,400,.75,0" data-label="Mission Control & Testbed" aria-label="Slide 4: Mission Control and sensor-mast testbed">
     <div class="pad">
-      <div class="r kick">The module &amp; mast testbed</div>
-      <h2 class="r">One module around the rover</h2>
+      <div class="r kick">The system &amp; sensor testbed</div>
+      <h2 class="r">One mission view, from sensor to operator</h2>
       <div class="r hl"></div>
       <div class="module-grid">
-        <div class="r c"><div class="ch"><span class="lab">Perception</span><div class="ic"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l8 4.5v9l-8 4.5l-8 -4.5v-9l8 -4.5"/><path d="M12 12l8 -4.5M12 12v9M12 12l-8 -4.5"/></svg></div></div><b>3D Topography</b><p>Build a live local surface map around the rover, including rocks, slopes and traversed ground.</p></div>
-        <div class="r c"><div class="ch"><span class="lab">Surface context</span><div class="ic"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 12m-2 0a2 2 0 1 0 4 0a2 2 0 1 0 -4 0"/><path d="M5 7h1a2 2 0 0 0 2 -2a1 1 0 0 1 1 -1h6a1 1 0 0 1 1 1a2 2 0 0 0 2 2h1a2 2 0 0 1 2 2v9a2 2 0 0 1 -2 2h-14a2 2 0 0 1 -2 -2v-9a2 2 0 0 1 2 -2"/></svg></div></div><b>Real Color &amp; Textures</b><p>Keep real surface appearance with the geometry so Earth operators can inspect what changed.</p></div>
-        <div class="r c warm"><div class="ch"><span class="lab">Failure protection</span><div class="ic"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l8 4v5c0 5 -4 8 -8 9c-4 -1 -8 -4 -8 -9v-5l8 -4"/><path d="M9 12l2 2l4 -4"/></svg></div></div><b>Two-Loop Guardian</b><p><strong>Fast Loop on the rover:</strong> warn seconds ahead and suggest recovery.</p><p class="loop-line"><strong>Slow Loop on Earth:</strong> label incidents, retrain and validate.</p></div>
+        <div class="r c"><div class="ch"><span class="lab">Perception</span></div><b>Sensor-mast interface</b><p>Local geometry, surface appearance and motion telemetry describe the rover’s surroundings.</p></div>
+        <div class="r c"><div class="ch"><span class="lab">Earth operations</span></div><b>Arescope LAB</b><p>Operators inspect terrain context, carrier streams and incident history through one Mission Control interface.</p></div>
+        <div class="r c warm"><div class="ch"><span class="lab">Risk &amp; interpretation</span></div><b>Guardian + Copilot</b><p>Guardian estimates risk. Copilot explains supplied telemetry. Operators review incidents and model updates.</p></div>
       </div>
       <div class="r c testbed">
-        <div><div class="lab">Prototype today · sensor-mast testbed</div><b>Meta Quest 3S</b><p>Local 3D capture and compute as a stand-in for the rover’s sensor mast.</p></div>
-        <div><div class="lab">Prototype today · terrain &amp; fault replay</div><b>HiRISE rover simulator</b><p>Drive NASA terrain and inject dust, glare, slip or sensor drops.</p></div>
+        <div><div class="lab">Sensor-mast testbed</div><b>Meta Quest 3S</b><p>Cameras, depth and IMU in one prototype. Headset runtime validation is pending.</p></div>
+        <div><div class="lab">Synthetic terrain &amp; fault replay</div><b>HiRISE fleet simulation</b><p>Survey about 1 km² with 1–6 simulated rovers and coordinate inspection assistance.</p></div>
       </div>
-      <p class="r foot">Earth testbed + simulation today. Rover hardware integration and environmental validation come next.</p>
+      <p class="r foot">NASA HiRISE/MOLA provide archived context. Local captures retain their own coordinate frame.</p>
     </div>
-    <aside class="speaker-notes" hidden data-seconds="30">1:05–1:35. Present 3D topography, real color and the Two-Loop Guardian. Show Quest 3S as a rover sensor-mast testbed. Explain that the on-rover Fast Loop is the deployment design and current demonstrations use an Earth testbed and simulator. No flight-validation claim.</aside>
+    <aside class="speaker-notes" hidden data-seconds="30">1:05–1:35. Explain sensor input, Mission Control and risk interpretation. Quest 3S represents a sensor mast for Earth prototyping. The software and APK exist, while headset runtime validation is pending. NASA terrain, synthetic rover telemetry and Earth captures have separate provenance. Quest scans have not been georegistered into a shared planetary coordinate frame.</aside>
   </section>
 
-  <!-- SLIDE 05: SYSTEM PIPELINE -->
-  <section class="slide" data-p="855,-380,.66,0" data-label="System Pipeline" aria-label="Slide 5: Rover and Earth system pipeline">
+<!-- SLIDE 05: THREE AI LEVELS -->
+  <section class="slide" data-p="855,-380,.66,0" data-label="Three AI Levels" aria-label="Slide 5: Target architecture with three AI levels" data-architecture="target">
     <div class="pad">
-      <div class="r kick">System pipeline</div>
-      <h2 class="r">Rover to Earth. Learning back to rover.</h2>
+      <div class="r kick">Target architecture · three AI levels</div>
+      <h2 class="r">Three AI levels across the mission</h2>
       <div class="r hl"></div>
       <div class="f3 pipeline">
-        <div class="r c pulse-local" id="sub1"><div class="ch"><div class="ring">1</div><span class="lab">On the rover</span></div><b>Rover Sensor Module<br>&amp; Guardian Fast Loop</b><p>Map the local surface. Score risk from recent telemetry. Warn locally and suggest recovery.</p><div class="tg" id="tg1">Fast Loop always on · logs sync</div></div>
+        <div class="r c pulse-local" id="sub1" data-ai-level="1"><div class="ch"><div class="ring">1</div><span class="lab">Rover · target onboard</span></div><b>Protection<br>Guardian</b><p>Estimate risk from recent telemetry and recommend recovery within checked safety rules.</p><div class="tg" id="tg1">Today: LAB inference<br>Next: onboard deployment</div></div>
         <div class="r ar" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M5 12h14M15 16l4 -4M15 8l4 4"/></svg></div>
-        <div class="r c" id="sub2"><div class="ch"><div class="ring">2</div><span class="lab">On Earth</span><div class="ic"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M3.6 9h16.8M3.6 15h16.8M11.5 3a17 17 0 0 0 0 18M12.5 3a17 17 0 0 1 0 18"/></svg></div></div><b>Mission Control:<br>Arescope LAB</b><p>Combine rover scans and incident logs with <strong>NASA HiRISE &amp; MOLA archives</strong>. Operators review and label causes.</p><div class="tg" id="tg2">3–22 min one way · async review</div></div>
+        <div class="r c" id="sub2" data-ai-level="2"><div class="ch"><div class="ring">2</div><span class="lab">Rover / optional local station</span></div><b>Mission<br>coordination</b><p>Use terrain and rover status to propose survey tasks and assistance across a fleet.</p><div class="tg" id="tg2">Simulation now / field deployment next</div></div>
         <div class="r ar" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M5 12h14M15 16l4 -4M15 8l4 4"/></svg></div>
-        <div class="r c warm" id="sub3"><div class="ch"><div class="ring">3</div><span class="lab">Retrain + human-validated uplink</span><div class="ic"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 5a3 3 0 0 1 6 0v5a3 3 0 0 1 -6 0zM5 10a7 7 0 0 0 14 0M8 21h8M12 17v4"/></svg></div></div><b>Slow Loop<br>&amp; Voice Copilot</b><p>Retrain on Earth and compare hold-out results. A human approves each model uplink. Voice assists the operator using supplied telemetry.</p><div class="tg" id="tg3">Validated uplink · operator assistant</div></div>
+        <div class="r c warm" id="sub3" data-ai-level="3"><div class="ch"><div class="ring">3</div><span class="lab">Earth · Mission Control</span></div><b>Analysis<br>&amp; learning</b><p>Operators review incidents and validate model updates. Voice Copilot explains supplied telemetry.</p><div class="tg" id="tg3">Today: review + learning in LAB</div></div>
       </div>
-      <div class="r link-bar" id="linkBar"><div class="link-pills"><button type="button" class="link-pill on" data-link="live" aria-pressed="true">Link available</button><button type="button" class="link-pill" data-link="delay" aria-pressed="false">Link interrupted</button></div><p class="link-desc" id="linkDesc" aria-live="polite"><strong>Two loops, two timescales:</strong> the rover warns locally. Earth reviews incidents and validates model updates.</p></div>
+      <div class="r link-bar" id="linkBar"><div class="link-pills"><button type="button" class="link-pill on" data-link="live" aria-pressed="true">Earth link available</button><button type="button" class="link-pill" data-link="delay" aria-pressed="false">Earth link interrupted</button></div><p class="link-desc" id="linkDesc" aria-live="polite"><strong>Architecture illustration:</strong> telemetry and reviewed updates cross the Earth link. An uncrewed local station is optional.</p></div>
+      <p class="r foot" id="deployment-boundary" data-deployment="lab">Today Guardian runs in LAB. Onboard inference and a local compute station are planned.</p>
     </div>
-    <aside class="speaker-notes" hidden data-seconds="30">1:35–2:05. Trace the three stages. Click Link interrupted to demonstrate local warning continuing while logs and approved uplinks queue. Click Link available to restore the diagram. Fast Loop stays active in both states. Voice Copilot assists the Earth operator, not the rover’s safety-critical decisions.</aside>
+    <aside class="speaker-notes" hidden data-seconds="30">1:35–2:05. Describe protection, mission coordination and analysis with learning. Their deployment is the target architecture. A local station is an optional uncrewed compute hub. Click the Earth-link buttons as an architecture illustration only. Current Guardian inference runs in LAB. Onboard deployment, field coordination and interplanetary store-and-forward behavior require further implementation and tests. LLM suggestions require checked constraints and operator review.</aside>
   </section>
 
   <!-- SLIDE 06: WHAT WORKS TODAY -->
   <section class="slide" data-p="880,-400,.75,0" data-label="What Works Today" aria-label="Slide 6: Prototype evidence and hold-out metrics">
     <div class="pad">
       <div class="r kick">What works today · prototype evidence</div>
-      <h2 class="r">Live mapping + proactive protection</h2>
+      <h2 class="r">Demonstrated today</h2>
       <div class="r hl"></div>
       <div class="comparison">
-        <div class="r c"><div class="lab">Before · project baseline</div><b>Reactive Earth intervention</b><p>Static orbital maps only. Earth review follows a 3–22 min one-way signal delay.</p></div>
-        <div class="r c warm"><div class="lab">Now · current prototype</div><b>Live 3D + Two-Loop Guardian</b><p>Local risk warnings, incident replay and retraining on Earth with human approval.</p></div>
+        <div class="r c"><div class="lab">Deployed prototype</div><b>Survey and assist</b><p>Simulated rovers share coverage. Guardian flags risk and a coordinator dispatches an inspection rover.</p></div>
+        <div class="r c warm"><div class="lab">Operator review</div><b>Learn from incidents</b><p>Label an incident, retrain a candidate and compare hold-out results before human approval.</p></div>
       </div>
       <div class="metrics" aria-label="Guardian hold-out evaluation metrics">
-        <div class="r c metric"><span class="lab">Failures caught · hold-out</span><span class="metric-value" data-metric="GUARDIAN_CAUGHT">30 / 30</span></div>
-        <div class="r c metric"><span class="lab">Warning lead time · seconds</span><span class="metric-value" data-metric="GUARDIAN_LEAD">14.8 s</span></div>
-        <div class="r c metric"><span class="lab">False alarms · hold-out</span><span class="metric-value" data-metric="GUARDIAN_FALSE_ALARMS">11</span></div>
-        <div class="r c warm f1-bar"><span class="lab">Hold-out F1<br>Before / after retraining</span><span class="metric-value" data-metric="GUARDIAN_BEFORE_F1">89.5%</span><div class="r ar" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M5 12h14M15 16l4 -4M15 8l4 4"/></svg></div><span class="metric-value" data-metric="GUARDIAN_AFTER_F1">98.6%</span></div>
+        <div class="r c metric"><span class="lab">Adapted model · faults caught</span><span class="metric-value" data-metric="GUARDIAN_CAUGHT">30 / 30</span></div>
+        <div class="r c metric"><span class="lab">Mean warning lead time</span><span class="metric-value" data-metric="GUARDIAN_LEAD">14.8 s</span></div>
+        <div class="r c metric"><span class="lab">Nominal windows · false alarms</span><span class="metric-value" data-metric="GUARDIAN_FALSE_ALARMS">11 / 492</span></div>
+        <div class="r c warm f1-bar"><span class="lab">Synthetic hold-out macro F1<br>Before / after retraining</span><span class="metric-value" data-metric="GUARDIAN_BEFORE_F1">89.5%</span><div class="r ar" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M5 12h14M15 16l4 -4M15 8l4 4"/></svg></div><span class="metric-value" data-metric="GUARDIAN_AFTER_F1">98.6%</span></div>
       </div>
-      <p class="r foot">Synthetic hold-out (36 trajectories, 1,152 windows): caught 26→30/30 faults, micro-slip recall 0%→95.4% after 192 adaptation windows. Simulated Mars faults; no flight validation.</p>
+      <p class="r foot">Synthetic hold-out: 36 trajectories, 1,152 windows. Baseline caught 26/30 faults, adapted model 30/30 after 192 reviewed synthetic windows. No field or flight validation.</p>
     </div>
-    <aside class="speaker-notes" hidden data-seconds="40">2:05–2:45. Live demo: open the Arescope LAB link, start the HiRISE rover stream, inject dust or wheel slip and show the risk warning and recovery suggestion. Then show the incident, before/after hold-out evaluation and human approval step. If the service is unavailable, use the slide 5 link-state interaction and clearly call it a diagram. Read exact measured results only after Track 1 replaces the five tokens in both HTML files. Keep this comparison scoped to our project baseline, not existing NASA rover autonomy.</aside>
+    <aside class="speaker-notes" hidden data-seconds="40">2:05–2:45. Open Arescope LAB, start three simulated rovers and show coverage. Inject a fault: Guardian halts the affected rover and a coordinator sends a helper for inspection while another rover continues surveying. Coordination uses explicit policies and bounded A* search, with Guardian ML for risk. Show incident review and retraining. Activate a candidate only after operator review and explicit approval. These statistics describe the adapted model on a frozen synthetic hold-out, not the active production model or field tests. Lead time averages caught trajectories; false alarms count nominal windows. Use an honestly labeled recording if the live service fails.</aside>
   </section>
 
   <!-- SLIDE 07: IMPACT, ROADMAP AND CLOSING -->
   <section class="slide" data-p="835,345,1.02,0" data-label="Impact & Closing" aria-label="Slide 7: Impact, roadmap and AI use">
     <div class="pad">
       <div class="r kick">Impact &amp; roadmap</div>
-      <h2 class="r">Every rover aware. Every failure caught early.</h2>
+      <h2 class="r">Rover operations today, fleet autonomy next</h2>
       <div class="r hl"></div>
-      <p class="r lead impact-lead">Immediate value: earlier risk awareness for rovers. The same module can support terrestrial analog, search-and-rescue and geology robots.</p>
+      <p class="r lead impact-lead">A coordinated fleet runs in simulation today. Physical rover trials and an optional local station are the next deployment steps.</p>
       <div class="roadmap">
-        <div class="r c"><div class="lab">Now</div><b>Quest 3S mast + HiRISE</b><p>Live 3D and Guardian prototype on Earth.</p></div>
-        <div class="r c"><div class="lab">Next</div><b>Rover chassis trials</b><p>Test recovery actions and sensor robustness.</p></div>
-        <div class="r c warm"><div class="lab">Vision</div><b>Rover fleet protection</b><p>Shared incident learning across missions.</p></div>
+        <div class="r c"><div class="lab">Now · Earth prototype</div><b>Mission Control + Guardian</b><p>Fleet survey, inspection assistance and reviewed model updates.</p></div>
+        <div class="r c"><div class="lab">Next · physical validation</div><b>Rover chassis trials</b><p>Deploy Guardian onboard and test sensing and recovery procedures.</p></div>
+        <div class="r c warm"><div class="lab">Future deployment</div><b>Fleet + optional station</b><p>Coordinate rover tasks through a common mission view and local compute hub.</p></div>
       </div>
       <div class="r closing-row"><a class="demo-link" href="https://arescope.mrfenek.eu.cc" target="_blank" rel="noopener">arescope.mrfenek.eu.cc ↗</a><div class="team"><strong>Team Arescope</strong><br>Margarita G. · Timur I. · Ziyoda A.<br>Amir A. · Kausar A. · Dinakhmed S.</div></div>
-      <p class="r ai-note"><strong>AI Use:</strong> AI assists code and pitch drafting. Guardian uses ML, and Voice Copilot uses an LLM grounded in supplied telemetry. People review outputs and approve model uplinks. Simulated incidents support prototype evaluation.</p>
+      <p class="r ai-note"><strong>AI use:</strong> AI assisted code and pitch drafting. Guardian uses ML. Voice Copilot uses an LLM with supplied telemetry. Operators review outputs and approve model activation. Field deployment remains future work.</p>
     </div>
-    <aside class="speaker-notes" hidden data-seconds="15">2:45–3:00. Close on rover value today and terrestrial robot trials next. Point to the demo link and Team Arescope. Disclose AI-assisted development, ML Guardian and LLM operator assistance. Humans remain responsible for review and model uplinks.</aside>
+    <aside class="speaker-notes" hidden data-seconds="15">2:45–3:00. Close on the Earth prototype and the next physical rover trial. Field fleet autonomy and an optional local station are development goals. Simulated assistance is inspection at a standoff distance, not automatic repair. Terrestrial analog and field robotics are candidate test settings. Disclose AI-assisted development, Guardian ML and operator Copilot. People remain responsible for deployment approval.</aside>
   </section>
 </div>
 
 <div class="hud">
   <i class="a"></i><i class="b"></i><i class="c2"></i><i class="d"></i>
-  <span class="tl">ARESCOPE · ROVER GUARDIAN</span>
+  <span class="tl">ARESCOPE · ROVER MISSION CONTROL</span>
   <span class="tr" id="hudSlideTag">01 · OVERVIEW</span>
 </div>
 
@@ -1001,7 +1002,7 @@ if(troyCard){
   troyCard.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();toggleTroy(e)}});
 }
 
-// Slide 05: rover Fast Loop remains active in either Earth link state.
+// Slide 05 is a target-architecture illustration, not a live connection test.
 const linkBar=document.getElementById('linkBar'),linkDesc=document.getElementById('linkDesc');
 if(linkBar){
   linkBar.querySelectorAll('.link-pill').forEach(btn=>btn.addEventListener('click',e=>{
@@ -1011,14 +1012,14 @@ if(linkBar){
       const active=b===btn;b.classList.toggle('on',active);b.setAttribute('aria-pressed',String(active));
     });
     document.getElementById('sub1').classList.add('pulse-local');
-    document.getElementById('sub2').classList.toggle('awaiting',interrupted);
+    document.getElementById('sub2').classList.remove('awaiting');
     document.getElementById('sub3').classList.toggle('awaiting',interrupted);
-    document.getElementById('tg1').textContent=interrupted?'Fast Loop stays on · logs buffered':'Fast Loop always on · logs sync';
-    document.getElementById('tg2').textContent=interrupted?'Awaiting new rover logs':'3–22 min one way · async review';
-    document.getElementById('tg3').textContent=interrupted?'Approved uplink queued · Earth review':'Validated uplink · operator assistant';
+    document.getElementById('tg1').innerHTML=interrupted?'Design: onboard warning stays local':'Today: LAB inference<br>Next: onboard deployment';
+    document.getElementById('tg2').textContent=interrupted?'Design: local coordination continues':'Simulation now / field deployment next';
+    document.getElementById('tg3').textContent=interrupted?'Design: Earth transfer waits':'Today: review + learning in LAB';
     linkDesc.innerHTML=interrupted
-      ?'<strong>Local warning continues.</strong> Logs queue for Earth. No new uplink until the link returns.'
-      :'<strong>Two loops, two timescales:</strong> the rover warns locally. Earth reviews incidents and validates model updates.';
+      ?'<strong>Architecture illustration:</strong> onboard protection would continue. Earth-bound logs and updates would wait.'
+      :'<strong>Architecture illustration:</strong> telemetry and reviewed updates cross the Earth link. An uncrewed local station is optional.';
   }));
 }
 

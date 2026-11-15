@@ -7,7 +7,10 @@ the commit containing this document. No Unity/Android build is part of this roll
 ## Server layout
 
 - SSH account: `ubuntu`, port 22. Deployment credentials remain outside Git.
-- Release: `/opt/arescope-releases/v2-20261115-002532/services/`.
+- Copilot release: `/opt/arescope-releases/v2-20261115-002532/services/arescope-copilot`.
+- LAB fleet release: `/opt/arescope-releases/v2-fleet-20261115/services/arescope-lab`.
+  Its virtual environment links to the previous LAB release; keep that release
+  available while this environment is in use.
 - LAB: `arescope-lab.service`, system user `arescope-lab`, Python 3.12 virtual
   environment, one Uvicorn worker on `127.0.0.1:18965`.
 - Copilot: `arescope-copilot.service`, system user `arescope-copilot`, separate
@@ -115,3 +118,35 @@ Never restore environment backups into the repository or print them. Backend and
 static assets must roll back together. Returning to older code does not itself
 restore Guardian model state; database restoration is a separate, data-losing
 operator decision.
+
+## Fleet and camera update
+
+The follow-up release adds full vertical/horizontal camera orbit and a synthetic
+fleet survey with 1–6 rovers, coverage, trails and inspection assistance. It keeps
+the original single-rover simulator and Guardian benchmark fixtures unchanged.
+The mission coordinator uses Guardian ML outputs with explicit allocation policies
+and bounded A* routing. It does not use an LLM to drive motors or claim physical
+repair. See [fleet demonstration](FLEET_DEMO_RUNBOOK.md).
+
+Before cutover, the current LAB unit and an online database backup were saved under
+`/var/backups/arescope/v2-fleet-20261115/`. Only LAB's unit paths change; Copilot,
+credentials, storage paths and nginx remain in place. To revert this update, stop
+LAB, restore that directory's `arescope-lab.service`, reload systemd and start LAB.
+No database restoration is required for this code rollback. Avoid deleting the
+earlier release because the fleet environment still uses it.
+
+The complete fleet release passed **200 Python tests** on the target host and
+**17 Node tests** locally. A follow-up public HTTPS check passed **97 checks**,
+including static hashes, auth roles, WSS push, persistence and export. The change
+also fixes scoped cancellation during WebSocket disconnect cleanup: child tasks
+are drained under a cancellation shield, while genuine worker errors still
+propagate. Regression tests cover both behavior paths.
+
+Production Chrome passed **20 browser checks**, including positive/negative
+vertical orbit, camera reset, three projected markers, helper assignment and
+arrival, continued survey, WebGL status and ten desktop/mobile drawer bounds.
+The default view now looks down onto the terrain; fleet markers and coverage
+remain depth-tested. Legacy floating carrier cards hide in fleet view, and fleet
+frames do not automatically open an inspection window.
+[Browser evidence](qa/fleet-production-checks.json) and
+[production screenshot](qa/fleet-production-1440.png).

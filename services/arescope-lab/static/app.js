@@ -10,8 +10,10 @@
     guardianStatus: '/api/guardian/status', guardianModel: '/api/guardian/model',
     incidents: '/api/guardian/incidents?limit=30',
     label: id => `/api/guardian/incidents/${encodeURIComponent(id)}/label`,
-    retrain: '/api/guardian/retrain', deploy: '/api/guardian/deploy', simulator: '/api/sim/rover'
+    retrain: '/api/guardian/retrain', deploy: '/api/guardian/deploy', simulator: '/api/sim/rover', fleet: '/api/sim/fleet'
   };
+  const wrapAngle = angle => Math.atan2(Math.sin(angle), Math.cos(angle));
+  const fleetColors = ['#eeae76', '#80cdb5', '#8fbde7', '#c6a3df', '#d9ce86', '#ed9da7'];
   const bytes = n => n < 1024 ? `${n} B` : n < 1048576 ? `${(n / 1024).toFixed(1)} KiB` : `${(n / 1048576).toFixed(1)} MiB`;
   const date = at => new Date(at * 1000).toLocaleString();
   function node(tag, text, className) { const el = document.createElement(tag); if (text) el.textContent = text; if (className) el.className = className; return el; }
@@ -29,7 +31,7 @@
     constructor(canvas) {
       this.canvas = canvas;
       this.gl = canvas.getContext('webgl', {antialias: true, alpha: true});
-      this.yaw = -.5; this.pitch = -.8; this.zoom = 1; this.scale = 1.5; this.mode = 'polygonal';
+      this.yaw = -.5; this.pitch = .8; this.zoom = 1; this.scale = 1.5; this.mode = 'polygonal';
       if (!this.gl) throw new Error('3D rendering is unavailable in this browser.');
       const gl = this.gl;
       const compile = (type, source) => {
@@ -55,31 +57,34 @@
       this.program = gl.createProgram(); gl.attachShader(this.program, vs); gl.attachShader(this.program, fs); gl.linkProgram(this.program);
       if (!gl.getProgramParameter(this.program, gl.LINK_STATUS)) throw new Error('Terrain renderer could not start.');
       this.uniforms = Object.fromEntries(['yaw', 'pitch', 'zoom', 'aspect', 'elevation', 'color', 'line'].map(k => [k, gl.getUniformLocation(this.program, k)]));
-      this.buffers = Object.fromEntries(['points', 'triangles', 'minimal', 'polygonal'].map(k => [k, gl.createBuffer()]));
+      this.buffers = Object.fromEntries(['points', 'triangles', 'minimal', 'polygonal', 'fleet'].map(k => [k, gl.createBuffer()]));
       new ResizeObserver(() => this.draw()).observe(canvas);
       let drag = null;
-      canvas.addEventListener('pointerdown', e => { drag = [e.clientX, e.clientY]; canvas.setPointerCapture(e.pointerId); });
+      canvas.addEventListener('pointerdown', e => { if (e.button !== 0) return; canvas.focus({preventScroll: true}); drag = [e.clientX, e.clientY]; canvas.setPointerCapture(e.pointerId); });
       canvas.addEventListener('pointermove', e => {
         if (!drag) return;
-        this.yaw += (e.clientX - drag[0]) * .006; this.pitch = Math.max(-1.48, Math.min(-.15, this.pitch + (e.clientY - drag[1]) * .005));
+        this.yaw = wrapAngle(this.yaw + (e.clientX - drag[0]) * .006); this.pitch = wrapAngle(this.pitch + (e.clientY - drag[1]) * .005);
         drag = [e.clientX, e.clientY]; this.schedule();
       });
       canvas.addEventListener('pointerup', () => { drag = null; });
       canvas.addEventListener('pointercancel', () => { drag = null; });
+      canvas.addEventListener('lostpointercapture', () => { drag = null; });
       canvas.addEventListener('wheel', e => { e.preventDefault(); this.zoom = Math.max(.55, Math.min(2.3, this.zoom * Math.exp(-e.deltaY * .001))); this.schedule(); }, {passive: false});
       canvas.addEventListener('keydown', e => {
         if (e.key.toLowerCase() === 'r') this.reset();
-        else if (e.key === 'ArrowLeft') this.yaw -= .1;
-        else if (e.key === 'ArrowRight') this.yaw += .1;
-        else if (e.key === 'ArrowUp') this.pitch = Math.max(-1.48, this.pitch - .1);
-        else if (e.key === 'ArrowDown') this.pitch = Math.min(-.15, this.pitch + .1);
+        else if (e.key === 'ArrowLeft') this.yaw = wrapAngle(this.yaw - .1);
+        else if (e.key === 'ArrowRight') this.yaw = wrapAngle(this.yaw + .1);
+        else if (e.key === 'ArrowUp') this.pitch = wrapAngle(this.pitch - .1);
+        else if (e.key === 'ArrowDown') this.pitch = wrapAngle(this.pitch + .1);
+        else if (e.key === '+' || e.key === '=') this.zoom = Math.min(2.3, this.zoom * 1.1);
+        else if (e.key === '-' || e.key === '_') this.zoom = Math.max(.55, this.zoom / 1.1);
         else return;
         e.preventDefault(); this.schedule();
       });
       canvas.addEventListener('webglcontextlost', e => { e.preventDefault(); $('terrain-error').hidden = false; });
       canvas.addEventListener('webglcontextrestored', () => location.reload());
     }
-    reset() { this.yaw = -.5; this.pitch = -.8; this.zoom = 1; this.draw(); }
+    reset() { this.yaw = -.5; this.pitch = .8; this.zoom = 1; this.draw(); }
     schedule() { if (!this.pending) this.pending = requestAnimationFrame(() => { this.pending = 0; this.draw(); }); }
     load(data) {
       const {rows, cols} = data.grid, points = data.points, gl = this.gl;
@@ -87,6 +92,7 @@
       let lo = [Infinity, Infinity, Infinity], hi = [-Infinity, -Infinity, -Infinity];
       for (const p of points) p.forEach((v, k) => { lo[k] = Math.min(lo[k], v); hi[k] = Math.max(hi[k], v); });
       const extent = Math.max(hi[0] - lo[0], hi[2] - lo[2]);
+      this.data = data; this.center = lo.map((v, k) => (v + hi[k]) / 2); this.extent = extent;
       const normalized = points.flatMap(p => p.map((v, k) => (v - (lo[k] + hi[k]) / 2) * 2 / extent));
       const triangles = [], minimal = [], diagonals = [];
       for (let r = 0; r < rows; r++) for (let c = 0; c < cols; c++) {
@@ -104,16 +110,78 @@
         }
       }
       gl.bindBuffer(gl.ARRAY_BUFFER, this.buffers.points); gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(normalized), gl.STATIC_DRAW);
+      this.normalized = normalized;
       this.counts = {};
       for (const [name, indices] of Object.entries({triangles, minimal, polygonal: minimal.concat(diagonals)})) {
         gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, this.buffers[name]); gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, new Uint16Array(indices), gl.STATIC_DRAW); this.counts[name] = indices.length;
       }
-      this.draw();
+      this.setFleet(this.fleetState);
+    }
+    normalize(point, lift = 0) { return point.map((v, k) => (v - this.center[k] + (k === 1 ? lift : 0)) * 2 / this.extent); }
+    setFleet(state) {
+      this.fleetState = state; this.fleetGeometry = []; this.fleetAnchors = [];
+      // Fleet coordinates belong to the archived HiRISE frame, never MOLA or Quest local space.
+      if (this.data?.source !== 'nasa-pds-hirise' || state?.terrainSource !== this.data.source || state?.simulation !== true) { this.schedule(); return; }
+      const {rows, cols} = this.data.grid, points = this.data.points;
+      const surface = (x, z) => {
+        const c = Math.max(0, Math.min(cols - 1, (x - points[0][0]) / (points[1][0] - points[0][0])));
+        const r = Math.max(0, Math.min(rows - 1, (z - points[0][2]) / (points[cols][2] - points[0][2])));
+        const c0 = Math.min(cols - 2, Math.floor(c)), r0 = Math.min(rows - 2, Math.floor(r)), dx = c - c0, dz = r - r0;
+        const a = r0 * cols + c0;
+        return points[a][1] * (1 - dx) * (1 - dz) + points[a + 1][1] * dx * (1 - dz) + points[a + cols][1] * (1 - dx) * dz + points[a + cols + 1][1] * dx * dz;
+      };
+      const batches = [], coverage = [], seen = new Set();
+      for (const cell of state.coverage?.cells || []) {
+        if (!Array.isArray(cell)) continue;
+        const [r, c] = cell, key = `${r}:${c}`;
+        if (!Number.isInteger(r) || !Number.isInteger(c) || r < 0 || c < 0 || r >= rows - 1 || c >= cols - 1 || seen.has(key)) continue;
+        seen.add(key);
+        const a = r * cols + c, b = a + 1, d = a + cols, e = d + 1;
+        // Match all four triangles of the terrain depth pass, including its cell centre.
+        const m = rows * cols + r * (cols - 1) + c;
+        for (const i of [a, b, m, b, e, m, e, d, m, d, a, m]) coverage.push(this.normalized[i * 3], this.normalized[i * 3 + 1] + .0015, this.normalized[i * 3 + 2]);
+      }
+      if (coverage.length) batches.push({vertices: coverage, mode: this.gl.TRIANGLES, color: '#347f6c'});
+      const validPoint = p => Array.isArray(p) && p.length === 3 && p.every(Number.isFinite);
+      for (const [i, rover] of (state.rovers || []).slice(0, 6).entries()) {
+        const color = fleetColors[i], trail = (rover.trail || []).filter(validPoint).flatMap(p => this.normalize(p, 1.2));
+        if (trail.length >= 6) batches.push({vertices: trail, mode: this.gl.LINE_STRIP, color});
+        if (!validPoint(rover.position)) continue;
+        const [x, y, z] = rover.position, heading = Number.isFinite(rover.headingDeg) ? rover.headingDeg * Math.PI / 180 : 0;
+        this.fleetAnchors.push({carrierId: rover.carrierId, position: this.normalize([x, y + 9, z])});
+        const vertex = (side, forward, height) => {
+          const px = x + Math.cos(heading) * side + Math.sin(heading) * forward;
+          const pz = z - Math.sin(heading) * side + Math.cos(heading) * forward;
+          return this.normalize([px, Math.max(y, surface(px, pz)) + height, pz]);
+        };
+        // Raised heading chevrons remain depth-tested against hills, just like their trails.
+        const tip = vertex(0, 18, 5), left = vertex(-11, -11, 5), right = vertex(11, -11, 5), mast = vertex(0, -2, 18);
+        batches.push({vertices: [...tip, ...left, ...mast, ...tip, ...mast, ...right, ...left, ...right, ...mast, ...tip, ...right, ...left], mode: this.gl.TRIANGLES, color});
+        if (rover.fault && rover.fault !== 'nominal') {
+          const ring = [];
+          for (let n = 0; n <= 24; n++) ring.push(...vertex(Math.cos(n * Math.PI / 12) * 22, Math.sin(n * Math.PI / 12) * 22, 4));
+          batches.push({vertices: ring, mode: this.gl.LINE_STRIP, color: '#f0a39a'});
+        }
+      }
+      const vertices = [];
+      for (const batch of batches) { this.fleetGeometry.push({mode: batch.mode, color: batch.color, first: vertices.length / 3, count: batch.vertices.length / 3}); for (const v of batch.vertices) vertices.push(v); }
+      this.gl.bindBuffer(this.gl.ARRAY_BUFFER, this.buffers.fleet); this.gl.bufferData(this.gl.ARRAY_BUFFER, new Float32Array(vertices), this.gl.DYNAMIC_DRAW);
+      this.schedule();
+    }
+    project(point) {
+      const [x, y, z] = point, cy = Math.cos(this.yaw), sy = Math.sin(this.yaw), cp = Math.cos(this.pitch), sp = Math.sin(this.pitch);
+      const rx = cy * x + sy * z, rz = -sy * x + cy * z;
+      const ry = cp * y * this.scale - sp * rz, depth = 3.8 / this.zoom - (sp * y * this.scale + cp * rz);
+      const nx = rx * 2.2 / (this.canvas.width / this.canvas.height) / depth, ny = ry * 2.2 / depth;
+      return {x: (nx + 1) * this.canvas.clientWidth / 2, y: (1 - ny) * this.canvas.clientHeight / 2, depth, inViewport: depth > .1 && depth < 100.1 && Math.abs(nx) <= 1 && Math.abs(ny) <= 1};
     }
     draw() {
+      this.canvas.dataset.pitch = String(this.pitch); this.canvas.dataset.yaw = String(this.yaw); this.canvas.dataset.zoom = String(this.zoom);
       if (!this.counts) return;
       const gl = this.gl, canvas = this.canvas, dpr = Math.min(devicePixelRatio || 1, 2);
       canvas.width = Math.max(1, Math.round(canvas.clientWidth * dpr)); canvas.height = Math.max(1, Math.round(canvas.clientHeight * dpr));
+      // Coordinates are CSS pixels relative to the canvas; depth testing still decides hill occlusion.
+      canvas.dataset.fleetMarkers = JSON.stringify((this.fleetAnchors || []).map(anchor => ({carrierId: anchor.carrierId, ...this.project(anchor.position)})));
       gl.viewport(0, 0, canvas.width, canvas.height); gl.clearColor(0, 0, 0, 0); gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
       gl.useProgram(this.program); gl.enable(gl.DEPTH_TEST); gl.depthFunc(gl.LEQUAL);
       const u = this.uniforms;
@@ -125,6 +193,13 @@
       gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, this.buffers.triangles); gl.drawElements(gl.TRIANGLES, this.counts.triangles, gl.UNSIGNED_SHORT, 0); gl.disable(gl.POLYGON_OFFSET_FILL);
       gl.uniform3f(u.color, .35, .18, .10); gl.uniform1f(u.line, 1);
       gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, this.buffers[this.mode]); gl.drawElements(gl.LINES, this.counts[this.mode], gl.UNSIGNED_SHORT, 0);
+      if (this.fleetGeometry?.length) {
+        gl.bindBuffer(gl.ARRAY_BUFFER, this.buffers.fleet); gl.vertexAttribPointer(attr, 3, gl.FLOAT, false, 0, 0);
+        for (const batch of this.fleetGeometry) {
+          gl.uniform3f(u.color, ...batch.color.match(/[a-f\d]{2}/gi).map(h => parseInt(h, 16) / 255));
+          gl.drawArrays(batch.mode, batch.first, batch.count);
+        }
+      }
       canvas.dataset.ready = 'true';
     }
   }
@@ -142,6 +217,7 @@
       $('terrain-caption').textContent = type === 'mola' ? 'MOLA regional archive · 118 km extent' : 'HiRISE local archive · 1.04 km extent';
       $('terrain-source').textContent = type === 'mola' ? 'NASA MGS / MOLA · 1.85 km step' : 'NASA MRO / HiRISE · 8.09 m display step';
       $('source-notes').textContent = type === 'mola' ? 'MOLA display grid: 65 × 65. About 118 km across, with a 1.85 km step. Regional altimetry from NASA MGS.' : 'HiRISE display grid: 129 × 129. About 1.04 km across, with an 8.09 m display step. Native spacing: 1.0117 m.';
+      if (fleetState) renderFleet(fleetState);
     } catch (e) { $('terrain-error').hidden = false; $('terrain-caption').textContent = e.message; }
   }
   $('terrain-select').addEventListener('change', loadTerrain);
@@ -153,13 +229,17 @@
 
   let token = '', socket = null, poll = null, reconnect = null, epoch = 0, activeScan = null;
   let guardianRequest = 0, guardianBusy = false, candidateReady = false, candidateVersion = null, incidentSnapshot = '';
+  let fleetState = null, fleetPoll = null, fleetRequest = 0, fleetBusy = false, fleetAvailable = null, fleetSnapshot = '';
   const incidentDrafts = new Map();
   const rooms = new Map();
   async function api(path, options = {}, producer = null) {
     const auth = producer === null ? token : producer;
     if (!auth) throw new Error(producer === null ? 'Connect a viewer first.' : 'Enter a producer token in Guardian.');
     const response = await fetch(path, {...options, cache: 'no-store', headers: {...options.headers, Authorization: `Bearer ${auth}`}});
-    if (!response.ok) throw new Error(response.status === 401 || response.status === 403 ? 'Token was not accepted for this action.' : response.status === 404 ? 'This item or service is not available.' : response.status === 409 ? 'Model state changed or validation is required. Refresh Guardian and review the candidate.' : 'Request could not be completed. Try again.');
+    if (!response.ok) {
+      const error = new Error(response.status === 401 || response.status === 403 ? 'Token was not accepted for this action.' : response.status === 404 ? 'This item or service is not available.' : response.status === 409 ? 'Model state changed or validation is required. Refresh Guardian and review the candidate.' : 'Request could not be completed. Try again.');
+      error.status = response.status; throw error;
+    }
     return response;
   }
   async function download(path, name) {
@@ -177,7 +257,132 @@
   const carrierName = frame => frame.carrierType === 'rover' ? 'Rover' : 'Mast testbed';
   const carrierKey = frame => frame.carrierId || frame.room;
   const archived = frame => String(frame.source || '').startsWith('archived-');
+  const fleetFrame = frame => frame.room === 'gale-fleet-sim' || (frame.source === 'simulated-rover' && /^fleet-rover-/.test(carrierKey(frame) || ''));
   const riskLevel = g => ['nominal', 'warning', 'critical'].includes(g?.riskLevel) ? g.riskLevel : 'unknown';
+  function updateFleetControls() {
+    const permitted = Boolean(token && $('producer-token').value.trim()) && !fleetBusy && fleetAvailable !== false;
+    document.querySelectorAll('[data-fleet-action]').forEach(b => { b.disabled = !permitted; });
+    for (const id of ['fleet-count', 'fleet-speed', 'fleet-fault']) $(id).disabled = !token || fleetBusy || fleetAvailable === false;
+    $('fleet-target').disabled = !token || fleetBusy || !fleetState?.rovers.length || fleetAvailable === false;
+    $('fleet-inject').disabled = !permitted || !fleetState?.rovers.some(r => r.carrierId === $('fleet-target').value);
+    $('refresh-fleet').disabled = !token || fleetBusy;
+  }
+  function resetFleet() {
+    clearTimeout(fleetPoll); fleetPoll = null; fleetRequest++; fleetState = null; fleetBusy = false; fleetAvailable = null; fleetSnapshot = '';
+    terrain?.setFleet(null); $('fleet-map').hidden = true; delete $('stage').dataset.fleet;
+    $('fleet-map-status').textContent = ''; $('fleet-map-rovers').replaceChildren();
+    $('fleet-summary').hidden = true; $('fleet-summary-rovers').replaceChildren();
+    $('fleet-status').textContent = 'Connect a viewer to follow the fleet.';
+    $('fleet-percent').textContent = '—'; $('fleet-coverage').value = 0; $('fleet-area').textContent = 'No survey loaded.';
+    $('fleet-rovers').replaceChildren(node('p', 'No fleet state loaded.', 'muted'));
+    $('fleet-events').replaceChildren(node('li', 'No fleet events loaded.', 'muted'));
+    const option = node('option', 'Awaiting fleet'); option.value = ''; $('fleet-target').replaceChildren(option);
+    $('fleet-count').value = '3'; $('fleet-speed').value = '60'; $('fleet-fault').value = 'dust';
+    $('fleet-message').textContent = 'Uses the viewer connection and the token in Operator access.'; updateFleetControls();
+  }
+  function renderFleet(state) {
+    if (state?.simulation !== true || state.terrainSource !== 'nasa-pds-hirise' || !Array.isArray(state.rovers) || state.rovers.length > 6 || !state.coverage || !Array.isArray(state.coverage.cells)) throw new Error('Fleet state could not be read. Refresh to try again.');
+    fleetState = state; fleetAvailable = true;
+    const coverage = state.coverage, percent = number(coverage.percent) ? Math.max(0, Math.min(100, coverage.percent)) : 0;
+    const summary = `${state.running ? 'Running' : 'Stopped'} · ${state.rovers.length} rovers · ${metric(state.speedMultiplier)}× · ${metric(state.elapsedS)} s simulated`;
+    $('fleet-status').textContent = summary; $('fleet-percent').textContent = metric(percent, 1, '%'); $('fleet-coverage').value = percent;
+    $('fleet-area').textContent = `${metric(coverage.scannedCells)} / ${metric(coverage.totalCells)} cells · ${metric(coverage.areaM2 / 1000000, 3)} / ${metric(coverage.totalAreaM2 / 1000000, 2)} km²`;
+    $('fleet-summary').hidden = false;
+    $('fleet-map').hidden = false; $('stage').dataset.fleet = 'true';
+    $('fleet-map-status').textContent = `${state.running ? 'Running' : 'Stopped'} · ${metric(percent, 1, '%')} scanned · ${metric(state.speedMultiplier)}×`;
+    const mapOnHiRISE = $('terrain-select').value === 'hirise';
+    $('fleet-map-frame').textContent = mapOnHiRISE ? 'NASA HiRISE archive · Separate from Quest local scans' : 'Select HiRISE in View settings to see fleet geometry.';
+    const previous = $('fleet-target').value, ids = state.rovers.map(r => r.carrierId);
+    if (JSON.stringify(ids) !== JSON.stringify([...$('fleet-target').options].map(o => o.value))) {
+      $('fleet-target').replaceChildren(...ids.map(id => { const option = node('option', id); option.value = id; return option; }));
+      if (ids.includes(previous)) $('fleet-target').value = previous;
+    }
+    const snapshot = JSON.stringify([state.rovers, state.events, coverage.cells]);
+    if (snapshot !== fleetSnapshot) {
+      fleetSnapshot = snapshot; terrain?.setFleet(state); $('fleet-rovers').replaceChildren(); $('fleet-map-rovers').replaceChildren(); $('fleet-summary-rovers').replaceChildren();
+      state.rovers.forEach((rover, i) => {
+        const card = node('article', null, 'card fleet-rover'), color = fleetColors[i];
+        card.style.setProperty('--rover-color', color); card.dataset.rover = rover.carrierId; card.dataset.status = rover.status;
+        const title = node('h5'); title.append(node('span', null, 'rover-swatch'), document.createTextNode(rover.carrierId));
+        card.append(title, node('p', `${rover.status || 'waiting'} · Sector ${rover.assignedSector || '—'}`));
+        card.append(node('p', `${causeName(rover.fault)}${rover.targetId ? ` · Target ${rover.targetId}` : ''}`, rover.fault !== 'nominal' ? 'fleet-fault-note' : ''));
+        if (rover.guardian) card.append(node('p', `${riskText(rover.guardian)} · ${causeName(rover.guardian.predictedCause)}`, 'carrier-risk'));
+        $('fleet-rovers').append(card);
+        const key = node('span'); key.style.setProperty('--rover-color', color); key.append(node('i', null, 'rover-swatch'), document.createTextNode(`${rover.carrierId} · ${rover.status || 'waiting'}`)); $('fleet-map-rovers').append(key);
+        const summary = node('div'); summary.style.setProperty('--rover-color', color);
+        const name = node('span'); name.append(node('i', null, 'rover-swatch'), document.createTextNode(rover.carrierId));
+        summary.append(name, node('span', rover.status || 'waiting')); $('fleet-summary-rovers').append(summary);
+      });
+      if (!state.rovers.length) $('fleet-rovers').append(node('p', 'No rovers assigned.', 'muted'));
+      const events = [...new Map((Array.isArray(state.events) ? state.events : []).map(e => [e.id, e])).values()].sort((a, b) => (b.ts || 0) - (a.ts || 0)).slice(0, 12);
+      $('fleet-events').replaceChildren();
+      for (const event of events) {
+        const item = node('li'); item.dataset.event = String(event.id);
+        item.append(node('span', `${event.roverId || 'Fleet'}${event.targetId ? ` → ${event.targetId}` : ''} · ${String(event.type || 'event').replaceAll('_', ' ')}`, 'mono'), node('p', event.message || ''));
+        if (number(event.ts)) { const time = node('time', new Date(event.ts * 1000).toLocaleTimeString()); time.dateTime = new Date(event.ts * 1000).toISOString(); item.append(time); }
+        $('fleet-events').append(item);
+      }
+      if (!events.length) $('fleet-events').append(node('li', 'No fleet events recorded.', 'muted'));
+    }
+    updateFleetControls();
+  }
+  function fleetError(error) {
+    if (error.status === 404) {
+      fleetAvailable = false; $('fleet-message').textContent = 'Fleet demo is awaiting server support. Refresh fleet after the server update.';
+    } else $('fleet-message').textContent = `Fleet update paused. ${error.message}`;
+    updateFleetControls();
+  }
+  async function refreshFleet(force = false) {
+    if (!token || fleetBusy || (fleetAvailable === false && !force)) return;
+    const generation = epoch, request = ++fleetRequest;
+    try {
+      const data = await (await api(endpoints.fleet)).json();
+      if (generation !== epoch || request !== fleetRequest) return;
+      renderFleet(data); $('fleet-message').textContent = 'Synthetic survey · Guardian ML and planning coordinate the fleet.';
+    } catch (e) { if (generation === epoch && request === fleetRequest) fleetError(e); }
+  }
+  function startFleetPolling() {
+    clearTimeout(fleetPoll); const generation = epoch;
+    const tick = async () => {
+      if (!token || generation !== epoch) return;
+      await refreshFleet();
+      if (token && generation === epoch) fleetPoll = setTimeout(tick, 1000);
+    };
+    tick();
+  }
+  async function fleetAction(action) {
+    if (fleetBusy) return;
+    const producer = $('producer-token').value.trim(), generation = epoch;
+    if (!token || !producer) { $('fleet-message').textContent = 'Connect a viewer and enter the producer token in Guardian.'; return; }
+    const payload = {action};
+    if (action === 'start' || action === 'reset') {
+      if (!$('fleet-speed').reportValidity()) return;
+      const count = Number($('fleet-count').value), speedMultiplier = Number($('fleet-speed').value);
+      if (!Number.isInteger(count) || count < 1 || count > 6 || !Number.isInteger(speedMultiplier) || speedMultiplier < 1 || speedMultiplier > 120) return;
+      if (action === 'start' && count !== fleetState?.count && (fleetState?.elapsedS > 0 || fleetState?.rovers.some(r => r.guardian))) {
+        $('fleet-message').textContent = 'Use Reset fleet to change rover count after survey activity.'; return;
+      }
+      Object.assign(payload, {count, speedMultiplier});
+    }
+    if (action === 'fault') {
+      const roverId = $('fleet-target').value, fault = $('fleet-fault').value;
+      if (!fleetState?.rovers.some(r => r.carrierId === roverId) || !causes.includes(fault)) return;
+      Object.assign(payload, {roverId, fault});
+    }
+    fleetBusy = true; fleetRequest++; updateFleetControls(); $('fleet-message').textContent = 'Applying fleet command.';
+    try {
+      const data = await (await api(endpoints.fleet, {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(payload)}, producer)).json();
+      if (generation !== epoch) return;
+      if (data.ok !== true) throw new Error('Fleet command was not acknowledged.');
+      renderFleet(data.fleetState); $('fleet-message').textContent = 'Fleet command applied to the synthetic survey.'; refreshGuardian();
+    } catch (e) { if (generation === epoch) fleetError(e); }
+    finally { if (generation === epoch) { fleetBusy = false; updateFleetControls(); } }
+  }
+  $('refresh-fleet').addEventListener('click', () => refreshFleet(true));
+  document.querySelectorAll('[data-fleet-action]').forEach(b => b.addEventListener('click', () => fleetAction(b.dataset.fleetAction)));
+  $('fleet-inject').addEventListener('click', () => fleetAction('fault'));
+  $('fleet-target').addEventListener('change', updateFleetControls);
+  updateFleetControls();
   function telemetrySummary(frame) {
     const t = frame.telemetry || {};
     return `Points ${metric(t.pointCount ?? t.point_count ?? frame.pointCount ?? frame.points?.length)} · Slip ${number(t.slipRatio ?? t.slip_ratio) ? metric((t.slipRatio ?? t.slip_ratio) * 100, 0, '%') : '—'} · Contrast ${metric(t.lumaContrast ?? t.luma_contrast, 2)} · Pose jump ${metric(t.poseJumpM ?? t.pose_jump_m, 2, ' m')}`;
@@ -228,6 +433,7 @@
     $('guardian-deploy').disabled = !permitted || !candidateReady;
     $('refresh-guardian').disabled = !token || guardianBusy;
     $('guardian-export').disabled = !token;
+    updateFleetControls();
   }
   function renderValidation(status) {
     const current = status.currentMetrics;
@@ -339,12 +545,15 @@
     if (message.type === 'guardian_update') { if (!guardianBusy) refreshGuardian(); return; }
     if (Array.isArray(message.rooms)) {
       rooms.clear(); message.rooms.forEach(f => rooms.set(carrierKey(f), f));
-      if (message.rooms.length && !archived(activeScan || {})) showScan(message.rooms[message.rooms.length - 1]);
+      // Keep an explicitly inspected fleet rover current; new fleet frames never open a scan window.
+      const inspected = activeScan && fleetFrame(activeScan) ? message.rooms.find(f => carrierKey(f) === carrierKey(activeScan)) : null;
+      const automatic = inspected || [...message.rooms].reverse().find(f => !fleetFrame(f));
+      if (automatic && !archived(activeScan || {})) showScan(automatic);
       else if (!message.rooms.length && activeScan && !archived(activeScan)) { activeScan = null; $('live-overlay').hidden = true; }
     }
     else if (Array.isArray(message.points) && !archived(message)) {
       rooms.set(carrierKey(message), message);
-      if (!archived(activeScan || {})) showScan(message);
+      if (!archived(activeScan || {}) && (!fleetFrame(message) || (activeScan && carrierKey(activeScan) === carrierKey(message)))) showScan(message);
       $('live-message').textContent = `Receiving scans from ${carrierKey(message)}.`;
     } else return;
     renderRooms();
@@ -376,6 +585,7 @@
   function disconnect() {
     epoch++; token = ''; clearInterval(poll); clearTimeout(reconnect); poll = reconnect = null;
     if (socket) { socket.close(); socket = null; }
+    resetFleet();
     rooms.clear(); activeScan = null; renderRooms(); $('live-overlay').hidden = true;
     guardianRequest++; guardianBusy = false; candidateReady = false; candidateVersion = null; incidentSnapshot = ''; incidentDrafts.clear(); resetValidation();
     $('incident-list').replaceChildren(node('p', 'Connect a viewer to load incidents.', 'muted'));
@@ -393,7 +603,7 @@
     disconnect(); token = value; const generation = epoch; $('live-message').textContent = 'Checking viewer access.';
     try {
       const r = await api(endpoints.latest), data = await r.json(); if (generation !== epoch) return;
-      accept(data); $('disconnect').hidden = false; updateGuardianControls(); openSocket(generation);
+      accept(data); $('disconnect').hidden = false; updateGuardianControls(); openSocket(generation); startFleetPolling();
       await Promise.allSettled([refreshSessions(), refreshLogs(), refreshStats(), refreshGuardian()]);
     } catch (error) { if (generation === epoch) { disconnect(); $('live-message').textContent = error.message; } }
   });

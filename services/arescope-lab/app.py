@@ -19,6 +19,7 @@ import threading
 import time
 from typing import Literal
 
+import anyio
 from fastapi import Depends, FastAPI, HTTPException, Query, Request, WebSocket
 from fastapi.responses import FileResponse, Response
 from fastapi.staticfiles import StaticFiles
@@ -26,6 +27,7 @@ from starlette.concurrency import run_in_threadpool
 
 from arsm import InvalidMesh, parse_arsm
 from guardian import GuardianEngine
+from fleet_sim import FleetSimManager
 from rover_sim import CAUSES, RoverSimManager
 
 ROOT = Path(__file__).resolve().parent
@@ -539,6 +541,7 @@ def create_app(settings=None, clock=time.time):
         try:
             yield
         finally:
+            await fleet.stop()
             await simulator.stop()
 
     app = FastAPI(title="Arescope LAB", lifespan=lifespan, docs_url=None, redoc_url=None, openapi_url=None)
@@ -612,6 +615,29 @@ def create_app(settings=None, clock=time.time):
 
     simulator = RoverSimManager(ingest_simulated)
     app.state.simulator = simulator
+
+    def clear_fleet_windows(carrier_ids):
+        for carrier_id in carrier_ids:
+            live.telemetry_windows.pop(carrier_id, None)
+            live.frames.pop(carrier_id, None)
+        if carrier_ids:
+            live.broadcast(live.snapshot(clock()))
+
+    fleet = FleetSimManager(ingest_simulated, clock=clock, clear_windows=clear_fleet_windows)
+    app.state.fleet = fleet
+
+    @app.get("/api/sim/fleet", dependencies=[Depends(viewer)])
+    async def fleet_state():
+        async with fleet.lock:
+            return fleet.state()
+
+    @app.post("/api/sim/fleet", dependencies=[Depends(producer)])
+    async def sim_fleet(request: Request):
+        data = await json_object(request)
+        try:
+            return await fleet.control(data)
+        except ValueError as exc:
+            raise HTTPException(422, str(exc)) from None
 
     @app.post("/api/live/frame", dependencies=[Depends(producer)])
     async def frame(request: Request):
@@ -696,12 +722,18 @@ def create_app(settings=None, clock=time.time):
 
         tasks = [asyncio.create_task(send()), asyncio.create_task(receive())]
         try:
-            await asyncio.wait(tasks, return_when=asyncio.FIRST_COMPLETED)
+            done, _ = await asyncio.wait(tasks, return_when=asyncio.FIRST_COMPLETED)
+            for task in done:
+                task.result()
         finally:
             live.subscribers.discard(queue)
             for task in tasks:
                 task.cancel()
-            await asyncio.gather(*tasks, return_exceptions=True)
+            # Drain our children before propagating the request's cancellation.
+            # Otherwise gather can replace AnyIO's scoped cancellation with a
+            # child's untagged CancelledError during concurrent disconnect.
+            with anyio.CancelScope(shield=True):
+                await asyncio.gather(*tasks, return_exceptions=True)
 
     @app.get("/api/live/sessions", dependencies=[Depends(viewer)])
     def sessions(limit: int = 20):
